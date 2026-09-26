@@ -1,5 +1,6 @@
 import logging
 import os
+from functools import lru_cache
 from typing import Literal, Optional
 
 from openai import AsyncOpenAI
@@ -197,7 +198,14 @@ class CondensedStates(BaseModel):
     lines: list[str]
 
 
-client = AsyncOpenAI()
+@lru_cache(maxsize=1)
+def client() -> AsyncOpenAI:
+    """The OpenAI client, built on first use.
+
+    Built at import time it made every consumer of this package need an API key,
+    including the read-only export, which never calls the model.
+    """
+    return AsyncOpenAI()
 
 
 def system_prompt(profile: Profile) -> str:
@@ -238,7 +246,7 @@ async def parse_message(
     else:
         user_content = text
     try:
-        completion = await client.chat.completions.parse(
+        completion = await client().chat.completions.parse(
             model=MODEL,
             messages=[
                 {"role": "system", "content": system_prompt(profile)},
@@ -259,7 +267,7 @@ async def condense_states(items: list[tuple[str, str, str]]) -> list[str] | None
         for time, tag, description in items
     )
     try:
-        completion = await client.chat.completions.parse(
+        completion = await client().chat.completions.parse(
             model=MODEL,
             messages=[
                 {"role": "system", "content": CONDENSE_PROMPT},
