@@ -109,6 +109,12 @@ def init() -> None:
             conn.execute("ALTER TABLE events ADD COLUMN liquid INTEGER")
         if "water_fraction" not in columns:
             conn.execute("ALTER TABLE events ADD COLUMN water_fraction REAL")
+        if "subject" not in columns:
+            conn.execute("ALTER TABLE events ADD COLUMN subject TEXT")
+            conn.execute(
+                "UPDATE events SET subject = "
+                "(SELECT profile FROM chats WHERE chats.chat_id = events.chat_id)"
+            )
 
 
 def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile:
@@ -395,6 +401,11 @@ def unparsed_messages(limit: int = 20) -> list[sqlite3.Row]:
         )
 
 
+def _subject_of(conn: sqlite3.Connection, chat_id: int) -> str:
+    row = conn.execute("SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
+    return profiles.get(row["profile"] if row else None).key
+
+
 def _insert_events(
     conn: sqlite3.Connection,
     chat_id: int,
@@ -404,6 +415,7 @@ def _insert_events(
     events: list,
 ) -> None:
     is_recap = bool(_RECAP_RE.search(text))
+    subject = _subject_of(conn, chat_id)
     for event in events:
         if is_recap and event.type in ("water", "food"):
             logger.info("Skipping recap-derived %s event: %r", event.type, event.description)
@@ -435,10 +447,11 @@ def _insert_events(
                 continue
         conn.execute(
             "INSERT INTO events "
-            "(chat_id, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, description) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, description) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 chat_id,
+                subject,
                 message_id,
                 occurred_at.isoformat(),
                 care_day(occurred_at).isoformat(),
