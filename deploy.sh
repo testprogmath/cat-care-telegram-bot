@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-HOST="deploy@204.168.217.208"
-KEY="$HOME/.ssh/id_ed25519"
-REMOTE_DIR="~/apps/skrypka-telegram-bot"
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
+HOST="${DEPLOY_HOST:?set DEPLOY_HOST, e.g. deploy@203.0.113.10}"
+KEY="${DEPLOY_KEY:-$HOME/.ssh/id_ed25519}"
+REMOTE_DIR="${DEPLOY_DIR:-~/apps/skrypka-telegram-bot}"
 
 echo "==> Syncing files..."
 rsync -az --delete \
