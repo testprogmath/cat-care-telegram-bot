@@ -402,8 +402,13 @@ def unparsed_messages(limit: int = 20) -> list[sqlite3.Row]:
 
 
 def _subject_of(conn: sqlite3.Connection, chat_id: int) -> str:
+    """The animal an event belongs to, named as external contracts name it.
+
+    Deliberately the profile's subject_id and not its key: renaming a profile internally
+    must not change what a stored event says about whose history it is.
+    """
     row = conn.execute("SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
-    return profiles.get(row["profile"] if row else None).key
+    return profiles.get(row["profile"] if row else None).subject_id
 
 
 def _insert_events(

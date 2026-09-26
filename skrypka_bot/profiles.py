@@ -16,7 +16,20 @@ class Bands:
 
 @dataclass(frozen=True)
 class Profile:
+    """One animal: how to parse for it, what to aim for, and what to call it outside.
+
+    `key` is internal. It names the profile in configuration, in `chats.profile` and on
+    the command line, and renaming it is an ordinary refactor.
+
+    `subject_id` is not. It is the stable identifier this animal has in external data
+    contracts, it is stored on every event, and downstream systems key their own records
+    on it. Once CareDay records have been consumed anywhere, changing a subject_id is a
+    migration on both sides, never a rename. The two may hold the same string; that is a
+    coincidence of today's naming and not a rule.
+    """
+
     key: str
+    subject_id: str
     name: str
     title_markers: tuple[str, ...]
     aliases: tuple[str, ...]
@@ -38,6 +51,7 @@ def _goal(key: str, field: str, default: float) -> float:
 
 SKRIPA = Profile(
     key="skripa",
+    subject_id="skripa",
     name="Скрипа",
     title_markers=("скрип", "скрып"),
     aliases=("скрипа", "скрипка", "скрыпка"),
@@ -135,6 +149,7 @@ SKRIPA = Profile(
 
 CHIPUNYA = Profile(
     key="chipunya",
+    subject_id="chipunya",
     name="Чипуня",
     title_markers=("чипун", "чип"),
     aliases=("чипуня", "чип", "чипун"),

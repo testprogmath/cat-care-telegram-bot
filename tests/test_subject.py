@@ -1,12 +1,13 @@
 """Which animal an event belongs to must survive a later profile change."""
 
 import sqlite3
+from dataclasses import replace
 from datetime import datetime
 from types import SimpleNamespace
 
 import pytest
 
-from skrypka_bot import db
+from skrypka_bot import db, profiles
 
 
 @pytest.fixture
@@ -84,3 +85,35 @@ def test_migration_runs_once_and_leaves_later_rows_alone(fresh_db):
     db.set_profile(-1, "skripa")
     db.init()
     assert subjects(-1) == ["chipunya"]
+
+
+CONTRACTED_SUBJECT_IDS = {"skripa", "chipunya"}
+
+
+def test_subject_ids_are_frozen():
+    """These strings live in stored events and in downstream systems' own records.
+
+    Changing one is a migration on both sides. If this test fails because a profile was
+    renamed, the rename belongs on Profile.key, which nothing outside cat-care reads.
+    """
+    assert {p.subject_id for p in profiles.PROFILES.values()} == CONTRACTED_SUBJECT_IDS
+
+
+def test_renaming_a_profile_key_does_not_change_stored_identity(fresh_db, monkeypatch):
+    renamed = replace(profiles.CHIPUNYA, key="cat_two")
+    monkeypatch.setattr(profiles, "PROFILES", {**profiles.PROFILES, "cat_two": renamed})
+    monkeypatch.setattr(profiles, "CHIPUNYA", renamed)
+    db.upsert_chat(-1, "Чипуня")
+    with sqlite3.connect(db.DB_PATH) as conn:
+        conn.execute("UPDATE chats SET profile = 'cat_two' WHERE chat_id = -1")
+    db.save_message(-1, 99, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
+    assert subjects(-1) == ["chipunya"]
+
+
+def test_subject_id_is_what_gets_stored_not_the_key(fresh_db, monkeypatch):
+    """The two hold the same string today. The column must follow subject_id anyway."""
+    diverged = replace(profiles.CHIPUNYA, subject_id="chipunya-2019")
+    monkeypatch.setattr(profiles, "PROFILES", {**profiles.PROFILES, "chipunya": diverged})
+    db.upsert_chat(-1, "Чипуня")
+    db.save_message(-1, 98, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
+    assert subjects(-1) == ["chipunya-2019"]

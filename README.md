@@ -100,6 +100,66 @@ One bot, one animal per chat. A profile holds the names, clinical parsing rules,
 goals; `chats.profile` maps a chat to one. The profile is guessed from the chat title on the
 first message and can be changed with `/profile`.
 
+Each profile carries two identifiers, and the difference matters. `key` is internal: it names
+the profile in configuration and on the command line, and renaming it is an ordinary refactor.
+`subject_id` is external: it is stored on every event and downstream systems key their own
+records on it, so changing one is a migration on both sides rather than a rename. They happen
+to hold the same string today.
+
+## CareDay v1 export
+
+`care-export --subject chipunya --since 2026-09-19 --until 2026-09-27` writes one JSONL
+record per care day, for downstream clinical tooling. It reads the database and writes
+nothing. Identity of a record is `(source, subject_id, care_day)`; `content_hash` covers
+everything except `exported_at` and debug fields, with lists sorted, so it does not move
+when database row order does.
+
+The contract's one rule worth stating twice: **a null is not a zero.** The owner writes
+down what they notice, so every quantity here is a floor over what was recorded. Nothing
+was recorded means null.
+
+| Field | Meaning when null | Meaning when set |
+|---|---|---|
+| `food_kcal` | no feeding carried a usable calorie value | sum over feedings that did |
+| `water_drinking_ml` | no drinking recorded with a volume | sum of recorded volumes |
+| `water_from_food_ml` | no feeding recorded at all | water contributed by wet food, per product moisture |
+| `urinations_observed` | no urination recorded | how many were recorded |
+| `stools_observed` | no stool recorded | how many were recorded |
+
+A logged urination says nothing about whether the cat also defecated unobserved, so the
+two counts are independent: a day with three urinations and no stool record reports
+`stools_observed: null`, not zero.
+
+**Every requested day is emitted, including empty ones.** An empty record means nothing is
+currently recorded for that subject and day, not that nothing happened. It exists so a
+snapshot can empty a day that an earlier import filled, after a correction or a deletion
+in cat-care.
+
+`vomiting_asserted_absent` is the one negative the parser can establish, because the chat
+says so in as many words. No episode and no such statement stays unknown: empty
+`vomiting_episodes` with the flag false.
+
+The `*_fully_quantified` flags mean **all recorded events of that kind carried a number**,
+and nothing more. They are not a claim that the owner observed everything the cat ate or
+drank; cat-care cannot know that. `food_kcal_fully_quantified: true` alongside
+`food_events_recorded: 1` means exactly one feeding was noticed and it had a calorie value.
+
+Database row ids are not part of the contract. `--debug` adds `debug_event_refs` for
+looking things up by hand; deduplication and reparsing recreate those rows freely, so
+nothing downstream may depend on them.
+
+### Care day: known debt
+
+The boundary lives in two places. `db.care_day` stamps the `day` column at insert time
+using `_DAY_START_HOUR`, parsed once at import, and applies it to whatever datetime it is
+handed. The exporter recomputes the care day itself from the same constant, in the
+timezone named by `TIMEZONE`, on wall-clock time so the boundary holds across a
+daylight-saving change. Neither `db.DAY_START` as a string nor `TIMEZONE` is read by
+`db.py` at all, and the container's own clock is UTC.
+
+They agree today, checked over all 2709 stored events. They should eventually be one
+timezone-aware primitive rather than two implementations that happen to match.
+
 ## Running it
 
 ```bash
