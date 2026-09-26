@@ -1,95 +1,101 @@
-# Skrypka Telegram Bot
+# Cat Care Telegram Bot
 
-Бот для группового чата, который ведёт дневник ухода за кошкой: разбирает сообщения свободной формы (лекарства, вода, еда, состояние) через OpenAI API, складывает события в SQLite и присылает сводку за день.
+A care diary for a seriously ill cat, kept by the people who live with her.
 
-## Возможности
+Nobody types structured data at 3am. They type "gave 30 ml through the tube, she pulled
+free halfway" into the family group chat. This bot reads those messages, turns them into
+structured events, and answers the question the vet asks at every visit: how much did she
+actually eat and drink yesterday?
 
-- Читает все текстовые сообщения группы и извлекает события: лекарства с дозами, воду в мл, еду, состояние (сон/пробуждение и т.п.).
-- `/stats` — сводка за сегодня, `/stats 2026-08-03` — за конкретную дату.
-- `/left` — только вода и калории: сколько уже и сколько осталось.
-- `/risk` — прогноз на конец суток: куда выходим по еде и жидкости при текущем темпе.
-- `/week` — графики за неделю: вода, калории, туалет, температура.
-- Автоматическая сводка каждый день в заданное время (по умолчанию 23:00 Europe/Berlin).
-- Пауза на время стационара: см. ниже.
+Written to keep one cat alive through a feeding tube, then extended to a second cat in a
+second chat. Both are still using it.
 
-## Стационар (opname)
+## How it works
 
-Пока животное лежит в клинике, поить его дома некому, и напоминания о воде превращаются в шум.
-Поэтому слово «opname» или «опнаме» в любом сообщении чата ставит на паузу напоминания о воде и
-ежедневную автосводку. Бот подтверждает паузу сообщением.
+Every message in the group goes to an LLM with a per-animal prompt, and comes back as zero
+or more typed events: medication with dose, water in ml, food with calories, litter box,
+body temperature, general state. Events land in SQLite. Commands and the daily summary read
+from there.
 
-Пауза снимается сообщением о возвращении домой — «забрали», «домой», «выписали», «ontslag»,
-«naar huis» — или командой `/reminders on`. Состояние хранится в колонке `chats.paused_at` и
-переживает перезапуск, поэтому снять паузу нужно явно. Проверить: `/reminders`, поставить
-вручную: `/reminders off`.
+The interesting part is everything the prompt has to get right, because a diary that
+silently miscounts is worse than no diary:
 
-Разбор сообщений, `/stats`, `/left` и `/week` на паузе работают как обычно: дневник ведётся
-дальше, молчат только напоминания и автосводка.
+- **Offered is not eaten.** "Put down 12 g" creates no event. "Ate 6 g" does. For tube
+  feeds it inverts: "gave 30 ml through the tube" is an actual feed.
+- **Water comes from food too.** Each wet product carries its own moisture fraction from
+  the manufacturer's label, not a flat guess. 50 g of a pouch at 78.2% moisture is 39.1 ml
+  of water toward the daily goal.
+- **Recipes are not feeds.** "Diluted 50 g of pâté with 50 ml of water" describes
+  preparation. No event.
+- **Homographs bite.** In Russian, *вырвалась* means "struggled free" and *вырвало* means
+  "vomited". One letter apart, and vomiting is a reason to call the clinic tonight.
+- **Daily recaps are not intake.** A message summing up the day must not be counted again.
 
-## Оценка суток (только Скрипа)
+Each named product the cats actually eat is in the prompt with its label figures, so
+"32 kibbles" becomes 7.1 g becomes 28 kcal rather than a number made up on the spot.
 
-В конце сводки за сутки идёт блок «Оценка суток»: сколько набрано по еде и жидкости и как это
-читать. Пороги посчитаны под Скрипу 7.68 кг и живут в `skrypka_bot/profiles.py` (`Bands`):
+## Commands
 
-| | цель | 🟠 тревога | 🔴 серьёзная тревога | критично |
-|---|---|---|---|---|
-| Еда | 300–320 ккал | < 200 | < 150 | < 110 ккал двое суток подряд — веский аргумент за трубку |
-| Жидкость | 320–370 мл | < 250 | < 200 | < 150 мл или рвота — не ждать следующего дня |
+| | |
+|---|---|
+| `/stats` | today's diary, or `/stats 2026-08-03` for a given day |
+| `/left` | water and calories so far, and what remains |
+| `/risk` | end-of-day projection from the current pace |
+| `/week` | four charts: water, calories, litter box, temperature |
+| `/profile` | which animal this chat tracks |
+| `/reminders` | pause or resume water reminders |
 
-Рвота берётся из событий состояния; «вырвалась из рук» и «рвоты не было» за рвоту не считаются.
-Серия по калориям смотрит максимум на трое суток назад и обрывается на дне без записей.
+A summary is posted automatically at the day boundary. Water reminders fire every two hours
+between 09:00 and 23:00, and only when intake is behind the pace needed to reach the goal.
 
-Вердикты ставятся только за завершённые сутки. Пока сутки идут, `/stats` показывает цифры и цель
-без оценки: к середине дня любой набор ещё выглядит провальным. Прогноз на этот случай — `/risk`:
-он делит набранное на долю прошедшего активного окна 9:00–23:00 (в 16:00 прошла половина окна,
-значит текущие 120 ккал дают прогноз 240) и говорит, сколько добрать до порога и до цели. До 09:00
-прогноза нет, делить не на что.
+**Projection, not judgement.** Verdicts are only given for finished days. Halfway through
+any day every total looks like a disaster, so `/stats` shows bare numbers until midnight
+and `/risk` does the extrapolating: it divides intake by the fraction of the 09:00–23:00
+window that has passed.
 
-У Чипуни порогов нет: числа считались под другой вес и другую клиническую картину, поэтому блок
-оценки в его чате не показывается. Появятся его цифры — добавить их в профиль.
+**Hospital pause.** While the cat is admitted, nobody at home can offer her water, so
+reminders become noise. The word *opname* in any message pauses reminders and the daily
+summary; a message about coming home resumes them. Parsing keeps running throughout.
 
-## Несколько животных
+**Alarm thresholds** are per animal and live in `profiles.py`, derived from body weight and
+diagnosis. Below a threshold the daily summary says so in plain language. The second cat has
+none, because borrowing another animal's numbers would be worse than staying quiet.
 
-Один бот обслуживает несколько чатов, по одному животному на чат. Профиль животного (клички, клинические правила разбора, цели по воде и калориям) живёт в `skrypka_bot/profiles.py`, привязка чата к профилю — в колонке `chats.profile`.
+## Multiple animals
 
-Профиль угадывается по названию чата при первом сообщении: «Чипуня» → `chipunya`, всё остальное → `skripa`. Проверить и сменить вручную — `/profile`, например `/profile чипуня`. Смена профиля не переносит уже сохранённые события: они привязаны к чату, а не к животному.
+One bot, one animal per chat. A profile holds the names, clinical parsing rules, and daily
+goals; `chats.profile` maps a chat to one. The profile is guessed from the chat title on the
+first message and can be changed with `/profile`.
 
-## Настройка бота в Telegram
-
-1. Напишите [@BotFather](https://t.me/BotFather): `/newbot`, задайте имя и username — получите токен.
-2. Выключите privacy mode, иначе бот не увидит обычные сообщения группы: `/setprivacy` → выберите бота → `Disable`.
-3. Добавьте бота в группу.
-
-## Запуск локально
-
-```bash
-cp .env.example .env   # заполните TELEGRAM_BOT_TOKEN и OPENAI_API_KEY
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-set -a && source .env && set +a
-skrypka-bot
-```
-
-## Запуск на VPS (Docker)
+## Running it
 
 ```bash
-cp .env.example .env   # заполните токены
+cp .env.example .env   # fill in TELEGRAM_BOT_TOKEN and OPENAI_API_KEY
 docker compose up -d --build
 ```
 
-База данных лежит в `./data/skrypka.db` (примонтирована как volume, переживает пересборку контейнера).
+The database lives in `./data/`, mounted as a volume, and survives rebuilds. For local
+development without Docker, `pip install -e .` and run `skrypka-bot` with the same
+environment.
 
-## Конфигурация
+In BotFather, disable privacy mode for the bot, otherwise it never sees ordinary group
+messages.
 
-| Переменная | По умолчанию | Описание |
+`./deploy.sh` rsyncs to a VPS and restarts the container there. It needs `DEPLOY_HOST` set.
+
+## Configuration
+
+| Variable | Default | |
 |---|---|---|
-| `TELEGRAM_BOT_TOKEN` | — | токен от BotFather |
-| `OPENAI_API_KEY` | — | ключ OpenAI API |
-| `TIMEZONE` | `Europe/Berlin` | таймзона для дат и времени сводки |
-| `DAY_START` | `11:00` | граница суток и время ежедневной автосводки (сводка за прошедшие сутки) |
-| `SKRIPA_WATER_GOAL_ML` | `340` | дневная цель по воде для Скрипы, мл |
-| `SKRIPA_KCAL_GOAL` | `310` | дневная цель по калориям для Скрипы |
-| `CHIPUNYA_WATER_GOAL_ML` | `340` | дневная цель по воде для Чипуни, мл |
-| `CHIPUNYA_KCAL_GOAL` | `295` | дневная цель по калориям для Чипуни |
-| `DB_PATH` | `data/skrypka.db` | путь к базе SQLite |
-| `OPENAI_MODEL` | `gpt-5-mini` | модель для разбора сообщений |
+| `TELEGRAM_BOT_TOKEN` | — | from BotFather |
+| `OPENAI_API_KEY` | — | |
+| `OPENAI_MODEL` | `gpt-5-mini` | model used for parsing |
+| `TIMEZONE` | `Europe/Berlin` | |
+| `DAY_START` | `11:00` | day boundary, and the time the daily summary is posted |
+| `DB_PATH` | `data/skrypka.db` | |
+| `SKRIPA_WATER_GOAL_ML` `SKRIPA_KCAL_GOAL` | `340` `310` | daily goals, first cat |
+| `CHIPUNYA_WATER_GOAL_ML` `CHIPUNYA_KCAL_GOAL` | `340` `295` | daily goals, second cat |
+| `DEPLOY_HOST` `DEPLOY_KEY` `DEPLOY_DIR` | — | used by `deploy.sh` only |
+
+Python 3.11+, python-telegram-bot, APScheduler, matplotlib, SQLite. No ORM, no migrations
+framework: schema changes are `ALTER TABLE` guarded by a column check at startup.
