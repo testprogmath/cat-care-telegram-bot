@@ -34,6 +34,39 @@ silently miscounts is worse than no diary:
 Each named product the cats actually eat is in the prompt with its label figures, so
 "32 kibbles" becomes 7.1 g becomes 28 kcal rather than a number made up on the spot.
 
+### An example
+
+A synthetic message and the events the parser schema expects for it. This illustrates the
+output shape; it is not a recorded model response, and the chats are in Russian.
+
+> дала 30 мл Trovet через зонд, потом 10 мл воды
+> *(gave 30 ml of Trovet through the tube, then 10 ml of water)*
+
+```json
+[
+  {"type": "food", "feeding": "tube", "amount_ml": 30, "kcal": 20.7,
+   "liquid": true, "water_fraction": 0.87, "description": "Trovet через зонд, 30 мл"},
+  {"type": "water", "water_ml": 10, "description": "вода, 10 мл"}
+]
+```
+
+That message counts as 36.1 ml of water toward the daily goal: 10 ml drunk plus 26.1 ml from
+the food. The message "насыпала 12 г, не ест" (*put down 12 g, she is not eating*) produces
+no events at all.
+
+### What the code checks after the model
+
+The model's answer is not stored blindly. Before events reach the diary:
+
+- Food and water from a message that reads like a daily recap ("за сутки", "в сумме") are
+  discarded.
+- A single tube feed above 100 ml is rejected as implausible (`TUBE_MAX_SINGLE_ML`).
+- An exact figure in millilitres replaces a vague water estimate ("drank a little") logged
+  within five minutes of it, and a repeated report of the same feed within five minutes
+  keeps only the more detailed entry.
+- If the OpenAI call fails, the message is stored unparsed and retried every 15 minutes, so
+  an outage delays diary entries rather than losing them.
+
 ## Commands
 
 | | |
@@ -99,3 +132,24 @@ messages.
 
 Python 3.11+, python-telegram-bot, APScheduler, matplotlib, SQLite. No ORM, no migrations
 framework: schema changes are `ALTER TABLE` guarded by a column check at startup.
+
+## Tests
+
+```bash
+pip install -e '.[dev]'
+OPENAI_API_KEY=dummy pytest -q
+```
+
+The tests cover the deterministic parts: water from wet food, the care-day boundary, and
+Russian wording that has produced wrong entries before. CI runs them on Python 3.11 and
+3.12 and builds the Docker image. No test calls the model.
+
+## Limits
+
+- The classification rules above live in the prompt, so they are model judgements. No
+  automated test checks that a given message produces the right events.
+- Parsing is written for Russian-language chats. Messages in other languages are handled
+  only as far as the model follows the prompt.
+- One animal per chat, one running instance, one SQLite file.
+- The diary records what people report. It does not give medical advice, and the alarm
+  thresholds belong to one specific animal; they are not general clinical guidance.
