@@ -49,6 +49,20 @@ def _goal(key: str, field: str, default: float) -> float:
     return float(os.environ.get(f"{key.upper()}_{field}", default))
 
 
+_ROYAL_CANIN_SENSORY = (
+    'Royal Canin Sensory Smell (кусочки в соусе, пауч 85 г; в чате — "Sensory Smell", '
+    '"сенсори смелл", "RC Sensory") — по этикетке 852 ккал/кг и влажность 79.6%: '
+    'kcal = граммы × 0.852, amount_ml равен граммам, liquid true, water_fraction 0.796.\n'
+    'Royal Canin Sensory Taste (кусочки в соусе, пауч 85 г; "Sensory Taste", "сенсори тейст") '
+    '— по этикетке 861 ккал/кг и влажность 79.5%: kcal = граммы × 0.861, amount_ml равен '
+    'граммам, liquid true, water_fraction 0.795.\n'
+    'Royal Canin Sensory Feel (кусочки в соусе, пауч 85 г; "Sensory Feel", "сенсори фил") — '
+    'по этикетке 855 ккал/кг и влажность 79.6%: kcal = граммы × 0.855, amount_ml равен '
+    'граммам, liquid true, water_fraction 0.796. Если сказано просто "Sensory" без Smell, '
+    'Taste или Feel, считай по Smell: все три почти одинаковы.\n'
+)
+
+
 SKRIPA = Profile(
     key="skripa",
     subject_id="skripa",
@@ -115,6 +129,7 @@ SKRIPA = Profile(
         'Purina One Bifensis с лососем (zalm, "Purina One zalm", "Bifensis") — сухой корм, '
         '3.87 ккал/г: kcal = граммы × 3.87 по СЪЕДЕННОМУ количеству, liquid false, '
         'amount_ml и water_fraction не заполняй.\n'
+        + _ROYAL_CANIN_SENSORY +
         'Hill\'s Prescription Diet i/d Digestive Care, СУХОЙ — по этикетке 3934 ккал/кг: '
         'kcal = граммы × 3.934, liquid false, amount_ml и water_fraction не заполняй. Любое '
         '"Digestive Care", "GastroCare", "Intestinal Care", "i/d", "айди", "Hills" про '
@@ -196,19 +211,7 @@ CHIPUNYA = Profile(
         'Royal Canin Gastrointestinal, ветеринарный влажный (в чате — "Gastro Intestinal", "GI", '
         'тонкие ломтики в соусе, пауч 85 г) — по этикетке 966 ккал/кг и влажность 79.8%: '
         'kcal = граммы × 0.966, amount_ml равен граммам, liquid true, water_fraction 0.798.\n'
-        'Royal Canin Sensory Smell (кусочки в соусе, пауч 85 г; в чате — "Sensory Smell", '
-        '"сенсори смелл", "RC Sensory") — по этикетке 852 ккал/кг и влажность 79.6%: '
-        'kcal = граммы × 0.852, amount_ml равен граммам, liquid true, water_fraction 0.796.\n'
-        'Royal Canin Sensory Taste (кусочки в соусе, пауч 85 г; "Sensory Taste", "сенсори тейст") '
-        '— по этикетке 861 ккал/кг и влажность 79.5%: kcal = граммы × 0.861, amount_ml равен '
-        'граммам, liquid true, water_fraction 0.795.\n'
-        'Royal Canin Sensory Feel (кусочки в соусе, пауч 85 г; "Sensory Feel", "сенсори фил") — '
-        'по этикетке 855 ккал/кг и влажность 79.6%: kcal = граммы × 0.855, amount_ml равен '
-        'граммам, liquid true, water_fraction 0.796. Если сказано просто "Sensory" без Smell, '
-        'Taste или Feel, считай по Smell: все три почти одинаковы.\n'
-        'kcal = граммы × 0.852, amount_ml равен граммам, liquid true, water_fraction 0.796. '
-        'Sensory Taste и Sensory Feel из той же линейки — другие продукты с другими цифрами: '
-        'для них kcal и water_fraction не заполняй.\n'
+        + _ROYAL_CANIN_SENSORY +
         'Hill\'s Prescription Diet i/d Digestive Care, СУХОЙ — по этикетке 3934 ккал/кг: '
         'kcal = граммы × 3.934, liquid false, amount_ml и water_fraction не заполняй. Это тот '
         'самый мешок сухого корма, который стоит дома: любое "Digestive Care", "GastroCare", '
