@@ -17,19 +17,23 @@ def _feeding_labels(profile: Profile) -> dict[str, str]:
     return {"tube": "зонд", "self": profile.self_label}
 
 
-def _kcal_totals(food: list[sqlite3.Row]) -> tuple[float, dict[str, float], int]:
+def _kcal_totals(food: list[sqlite3.Row]) -> tuple[float, dict[str, float], int, int]:
     total = 0.0
     by_feeding = {"tube": 0.0, "self": 0.0}
-    uncounted = 0
+    unquantified = 0
+    gravy = 0
     for e in food:
         kcal = e["kcal"]
         if not kcal:
-            uncounted += 1
+            if e["liquid"] and e["amount_ml"]:
+                gravy += 1
+            else:
+                unquantified += 1
             continue
         total += kcal
         if e["feeding"] in by_feeding:
             by_feeding[e["feeding"]] += kcal
-    return total, by_feeding, uncounted
+    return total, by_feeding, unquantified, gravy
 
 
 def _kcal_split(by_feeding: dict[str, float], labels: dict[str, str]) -> str:
@@ -73,14 +77,18 @@ def _strip_kcal(text: str) -> str:
     return _KCAL_PAREN_RE.sub("", text).strip()
 
 
-def _plural_episodes(n: int) -> str:
+def _plural(n: int, one: str, few: str, many: str) -> str:
     if n % 100 in (11, 12, 13, 14):
-        return "эпизодов"
+        return many
     if n % 10 == 1:
-        return "эпизод"
+        return one
     if n % 10 in (2, 3, 4):
-        return "эпизода"
-    return "эпизодов"
+        return few
+    return many
+
+
+def _plural_episodes(n: int) -> str:
+    return _plural(n, "эпизод", "эпизода", "эпизодов")
 
 
 def _num(value: float) -> str:
@@ -97,9 +105,17 @@ def _uncounted_note(count: int) -> str:
     return f"плюс {count} {_plural_episodes(count)} без количества"
 
 
-def _kcal_details(by_feeding: dict[str, float], uncounted: int, labels: dict[str, str]) -> str:
-    parts = [p for p in (_kcal_split(by_feeding, labels), _uncounted_note(uncounted)) if p]
-    return ", ".join(parts)
+def _gravy_note(count: int) -> str:
+    if not count:
+        return ""
+    return f"плюс {count} {_plural(count, 'подливка', 'подливки', 'подливок')} без калорий, вода зачтена"
+
+
+def _kcal_details(
+    by_feeding: dict[str, float], unquantified: int, gravy: int, labels: dict[str, str]
+) -> str:
+    parts = (_kcal_split(by_feeding, labels), _uncounted_note(unquantified), _gravy_note(gravy))
+    return ", ".join(p for p in parts if p)
 
 
 def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) -> str:
@@ -112,7 +128,7 @@ def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) 
     food = [e for e in events if e["type"] == "food"]
     drink = sum(e["water_ml"] or 0 for e in events if e["type"] == "water")
     water = effective_water(events)
-    total_kcal, kcal_by_feeding, uncounted = _kcal_totals(food)
+    total_kcal, kcal_by_feeding, unquantified, gravy = _kcal_totals(food)
 
     lines = [
         header,
@@ -126,7 +142,7 @@ def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) 
         f"\n🍗 Калории: ~{_num(total_kcal)} из {kcal_goal:g} — "
         f"{_remaining(kcal_goal - total_kcal)}",
     ]
-    details = _kcal_details(kcal_by_feeding, uncounted, _feeding_labels(profile))
+    details = _kcal_details(kcal_by_feeding, unquantified, gravy, _feeding_labels(profile))
     if details:
         lines.append(f"  {details}")
     return "\n".join(lines)
@@ -353,13 +369,13 @@ async def render_summary(
             label = f" [{labels[feeding]}]" if feeding in labels else ""
             description = _strip_kcal(e["description"])
             lines.append(f"  {_time_of(e)} — {description}{kcal_note}{label}")
-        total_kcal, kcal_by_feeding, uncounted = _kcal_totals(food)
+        total_kcal, kcal_by_feeding, unquantified, gravy = _kcal_totals(food)
         if total_kcal:
             lines.append(
                 f"  Итого: ~{_num(total_kcal)} из {kcal_goal:g} ккал — "
                 f"{_remaining(kcal_goal - total_kcal)}"
             )
-            details = _kcal_details(kcal_by_feeding, uncounted, labels)
+            details = _kcal_details(kcal_by_feeding, unquantified, gravy, labels)
             if details:
                 lines.append(f"  {details}")
 
