@@ -19,7 +19,12 @@ def test_explicit_denial_does_not_count(row):
 
 
 def test_food_events_are_not_scanned_for_vomiting(row):
-    assert not summary.vomited([row(type="food", description="тошнит")])
+    assert not summary.vomited([row(type="food", description="вырвало")])
+
+
+@pytest.mark.parametrize("description", ["тошнит", "сохраняется тошнота", "подташнивает"])
+def test_nausea_is_not_vomiting(row, description):
+    assert not summary.vomited([row(type="state", description=description)])
 
 
 @pytest.mark.parametrize(
