@@ -9,7 +9,7 @@ from .profiles import Bands, Profile
 CONDENSE_THRESHOLD = 6
 STREAK_LOOKBACK_DAYS = 3
 
-_VOMIT_RE = re.compile(r"\bвырвало\b|\bрвот\w*|\bстошнил\w*|\bсрыгну\w*|\bтошнит\b", re.IGNORECASE)
+_VOMIT_RE = re.compile(r"\bвырвало\b|\bрвот\w*|\bстошнил\w*|\bсрыгну\w*", re.IGNORECASE)
 _NO_VOMIT_RE = re.compile(r"без рвоты|не вырвало|не стошнил\w*|рвоты (?:не было|нет)", re.IGNORECASE)
 
 
