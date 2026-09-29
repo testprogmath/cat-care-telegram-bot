@@ -147,11 +147,11 @@ SKRIPA = Profile(
         'что она подошла туда и легла.'
     ),
     water_goal_ml=_goal("skripa", "WATER_GOAL_ML", 340),
-    kcal_goal=_goal("skripa", "KCAL_GOAL", 310),
+    kcal_goal=_goal("skripa", "KCAL_GOAL", 250),
     kcal_bands=Bands(
         unit="ккал",
-        target_low=300,
-        target_high=320,
+        target_low=250,
+        target_high=250,
         alarm=200,
         severe=150,
         critical=110,
