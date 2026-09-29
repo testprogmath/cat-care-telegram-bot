@@ -182,10 +182,12 @@ def _verdict(bands: Bands, value: float) -> str:
 
 def _band_line(icon: str, label: str, bands: Bands, value: float, verdict: str = "") -> str:
     tail = f" — {verdict}" if verdict else ""
-    return (
-        f"  {icon} {label}: {_num(value)} {bands.unit} из "
-        f"{bands.target_low:g}–{bands.target_high:g}{tail}"
+    target = (
+        f"{bands.target_low:g}"
+        if bands.target_low == bands.target_high
+        else f"{bands.target_low:g}–{bands.target_high:g}"
     )
+    return f"  {icon} {label}: {_num(value)} {bands.unit} из {target}{tail}"
 
 
 def _plural_days(n: int) -> str:
