@@ -165,11 +165,11 @@ timezone-aware primitive rather than two implementations that happen to match.
 The admin API lets you inspect and fix diary rows that the parser got wrong. It runs as a
 second container, `api`, from the same image.
 
-The API listens on `127.0.0.1:8080` on the server only. Every request needs the token from
-`API_TOKEN`. To reach the API, open an SSH tunnel:
+The API listens on `127.0.0.1:8180` on the server only. Every request needs the token from
+`API_TOKEN`. To reach the API, open an SSH tunnel from your local port 8080:
 
 ```bash
-ssh -L 8080:127.0.0.1:8080 deploy@<host>
+ssh -L 8080:127.0.0.1:8180 deploy@<host>
 ```
 
 Then, from a second terminal:
@@ -245,7 +245,7 @@ API. It needs `DEPLOY_HOST` set.
 | `SKRIPA_WATER_GOAL_ML` `SKRIPA_KCAL_GOAL` | `340` `310` | daily goals, first cat |
 | `CHIPUNYA_WATER_GOAL_ML` `CHIPUNYA_KCAL_GOAL` | `340` `295` | daily goals, second cat |
 | `API_TOKEN` | — | required by the admin API, at least 32 characters |
-| `API_HOST` `API_PORT` | `127.0.0.1` `8080` | admin API listener; compose sets `API_HOST=0.0.0.0` inside the container and publishes the port on the host loopback only |
+| `API_HOST` `API_PORT` | `127.0.0.1` `8080` | admin API listener inside the container; compose sets `API_HOST=0.0.0.0` and publishes it as `127.0.0.1:8180` on the host |
 | `DEPLOY_HOST` `DEPLOY_KEY` `DEPLOY_DIR` | — | used by `deploy.sh` only |
 
 Python 3.11+, python-telegram-bot, APScheduler, matplotlib, SQLite. No ORM, no migrations
