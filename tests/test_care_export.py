@@ -18,18 +18,6 @@ DAY = date(2026, 9, 25)
 AFTER = datetime(2026, 9, 27, 12, 0, tzinfo=BERLIN)
 
 
-@pytest.fixture
-def chat(tmp_path, monkeypatch):
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")
-    monkeypatch.setenv("TIMEZONE", "Europe/Berlin")
-    monkeypatch.setenv("CARE_EXPORT_INSTANCE", "test-host")
-    monkeypatch.setattr(db, "_DAY_START_HOUR", 0)
-    monkeypatch.setattr(db, "_DAY_START_MINUTE", 0)
-    db.init()
-    db.upsert_chat(-1, "Чипуня")
-    return -1
-
-
 def event(type, at="12:00", **overrides):
     base = dict(type=type, name=None, dose=None, water_ml=None, kcal=None, feeding=None,
                 amount_ml=None, temp_c=None, liquid=None, water_fraction=None, time=None,

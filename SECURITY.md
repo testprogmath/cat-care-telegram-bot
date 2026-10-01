@@ -28,5 +28,7 @@ Anyone running a copy should know where the sensitive parts are.
 - **`deploy.sh` reads `DEPLOY_HOST` from the environment.** Do not hardcode a
   host back into the script.
 
-The bot accepts no inbound connections and runs no web server. It polls
-Telegram and writes to a local file.
+The bot itself accepts no inbound connections. It polls Telegram and writes to a
+local file. The admin API is the one listener: it binds to the host loopback
+only, requires a bearer token on every request, and records every change in
+`event_edits`. Reach it through an SSH tunnel. Do not publish its port.

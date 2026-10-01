@@ -2,6 +2,8 @@ import sqlite3
 
 import pytest
 
+from skrypka_bot import db
+
 COLUMNS = (
     "type",
     "description",
@@ -30,3 +32,15 @@ def row():
         ).fetchone()
 
     return make
+
+
+@pytest.fixture
+def chat(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setenv("TIMEZONE", "Europe/Berlin")
+    monkeypatch.setenv("CARE_EXPORT_INSTANCE", "test-host")
+    monkeypatch.setattr(db, "_DAY_START_HOUR", 0)
+    monkeypatch.setattr(db, "_DAY_START_MINUTE", 0)
+    db.init()
+    db.upsert_chat(-1, "Чипуня")
+    return -1
