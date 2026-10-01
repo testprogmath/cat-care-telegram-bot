@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -85,6 +86,15 @@ def init() -> None:
                 description TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_events_chat_day ON events (chat_id, day);
+            CREATE TABLE IF NOT EXISTS event_edits (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id  INTEGER NOT NULL,
+                edited_at TEXT NOT NULL,
+                action    TEXT NOT NULL,
+                before    TEXT NOT NULL,
+                after     TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_event_edits_event ON event_edits (event_id);
             """
         )
         chat_columns = {row["name"] for row in conn.execute("PRAGMA table_info(chats)")}
@@ -504,3 +514,114 @@ def events_in_range(chat_id: int, start: datetime, end: datetime) -> list[sqlite
             (chat_id, lo_day.isoformat(), hi_day.isoformat()),
         )
         return [r for r in rows if start <= datetime.fromisoformat(r["occurred_at"]) < end]
+
+
+EDITABLE_COLUMNS = (
+    "description",
+    "kcal",
+    "water_ml",
+    "amount_ml",
+    "water_fraction",
+    "name",
+    "liquid",
+    "feeding",
+    "occurred_at",
+    "day",
+)
+
+_EVENT_WITH_SOURCE = (
+    "SELECT e.*, m.text AS message_text FROM events e "
+    "LEFT JOIN messages m ON m.chat_id = e.chat_id AND m.message_id = e.message_id "
+    "WHERE e.id = ?"
+)
+
+
+def _event_with_source(conn: sqlite3.Connection, event_id: int) -> sqlite3.Row | None:
+    return conn.execute(_EVENT_WITH_SOURCE, (event_id,)).fetchone()
+
+
+def _log_edit(
+    conn: sqlite3.Connection,
+    event_id: int,
+    edited_at: datetime,
+    action: str,
+    before: dict,
+    after: dict | None,
+) -> None:
+    conn.execute(
+        "INSERT INTO event_edits (event_id, edited_at, action, before, after) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (
+            event_id,
+            edited_at.isoformat(),
+            action,
+            json.dumps(before, ensure_ascii=False),
+            None if after is None else json.dumps(after, ensure_ascii=False),
+        ),
+    )
+
+
+def event_by_id(event_id: int) -> sqlite3.Row | None:
+    with _connect() as conn:
+        return _event_with_source(conn, event_id)
+
+
+def list_events(
+    day: date, subject: str | None = None, event_type: str | None = None
+) -> list[sqlite3.Row]:
+    filters = [("day = ?", day.isoformat())]
+    if subject is not None:
+        filters.append(("subject = ?", subject))
+    if event_type is not None:
+        filters.append(("type = ?", event_type))
+    where = " AND ".join(clause for clause, _ in filters)
+    with _connect() as conn:
+        return list(
+            conn.execute(
+                f"SELECT * FROM events WHERE {where} ORDER BY occurred_at, id",
+                [value for _, value in filters],
+            )
+        )
+
+
+def update_event(
+    event_id: int, changes: dict[str, object], edited_at: datetime
+) -> sqlite3.Row | None:
+    unknown = set(changes) - set(EDITABLE_COLUMNS)
+    if unknown:
+        raise ValueError(f"not editable: {', '.join(sorted(unknown))}")
+    with _connect() as conn:
+        current = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+        if current is None:
+            return None
+        changed = {key: value for key, value in changes.items() if current[key] != value}
+        if changed:
+            assignments = ", ".join(f"{column} = ?" for column in changed)
+            conn.execute(
+                f"UPDATE events SET {assignments} WHERE id = ?",
+                [*changed.values(), event_id],
+            )
+            before = {column: current[column] for column in changed}
+            _log_edit(conn, event_id, edited_at, "update", before, changed)
+        return _event_with_source(conn, event_id)
+
+
+def delete_event(event_id: int, edited_at: datetime) -> sqlite3.Row | None:
+    with _connect() as conn:
+        row = _event_with_source(conn, event_id)
+        if row is None:
+            return None
+        conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+        stored = {key: row[key] for key in row.keys() if key != "message_text"}
+        _log_edit(conn, event_id, edited_at, "delete", stored, None)
+        return row
+
+
+def edits_for_event(event_id: int) -> list[sqlite3.Row]:
+    with _connect() as conn:
+        return list(
+            conn.execute(
+                "SELECT * FROM event_edits WHERE event_id = ? ORDER BY id DESC",
+                (event_id,),
+            )
+        )

@@ -160,6 +160,61 @@ daylight-saving change. Neither `db.DAY_START` as a string nor `TIMEZONE` is rea
 They agree today, checked over all 2709 stored events. They should eventually be one
 timezone-aware primitive rather than two implementations that happen to match.
 
+## Admin API
+
+The admin API lets you inspect and fix diary rows that the parser got wrong. It runs as a
+second container, `api`, from the same image.
+
+The API listens on `127.0.0.1:8080` on the server only. Every request needs the token from
+`API_TOKEN`. To reach the API, open an SSH tunnel:
+
+```bash
+ssh -L 8080:127.0.0.1:8080 deploy@<host>
+```
+
+Then, from a second terminal:
+
+```bash
+export API_TOKEN=...   # the same value as in .env
+AUTH="Authorization: Bearer $API_TOKEN"
+
+curl -H "$AUTH" 'http://127.0.0.1:8080/events?subject=chipunya'
+curl -H "$AUTH" 'http://127.0.0.1:8080/events?subject=skripa&day=2026-09-29&type=food'
+curl -H "$AUTH" http://127.0.0.1:8080/events/3029
+curl -H "$AUTH" -X PATCH -H 'content-type: application/json' \
+  -d '{"kcal": 8.6, "water_fraction": 0.795}' http://127.0.0.1:8080/events/3029
+curl -H "$AUTH" -X DELETE 'http://127.0.0.1:8080/events/2949?confirm=true'
+curl -H "$AUTH" http://127.0.0.1:8080/events/3029/edits
+```
+
+| Request | Result |
+|---|---|
+| `GET /events` | Rows of one care day: id, time, type, description, kcal, water, amount. The day is today unless you give `day`. `subject` and `type` filter. |
+| `GET /events/{id}` | Every column of one row, and the chat message it came from. |
+| `PATCH /events/{id}` | Sets `description`, `kcal`, `water_ml`, `amount_ml`, `water_fraction`, `name`, `liquid`, `feeding` or `occurred_at`. Send `null` to clear a field. |
+| `DELETE /events/{id}?confirm=true` | Deletes one row and returns it. Without `confirm=true` the API refuses. |
+| `GET /events/{id}/edits` | The history of changes to one row, newest first, also after a delete. |
+
+Rules:
+
+- Look up the id with `GET /events` right before a `PATCH` or `DELETE`. Row ids change
+  when the bot deduplicates or reparses a message.
+- `occurred_at` takes an ISO 8601 time. A time without an offset is read in `TIMEZONE`.
+  The API recomputes the care day from the new time.
+- The API stores values as you give them. It does not check that a value fits the type
+  of the row.
+- Every change writes the old and new values to `event_edits`. To undo a change, send a
+  `PATCH` with the `before` values from `/edits`.
+- The next `/stats` in the chat and the next `care-export` show the change at once.
+
+Generate the token once and put it in `.env`:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+The API does not start without a token of at least 32 characters.
+
 ## Running it
 
 ```bash
@@ -174,7 +229,8 @@ environment.
 In BotFather, disable privacy mode for the bot, otherwise it never sees ordinary group
 messages.
 
-`./deploy.sh` rsyncs to a VPS and restarts the container there. It needs `DEPLOY_HOST` set.
+`./deploy.sh` rsyncs to a VPS and restarts the containers there, the bot and the admin
+API. It needs `DEPLOY_HOST` set.
 
 ## Configuration
 
@@ -188,6 +244,8 @@ messages.
 | `DB_PATH` | `data/skrypka.db` | |
 | `SKRIPA_WATER_GOAL_ML` `SKRIPA_KCAL_GOAL` | `340` `310` | daily goals, first cat |
 | `CHIPUNYA_WATER_GOAL_ML` `CHIPUNYA_KCAL_GOAL` | `340` `295` | daily goals, second cat |
+| `API_TOKEN` | — | required by the admin API, at least 32 characters |
+| `API_HOST` `API_PORT` | `127.0.0.1` `8080` | admin API listener; compose sets `API_HOST=0.0.0.0` inside the container and publishes the port on the host loopback only |
 | `DEPLOY_HOST` `DEPLOY_KEY` `DEPLOY_DIR` | — | used by `deploy.sh` only |
 
 Python 3.11+, python-telegram-bot, APScheduler, matplotlib, SQLite. No ORM, no migrations
