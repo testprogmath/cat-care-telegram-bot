@@ -76,7 +76,7 @@ The model's answer is not stored blindly. Before events reach the diary:
 | `/left` | water and calories so far, and what remains; also sent as a reply to every message that adds calories |
 | `/risk` | end-of-day projection from the current pace |
 | `/week` | four charts: water, calories, litter box, temperature |
-| `/meds` | medications for the last seven days as a grid of doses per day; `/meds all` for the whole diary, `/meds 2026-09-01 2026-09-30` for a period |
+| `/meds` | medications for the last seven days as a grid of doses per day; `/meds all` for the whole diary, `/meds 2026-09-01 2026-09-30` for a period, both followed by a chart of doses over time |
 | `/autoleft` | turn the automatic `/left` reply on or off for this chat: `/autoleft off`, `/autoleft on` |
 | `/profile` | which animal this chat tracks |
 | `/reminders` | pause or resume water reminders |

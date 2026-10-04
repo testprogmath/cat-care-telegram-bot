@@ -16,6 +16,28 @@ FORMS = {
     "превомакс": "маропитант, инъекция",
 }
 
+NAMES_EN = {
+    "бупренорфин": "buprenorphine",
+    "кротакс": "Krotax",
+    "марбоцил": "Marbocyl",
+    "мелоксикам": "meloxicam",
+    "миратаз": "Mirataz",
+    "омепразол": "omeprazole",
+    "ондансетрон": "ondansetron",
+    "превомакс": "Prevomax",
+    "преднизолон": "prednisolone",
+    "серения": "Cerenia",
+    "сукральфат": "sucralfate",
+    UNNAMED: "not named",
+}
+
+FORMS_EN = {
+    "серения": "maropitant, tablets",
+    "превомакс": "maropitant, injection",
+}
+
+_UNITS_EN = (("мг", "mg"), ("мл", "ml"))
+
 _DECIMAL_COMMA_RE = re.compile(r"(?<=\d),(?=\d)")
 _NUMBER_UNIT_RE = re.compile(r"(?<=\d)(?=[^\d\s.,()/])")
 
@@ -36,11 +58,40 @@ def _label(drug: str) -> str:
     return f"{drug} ({form})" if form else drug
 
 
+def label_en(drug: str) -> str:
+    name = NAMES_EN.get(drug, drug)
+    form = FORMS_EN.get(drug)
+    return f"{name} ({form})" if form else name
+
+
+def dose_en(dose: str) -> str:
+    for ru, en in _UNITS_EN:
+        dose = dose.replace(ru, en)
+    return dose
+
+
+_AMOUNT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(мг|мл)?")
+
+
+def dose_amount(dose: str) -> float | None:
+    match = _AMOUNT_RE.match(dose)
+    return float(match.group(1)) if match else None
+
+
+def dose_unit(course: "Course") -> str | None:
+    for dose, _ in course.doses.most_common():
+        match = _AMOUNT_RE.match(dose)
+        if match and match.group(2):
+            return dose_en(match.group(2))
+    return None
+
+
 @dataclass
 class Course:
     drug: str
     days: Counter = field(default_factory=Counter)
     doses: Counter = field(default_factory=Counter)
+    doses_on: dict[date, set[str]] = field(default_factory=dict)
 
     @property
     def given(self) -> int:
@@ -59,8 +110,11 @@ def courses(rows: list[sqlite3.Row]) -> list[Course]:
     by_drug: dict[str, Course] = {}
     for row in rows:
         course = by_drug.setdefault(_drug(row), Course(_drug(row)))
-        course.days[date.fromisoformat(row["day"])] += 1
-        course.doses[normalise_dose(row["dose"]) or NO_DOSE] += 1
+        day = date.fromisoformat(row["day"])
+        dose = normalise_dose(row["dose"]) or NO_DOSE
+        course.days[day] += 1
+        course.doses[dose] += 1
+        course.doses_on.setdefault(day, set()).add(dose)
     return sorted(by_drug.values(), key=lambda c: (c.drug == UNNAMED, -c.last.toordinal(), c.drug))
 
 

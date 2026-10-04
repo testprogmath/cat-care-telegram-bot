@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import db, main, meds
+from skrypka_bot import charts, db, main, meds
 
 BERLIN = ZoneInfo("Europe/Berlin")
 TODAY = date(2026, 10, 4)
@@ -106,3 +106,29 @@ def test_an_empty_week_says_so(chat):
 )
 def test_other_arguments_are_refused(chat, args):
     assert main.render_meds(chat, args, TODAY) is None
+
+
+@pytest.mark.parametrize(
+    ("dose", "amount"),
+    [("6 мг", 6.0), ("0.06 мг (0.2 мл)", 0.06), ("1.3 мл", 1.3), (meds.NO_DOSE, None)],
+)
+def test_the_chart_reads_the_leading_amount_of_a_dose(dose, amount):
+    assert meds.dose_amount(dose) == amount
+
+
+@pytest.mark.parametrize(
+    ("drug", "label"),
+    [("превомакс", "Prevomax (maropitant, injection)"), ("сукральфат", "sucralfate"),
+     (meds.UNNAMED, "not named"), ("новое лекарство", "новое лекарство")],
+)
+def test_the_chart_names_drugs_in_english(drug, label):
+    assert meds.label_en(drug) == label
+
+
+def test_the_chart_is_a_png(chat):
+    given(chat, date(2026, 10, 1), 8, "бупренорфин", "0.06 мг (0.2 мл)")
+    given(chat, date(2026, 10, 1), 20, "бупренорфин", "0.06 мг (0.2 мл)")
+    given(chat, date(2026, 10, 2), 20, "миратаз")
+    rows = db.medications_in_days(chat, date(2026, 9, 1), TODAY)
+    png = charts.render_meds(rows, date(2026, 9, 1), TODAY, db.profile_for(chat))
+    assert png.startswith(b"\x89PNG")
