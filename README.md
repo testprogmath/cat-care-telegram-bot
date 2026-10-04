@@ -191,7 +191,7 @@ curl -H "$AUTH" http://127.0.0.1:8080/events/3029/edits
 |---|---|
 | `GET /events` | Rows of one care day: id, time, type, description, kcal, water, amount. The day is today unless you give `day`. `subject` and `type` filter. |
 | `GET /events/{id}` | Every column of one row, and the chat message it came from. |
-| `PATCH /events/{id}` | Sets `description`, `kcal`, `water_ml`, `amount_ml`, `water_fraction`, `name`, `liquid`, `feeding` or `occurred_at`. Send `null` to clear a field. |
+| `PATCH /events/{id}` | Sets `description`, `kcal`, `water_ml`, `amount_ml`, `water_fraction`, `name`, `dose`, `liquid`, `feeding` or `occurred_at`. Send `null` to clear a field. |
 | `DELETE /events/{id}?confirm=true` | Deletes one row and returns it. Without `confirm=true` the API refuses. |
 | `GET /events/{id}/edits` | The history of changes to one row, newest first, also after a delete. |
 
