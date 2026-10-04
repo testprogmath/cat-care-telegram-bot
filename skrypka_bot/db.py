@@ -523,6 +523,7 @@ EDITABLE_COLUMNS = (
     "amount_ml",
     "water_fraction",
     "name",
+    "dose",
     "liquid",
     "feeding",
     "occurred_at",

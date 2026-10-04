@@ -85,6 +85,7 @@ class EventPatch(BaseModel):
     amount_ml: float | None = None
     water_fraction: float | None = None
     name: str | None = None
+    dose: str | None = None
     liquid: bool | None = None
     feeding: str | None = None
     occurred_at: datetime | None = None

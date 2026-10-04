@@ -79,6 +79,11 @@ def test_patch_sets_and_clears_one_field(chat, client):
     assert body["description"] == "съел"
 
 
+def test_patch_corrects_a_medication_dose(chat, client):
+    event_id = saved(chat, "medication", name="серения", dose="6 гр")
+    assert client.patch(f"/events/{event_id}", json={"dose": "6 мг"}).json()["dose"] == "6 мг"
+
+
 def test_moving_an_event_recomputes_its_care_day(chat, client, monkeypatch):
     monkeypatch.setattr(db, "_DAY_START_HOUR", 11)
     event_id = saved(chat, "toilet", description="пописал")
