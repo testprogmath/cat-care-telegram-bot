@@ -71,6 +71,17 @@ class MedicationAdministration(Strict):
     note: str | None = None
 
 
+class FoodRefusal(Strict):
+    """Food the owner offered and the animal refused, as the owner reported it.
+
+    No record says nothing about appetite: it means no refusal was written down.
+    """
+
+    at: datetime
+    product: str | None = None
+    note: str | None = None
+
+
 class OwnerNote(Strict):
     """An owner-reported observation, normalised by cat-care's parser.
 
@@ -132,6 +143,7 @@ class CareDay(Strict):
     vomiting_episodes: list[VomitingEpisode]
     vomiting_asserted_absent: bool
     medications: list[MedicationAdministration]
+    food_refusals: list[FoodRefusal]
     notes: list[OwnerNote]
 
     debug_event_refs: list[int] | None = None
@@ -147,7 +159,7 @@ class CareDay(Strict):
         does not mean the same thing as the closed day with the same numbers.
         """
         payload = self.model_dump(mode="json", exclude=set(HASH_EXCLUDED))
-        for key in ("temperatures", "vomiting_episodes", "medications", "notes"):
+        for key in ("temperatures", "vomiting_episodes", "medications", "food_refusals", "notes"):
             payload[key] = sorted(payload[key], key=lambda item: json.dumps(item, sort_keys=True))
         return payload
 
@@ -329,6 +341,11 @@ def build_day(subject: str, day: date, rows: list[sqlite3.Row], tz: ZoneInfo, no
             )
             for r in rows
             if r["type"] == "medication"
+        ],
+        food_refusals=[
+            FoodRefusal(at=occurred_local(r, tz), product=r["name"], note=r["description"] or None)
+            for r in rows
+            if r["type"] == "refusal"
         ],
         notes=[
             OwnerNote(at=occurred_local(r, tz), kind=r["type"], text=r["description"])

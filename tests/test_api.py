@@ -84,6 +84,12 @@ def test_patch_corrects_a_medication_dose(chat, client):
     assert client.patch(f"/events/{event_id}", json={"dose": "6 мг"}).json()["dose"] == "6 мг"
 
 
+def test_patch_turns_a_state_into_a_refusal(chat, client):
+    event_id = saved(chat, "state", description="отказался от соуса Феликса")
+    body = client.patch(f"/events/{event_id}", json={"type": "refusal", "name": "felix sauce"}).json()
+    assert (body["type"], body["name"]) == ("refusal", "felix sauce")
+
+
 def test_moving_an_event_recomputes_its_care_day(chat, client, monkeypatch):
     monkeypatch.setattr(db, "_DAY_START_HOUR", 11)
     event_id = saved(chat, "toilet", description="пописал")
@@ -103,7 +109,10 @@ def test_liquid_is_stored_the_way_the_bot_stores_it(chat, client):
         assert conn.execute("SELECT liquid FROM events WHERE id = ?", (event_id,)).fetchone() == (None,)
 
 
-@pytest.mark.parametrize("body", [{"kcall": 5}, {"kcal": "ten"}, {}, {"occurred_at": None}])
+@pytest.mark.parametrize(
+    "body",
+    [{"kcall": 5}, {"kcal": "ten"}, {}, {"occurred_at": None}, {"type": None}, {"type": "snack"}],
+)
 def test_a_bad_patch_is_refused(chat, client, body):
     event_id = saved(chat, "food", kcal=10.0)
     assert client.patch(f"/events/{event_id}", json=body).status_code == 422

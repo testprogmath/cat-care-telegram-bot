@@ -21,7 +21,8 @@ The interesting part is everything the prompt has to get right, because a diary 
 silently miscounts is worse than no diary:
 
 - **Offered is not eaten.** "Put down 12 g" creates no event. "Ate 6 g" does. For tube
-  feeds it inverts: "gave 30 ml through the tube" is an actual feed.
+  feeds it inverts: "gave 30 ml through the tube" is an actual feed. "Would not touch the
+  Urinary Care" is a refusal, recorded with the product name and never counted as food.
 - **Water comes from food too.** Each wet product carries its own moisture fraction from
   the manufacturer's label, not a flat guess. 50 g of a pouch at 78.2% moisture is 39.1 ml
   of water toward the daily goal.
@@ -139,6 +140,10 @@ in cat-care.
 says so in as many words. No episode and no such statement stays unknown: empty
 `vomiting_episodes` with the flag false.
 
+`food_refusals` lists food the owner offered and the cat refused, with the product when the
+chat names it. It is never counted in `food_events_recorded`. An empty list means no refusal
+was written down, not that the cat ate everything offered.
+
 The `*_fully_quantified` flags mean **all recorded events of that kind carried a number**,
 and nothing more. They are not a claim that the owner observed everything the cat ate or
 drank; cat-care cannot know that. `food_kcal_fully_quantified: true` alongside
@@ -191,7 +196,7 @@ curl -H "$AUTH" http://127.0.0.1:8080/events/3029/edits
 |---|---|
 | `GET /events` | Rows of one care day: id, time, type, description, kcal, water, amount. The day is today unless you give `day`. `subject` and `type` filter. |
 | `GET /events/{id}` | Every column of one row, and the chat message it came from. |
-| `PATCH /events/{id}` | Sets `description`, `kcal`, `water_ml`, `amount_ml`, `water_fraction`, `name`, `dose`, `liquid`, `feeding` or `occurred_at`. Send `null` to clear a field. |
+| `PATCH /events/{id}` | Sets `type`, `description`, `kcal`, `water_ml`, `amount_ml`, `water_fraction`, `name`, `dose`, `liquid`, `feeding` or `occurred_at`. Send `null` to clear a field. |
 | `DELETE /events/{id}?confirm=true` | Deletes one row and returns it. Without `confirm=true` the API refuses. |
 | `GET /events/{id}/edits` | The history of changes to one row, newest first, also after a delete. |
 

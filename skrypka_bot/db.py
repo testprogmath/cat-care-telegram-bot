@@ -517,6 +517,7 @@ def events_in_range(chat_id: int, start: datetime, end: datetime) -> list[sqlite
 
 
 EDITABLE_COLUMNS = (
+    "type",
     "description",
     "kcal",
     "water_ml",

@@ -11,6 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict
 
 from . import db
+from .parser import EventType
 
 MIN_TOKEN_LENGTH = 32
 
@@ -79,6 +80,7 @@ class Event(EventSummary):
 class EventPatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    type: EventType | None = None
     description: str | None = None
     kcal: float | None = None
     water_ml: float | None = None
@@ -125,6 +127,8 @@ def patch_event(event_id: int, patch: EventPatch) -> Event:
     changes = patch.model_dump(exclude_unset=True)
     if not changes:
         raise HTTPException(status_code=422, detail="no fields to update")
+    if "type" in changes and changes["type"] is None:
+        raise HTTPException(status_code=422, detail="type cannot be null")
     if "liquid" in changes:
         changes["liquid"] = 1 if changes["liquid"] else None
     if "occurred_at" in changes:

@@ -332,6 +332,7 @@ async def render_summary(
     meds = [e for e in events if e["type"] == "medication"]
     water = [e for e in events if e["type"] == "water"]
     food = [e for e in events if e["type"] == "food"]
+    refused = [e for e in events if e["type"] == "refusal"]
     toilet = [e for e in events if e["type"] == "toilet"]
     states = [e for e in events if e["type"] == "state"]
     other = [e for e in events if e["type"] == "other"]
@@ -380,6 +381,11 @@ async def render_summary(
             details = _kcal_details(kcal_by_feeding, unquantified, gravy, labels)
             if details:
                 lines.append(f"  {details}")
+
+    if refused:
+        lines.append("\n🚫 Не стал есть:")
+        for e in refused:
+            lines.append(f"  {_time_of(e)} — {e['name'] or e['description']}")
 
     temperature = [e for e in events if e["type"] == "temperature"]
     if temperature:
