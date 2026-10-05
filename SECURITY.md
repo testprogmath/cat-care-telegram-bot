@@ -2,8 +2,9 @@
 
 ## Supported versions
 
-There are no releases. `main` is the only supported branch, and the running
-instance tracks it. Fixes go to `main`; nothing older is patched.
+Every merge to `main` is a tagged release, and the running instance runs the
+latest one. Only the latest release is supported. Fixes go to `main`; nothing
+older is patched.
 
 ## Reporting a vulnerability
 
@@ -27,6 +28,11 @@ Anyone running a copy should know where the sensitive parts are.
   SQLite file with no encryption. Treat a backup of it as personal data.
 - **`deploy.sh` reads `DEPLOY_HOST` from the environment.** Do not hardcode a
   host back into the script.
+- **The release workflow holds an SSH key to the server.** The key is stored in
+  the `production` environment, which only `main` can use. On the server the
+  key is limited with `restrict` and a forced command: it can run
+  `deploy/redeploy` with a tag name and nothing else. Do not give that key a
+  shell.
 
 The bot itself accepts no inbound connections. It polls Telegram and writes to a
 local file. The admin API is the one listener: it binds to the host loopback
