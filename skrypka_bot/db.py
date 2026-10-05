@@ -389,6 +389,14 @@ def save_message(
         _insert_events(conn, chat_id, message_id, sent_at, text, events)
 
 
+def message_added_kcal(chat_id: int, message_id: int) -> bool:
+    with _connect() as conn:
+        return conn.execute(
+            "SELECT 1 FROM events WHERE chat_id = ? AND message_id = ? AND type = 'food' AND kcal > 0",
+            (chat_id, message_id),
+        ).fetchone() is not None
+
+
 def store_reparsed(
     chat_id: int, message_id: int, sent_at: datetime, text: str, events: list
 ) -> None:
