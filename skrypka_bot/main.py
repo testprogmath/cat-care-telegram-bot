@@ -50,6 +50,7 @@ def help_text(profile: Profile) -> str:
         "Команды:\n"
         "/left — только вода и калории: сколько уже и сколько осталось. Приходит и сам, "
         "ответом на сообщение о еде с калориями\n"
+        "/autoleft off — не присылать /left после записи еды, /autoleft on — снова присылать\n"
         "/stats — сводка за текущие сутки\n"
         "/stats 2026-08-03 — сводка за сутки, начавшиеся в эту дату\n"
         "/stats 09:00 — сводка за сегодня, начиная с указанного часа\n"
@@ -70,6 +71,7 @@ def help_text(profile: Profile) -> str:
 
 BOT_COMMANDS = [
     ("left", "Вода и калории: сколько уже и сколько осталось"),
+    ("autoleft", "Сводка /left после записи еды: вкл или выкл"),
     ("stats", "Сводка за текущие сутки"),
     ("risk", "Прогноз на конец суток: еда и жидкость против порогов"),
     ("week", "Графики за неделю: вода, калории, туалет, температура"),
@@ -178,7 +180,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     db.save_message(chat.id, msg.message_id, sender, sent_at, text, events)
     if events:
         logger.info("Saved %d event(s) from message %s", len(events), msg.message_id)
-    if db.message_added_kcal(chat.id, msg.message_id):
+    if db.auto_left(chat.id) and db.message_added_kcal(chat.id, msg.message_id):
         await _send_progress(context.bot, chat.id, reply_to=msg.message_id)
 
 
@@ -362,6 +364,28 @@ async def reminders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await context.bot.send_message(chat.id, text)
 
 
+async def autoleft_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat = update.effective_chat
+    if chat is None:
+        return
+    arg = context.args[0].lower() if context.args else None
+    if arg in ("on", "вкл"):
+        db.set_auto_left(chat.id, True)
+    elif arg in ("off", "выкл"):
+        db.set_auto_left(chat.id, False)
+    elif arg is not None:
+        await context.bot.send_message(chat.id, "Формат: /autoleft, /autoleft on или /autoleft off")
+        return
+    if db.auto_left(chat.id):
+        text = (
+            "▶️ После каждой записи еды с калориями я отвечаю сводкой /left.\n"
+            "Выключить: /autoleft off"
+        )
+    else:
+        text = "⏸ Сводка /left после записи еды выключена.\nВключить: /autoleft on"
+    await context.bot.send_message(chat.id, text)
+
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     if update.effective_message and chat:
@@ -425,6 +449,7 @@ def main() -> None:
     )
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(CommandHandler("left", left_command))
+    app.add_handler(CommandHandler("autoleft", autoleft_command))
     app.add_handler(CommandHandler("risk", risk_command))
     app.add_handler(CommandHandler("week", week_command))
     app.add_handler(CommandHandler("profile", profile_command))

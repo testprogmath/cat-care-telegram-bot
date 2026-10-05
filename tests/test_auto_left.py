@@ -70,3 +70,35 @@ def test_a_feeding_with_calories_is_answered_with_the_progress(chat, monkeypatch
 )
 def test_a_message_without_new_calories_gets_no_reply(chat, monkeypatch, text, events):
     assert receive(chat, 2, text, events, monkeypatch) == []
+
+
+def autoleft(chat_id, *args):
+    bot = Bot()
+    update = SimpleNamespace(effective_chat=SimpleNamespace(id=chat_id))
+    asyncio.run(main.autoleft_command(update, SimpleNamespace(bot=bot, args=list(args))))
+    return [text for text, _ in bot.sent]
+
+
+def test_autoleft_off_stops_the_reply_for_that_chat_only(chat, monkeypatch):
+    assert autoleft(chat, "off") == ["⏸ Сводка /left после записи еды выключена.\nВключить: /autoleft on"]
+    assert receive(chat, 3, "съел 3 г сухариков", [food(kcal=11.1)], monkeypatch) == []
+    assert main.db.auto_left(-2)
+
+
+def test_autoleft_on_brings_the_reply_back(chat, monkeypatch):
+    autoleft(chat, "off")
+    assert autoleft(chat, "on") == [
+        "▶️ После каждой записи еды с калориями я отвечаю сводкой /left.\nВыключить: /autoleft off"
+    ]
+    assert len(receive(chat, 4, "съел 3 г сухариков", [food(kcal=11.1)], monkeypatch)) == 1
+
+
+def test_autoleft_without_an_argument_reports_the_setting(chat):
+    assert autoleft(chat) == [
+        "▶️ После каждой записи еды с калориями я отвечаю сводкой /left.\nВыключить: /autoleft off"
+    ]
+
+
+def test_autoleft_refuses_an_unknown_argument(chat):
+    assert autoleft(chat, "maybe") == ["Формат: /autoleft, /autoleft on или /autoleft off"]
+    assert main.db.auto_left(chat)
