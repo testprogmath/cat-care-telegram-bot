@@ -222,7 +222,7 @@ def test_days_with_nothing_recorded_are_still_exported(chat):
     assert not any([empty.food_kcal_fully_quantified, empty.water_drinking_fully_quantified,
                     empty.water_from_food_fully_quantified, empty.vomiting_asserted_absent])
     assert empty.temperatures == [] and empty.vomiting_episodes == []
-    assert empty.medications == [] and empty.notes == []
+    assert empty.medications == [] and empty.notes == [] and empty.food_refusals == []
     assert empty.content_hash and empty.subject_id == "chipunya"
 
 
@@ -299,6 +299,20 @@ def test_notes_carry_their_source_kind_and_stay_owner_reported(chat):
     record(chat, event("state", at="14:14", description="отказался от жидкого корма"))
     note = only().notes[0]
     assert note.kind == "state" and note.text == "отказался от жидкого корма"
+
+
+def test_a_refusal_is_exported_apart_from_food_and_notes(chat):
+    record(
+        chat,
+        event("refusal", at="09:30", name="royal canin urinary care", description="отказался от Urinary Care"),
+        event("refusal", at="12:00", description="отказался от корма"),
+    )
+    day = only()
+    assert [(r.at.strftime("%H:%M"), r.product, r.note) for r in day.food_refusals] == [
+        ("09:30", "royal canin urinary care", "отказался от Urinary Care"),
+        ("12:00", None, "отказался от корма"),
+    ]
+    assert (day.food_events_recorded, day.food_kcal, day.notes) == (0, None, [])
 
 
 def test_appointments_and_admin_events_are_not_notes(chat):

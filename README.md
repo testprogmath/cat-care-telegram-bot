@@ -140,6 +140,10 @@ in cat-care.
 says so in as many words. No episode and no such statement stays unknown: empty
 `vomiting_episodes` with the flag false.
 
+`food_refusals` lists food the owner offered and the cat refused, with the product when the
+chat names it. It is never counted in `food_events_recorded`. An empty list means no refusal
+was written down, not that the cat ate everything offered.
+
 The `*_fully_quantified` flags mean **all recorded events of that kind carried a number**,
 and nothing more. They are not a claim that the owner observed everything the cat ate or
 drank; cat-care cannot know that. `food_kcal_fully_quantified: true` alongside
