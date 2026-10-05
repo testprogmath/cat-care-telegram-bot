@@ -434,11 +434,16 @@ async def water_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
             logger.exception("Failed to send water reminder to chat %s", chat_id)
 
 
-def main() -> None:
+def configure_logging() -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+def main() -> None:
+    configure_logging()
     db.init()
 
     app = (
