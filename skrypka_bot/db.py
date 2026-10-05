@@ -103,6 +103,8 @@ def init() -> None:
             conn.execute("UPDATE chats SET profile = ?", (profiles.DEFAULT_KEY,))
         if "paused_at" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN paused_at TEXT")
+        if "auto_left" not in chat_columns:
+            conn.execute("ALTER TABLE chats ADD COLUMN auto_left INTEGER NOT NULL DEFAULT 1")
         message_columns = {row["name"] for row in conn.execute("PRAGMA table_info(messages)")}
         if "parsed" not in message_columns:
             conn.execute("ALTER TABLE messages ADD COLUMN parsed INTEGER")
@@ -187,6 +189,21 @@ def set_paused(chat_id: int, at: datetime | None) -> None:
             "INSERT INTO chats (chat_id, paused_at) VALUES (?, ?) "
             "ON CONFLICT (chat_id) DO UPDATE SET paused_at = excluded.paused_at",
             (chat_id, at.isoformat() if at else None),
+        )
+
+
+def auto_left(chat_id: int) -> bool:
+    with _connect() as conn:
+        row = conn.execute("SELECT auto_left FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
+    return row is None or bool(row["auto_left"])
+
+
+def set_auto_left(chat_id: int, on: bool) -> None:
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO chats (chat_id, auto_left) VALUES (?, ?) "
+            "ON CONFLICT (chat_id) DO UPDATE SET auto_left = excluded.auto_left",
+            (chat_id, 1 if on else 0),
         )
 
 
@@ -387,6 +404,14 @@ def save_message(
             logger.info("Message %s already processed, skipping events", message_id)
             return
         _insert_events(conn, chat_id, message_id, sent_at, text, events)
+
+
+def message_added_kcal(chat_id: int, message_id: int) -> bool:
+    with _connect() as conn:
+        return conn.execute(
+            "SELECT 1 FROM events WHERE chat_id = ? AND message_id = ? AND type = 'food' AND kcal > 0",
+            (chat_id, message_id),
+        ).fetchone() is not None
 
 
 def store_reparsed(

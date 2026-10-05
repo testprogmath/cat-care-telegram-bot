@@ -6,7 +6,7 @@ from datetime import date, datetime, time, timedelta
 from io import BytesIO
 from zoneinfo import ZoneInfo
 
-from telegram import Update
+from telegram import ReplyParameters, Update
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -48,7 +48,9 @@ def help_text(profile: Profile) -> str:
         "лекарства, вода, еда, состояние.\n\n"
         f"Сутки считаются с {db.DAY_START} до {db.DAY_START} следующего дня.\n\n"
         "Команды:\n"
-        "/left — только вода и калории: сколько уже и сколько осталось\n"
+        "/left — только вода и калории: сколько уже и сколько осталось. Приходит и сам, "
+        "ответом на сообщение о еде с калориями\n"
+        "/autoleft off — не присылать /left после записи еды, /autoleft on — снова присылать\n"
         "/stats — сводка за текущие сутки\n"
         "/stats 2026-08-03 — сводка за сутки, начавшиеся в эту дату\n"
         "/stats 09:00 — сводка за сегодня, начиная с указанного часа\n"
@@ -69,6 +71,7 @@ def help_text(profile: Profile) -> str:
 
 BOT_COMMANDS = [
     ("left", "Вода и калории: сколько уже и сколько осталось"),
+    ("autoleft", "Сводка /left после записи еды: вкл или выкл"),
     ("stats", "Сводка за текущие сутки"),
     ("risk", "Прогноз на конец суток: еда и жидкость против порогов"),
     ("week", "Графики за неделю: вода, калории, туалет, температура"),
@@ -177,6 +180,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     db.save_message(chat.id, msg.message_id, sender, sent_at, text, events)
     if events:
         logger.info("Saved %d event(s) from message %s", len(events), msg.message_id)
+    if db.auto_left(chat.id) and db.message_added_kcal(chat.id, msg.message_id):
+        await _send_progress(context.bot, chat.id, reply_to=msg.message_id)
 
 
 async def retry_unparsed(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -247,15 +252,20 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     db.note_bot_report(chat.id, sent.message_id, sent.date.astimezone(TIMEZONE), SUMMARY_MARKER)
 
 
+async def _send_progress(bot, chat_id: int, reply_to: int | None = None) -> None:
+    now = datetime.now(TIMEZONE)
+    day = db.care_day(now)
+    text = render_progress(db.events_for_day(chat_id, day), now, db.profile_for(chat_id))
+    reply = ReplyParameters(reply_to, allow_sending_without_reply=True) if reply_to else None
+    sent = await bot.send_message(chat_id, text, reply_parameters=reply)
+    db.note_bot_report(chat_id, sent.message_id, sent.date.astimezone(TIMEZONE), SUMMARY_MARKER)
+
+
 async def left_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     if chat is None:
         return
-    now = datetime.now(TIMEZONE)
-    day = db.care_day(now)
-    text = render_progress(db.events_for_day(chat.id, day), now, db.profile_for(chat.id))
-    sent = await context.bot.send_message(chat.id, text)
-    db.note_bot_report(chat.id, sent.message_id, sent.date.astimezone(TIMEZONE), SUMMARY_MARKER)
+    await _send_progress(context.bot, chat.id)
 
 
 async def risk_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -354,6 +364,28 @@ async def reminders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await context.bot.send_message(chat.id, text)
 
 
+async def autoleft_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat = update.effective_chat
+    if chat is None:
+        return
+    arg = context.args[0].lower() if context.args else None
+    if arg in ("on", "вкл"):
+        db.set_auto_left(chat.id, True)
+    elif arg in ("off", "выкл"):
+        db.set_auto_left(chat.id, False)
+    elif arg is not None:
+        await context.bot.send_message(chat.id, "Формат: /autoleft, /autoleft on или /autoleft off")
+        return
+    if db.auto_left(chat.id):
+        text = (
+            "▶️ После каждой записи еды с калориями я отвечаю сводкой /left.\n"
+            "Выключить: /autoleft off"
+        )
+    else:
+        text = "⏸ Сводка /left после записи еды выключена.\nВключить: /autoleft on"
+    await context.bot.send_message(chat.id, text)
+
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     if update.effective_message and chat:
@@ -417,6 +449,7 @@ def main() -> None:
     )
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(CommandHandler("left", left_command))
+    app.add_handler(CommandHandler("autoleft", autoleft_command))
     app.add_handler(CommandHandler("risk", risk_command))
     app.add_handler(CommandHandler("week", week_command))
     app.add_handler(CommandHandler("profile", profile_command))
