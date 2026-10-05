@@ -9,7 +9,11 @@ fi
 
 cd "$(dirname "$0")/.."
 git fetch --quiet --tags --force origin
-git -c advice.detachedHead=false checkout --quiet --force --detach "refs/tags/$tag"
+commit=$(git rev-parse --verify --quiet "refs/tags/$tag^{commit}") || {
+  echo "no such tag: $tag" >&2
+  exit 1
+}
+git -c advice.detachedHead=false checkout --quiet --force --detach "$commit"
 docker compose build --pull
 docker compose up -d
 docker compose ps
