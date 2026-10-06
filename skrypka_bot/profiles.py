@@ -45,6 +45,10 @@ class Profile:
     kcal_bands: Bands | None = None
     water_bands: Bands | None = None
 
+    def pick(self, she: str, he: str) -> str:
+        """The word that agrees with this animal: Скрипа is a she, Чипуня a he."""
+        return she if self.self_label == "сама" else he
+
 
 def _goal(key: str, field: str, default: float) -> float:
     return float(os.environ.get(f"{key.upper()}_{field}") or default)

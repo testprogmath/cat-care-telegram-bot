@@ -378,14 +378,14 @@ async def render_summary(
         drank = [e for e in water if e["feeding"] == "self"]
         given = [e for e in water if e["feeding"] == "tube"]
         if drank or given:
-            parts = [f"пила сама {len(drank)} {_plural(len(drank), 'раз', 'раза', 'раз')}"
+            parts = [f"{profile.pick('пила сама', 'пил сам')} {len(drank)} {_plural(len(drank), 'раз', 'раза', 'раз')}"
                      f" ({_num(sum(e['water_ml'] or 0 for e in drank))} мл)"]
             if given:
                 parts.append(f"дали {_num(sum(e['water_ml'] or 0 for e in given))} мл")
             lines.append("  " + ", ".join(parts))
         for e in water:
             ml = f"{e['water_ml']:g} мл" if e["water_ml"] else e["description"]
-            source = {"self": " (сама)", "tube": " (дали)"}.get(e["feeding"], "")
+            source = {"self": f" ({profile.self_label})", "tube": " (дали)"}.get(e["feeding"], "")
             lines.append(f"  {_time_of(e)} — {ml}{source}")
 
     if food:
