@@ -188,9 +188,12 @@ def verify_id_token(settings: Settings, id_token: str, nonce: str) -> dict:
     )
     if claims.get("nonce") not in (None, nonce):
         raise AuthError("nonce does not match")
-    if not isinstance(claims.get("id"), int):
-        raise AuthError("no Telegram user id in the token")
-    return claims
+    user_id = claims.get("id")
+    if isinstance(user_id, str) and user_id.isdigit():
+        user_id = int(user_id)
+    if not isinstance(user_id, int) or isinstance(user_id, bool):
+        raise AuthError(f"no Telegram user id in the token, claims present: {sorted(claims)}")
+    return {**claims, "id": user_id}
 
 
 def finish_login(settings: Settings, login_cookie: str | None, state: str, code: str) -> dict:
