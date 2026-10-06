@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 DB_PATH = Path(os.environ.get("DB_PATH", "data/skrypka.db"))
 FOOD_DEDUP_WINDOW = timedelta(minutes=5)
 MEDICATION_DEDUP_WINDOW = timedelta(minutes=10)
+LATE_REPORT_DAYS = 31
 WATER_DEDUP_WINDOW = timedelta(minutes=5)
 _AMOUNT_ML_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*мл", re.IGNORECASE)
 _AMOUNT_G_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:г|гр|грамм\w*)\b", re.IGNORECASE)
@@ -232,16 +233,35 @@ def message_seen(chat_id: int, message_id: int) -> bool:
         return row is not None
 
 
+def _event_day(sent_at: datetime, event) -> date | None:
+    named = getattr(event, "date", None)
+    if named:
+        try:
+            day, month = (int(part) for part in named.split(".")[:2])
+            stated = date(sent_at.year, month, day)
+            if stated > sent_at.date():
+                stated = date(sent_at.year - 1, month, day)
+        except ValueError:
+            return None
+        return stated if (sent_at.date() - stated).days <= LATE_REPORT_DAYS else None
+    days_ago = getattr(event, "days_ago", None)
+    if isinstance(days_ago, int) and 0 < days_ago <= 7:
+        return sent_at.date() - timedelta(days=days_ago)
+    return None
+
+
 def _event_time(sent_at: datetime, event) -> datetime:
+    day = _event_day(sent_at, event)
+    base = sent_at if day is None else sent_at.replace(year=day.year, month=day.month, day=day.day)
     mentioned = getattr(event, "time", None)
     if not mentioned:
-        return sent_at
+        return base
     try:
         hour, minute = (int(part) for part in mentioned.split(":"))
-        occurred = sent_at.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        occurred = base.replace(hour=hour, minute=minute, second=0, microsecond=0)
     except ValueError:
-        return sent_at
-    if occurred > sent_at + timedelta(minutes=5):
+        return base
+    if day is None and occurred > sent_at + timedelta(minutes=5):
         occurred -= timedelta(days=1)
     return occurred
 
