@@ -1,51 +1,124 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}{{ current.profile.name }}: {{ start.strftime('%d.%m') }}–{{ end.strftime('%d.%m') }}{% endblock %}
 {% block content %}
-<h1>{{ current.profile.name }}: {{ start.strftime('%d.%m') }}–{{ end.strftime('%d.%m.%Y') }}</h1>
+<div class="page-head">
+  <h1>{{ start.strftime('%d.%m') }} — {{ end.strftime('%d.%m.%Y') }}</h1>
+  <p class="sub">{{ (end - start).days + 1 }} дн.{% if recorded_days %} · с записями {{ recorded_days }}{% endif %}</p>
+</div>
 {% include "_period.html" %}
 <p class="pager">
-  <a href="?from={{ previous[0].isoformat() }}&amp;to={{ previous[1].isoformat() }}">← раньше</a>
-  {% if not is_current %}<a href="?from={{ following[0].isoformat() }}&amp;to={{ following[1].isoformat() }}">позже →</a> <a href="?">последние 7 дней</a>{% endif %}
+  <a href="?from={{ previous[0].isoformat() }}&amp;to={{ previous[1].isoformat() }}">{{ icon('left') }}<span>{{ previous[0].strftime('%d.%m') }}–{{ previous[1].strftime('%d.%m') }}</span></a>
+  {% if not is_current %}<a href="?from={{ following[0].isoformat() }}&amp;to={{ following[1].isoformat() }}"><span>{{ following[0].strftime('%d.%m') }}–{{ following[1].strftime('%d.%m') }}</span>{{ icon('right') }}</a>{% endif %}
 </p>
-<div class="scroll">
-<table>
-  <thead><tr>
-    <th>День</th><th>Ккал сама</th><th>Ккал зонд</th><th>Ккал всего</th>
-    <th>Вода, мл</th><th>Из корма, мл</th><th>Моча</th><th>Стул</th><th>Рвота</th><th>Отказы</th><th>t °C</th>
-  </tr></thead>
-  <tbody>
-  {% for r in rows %}
-  <tr>
-    <td><a href="/{{ current.subject }}/day/{{ r.day.isoformat() }}">{{ r.day.strftime('%d.%m') }}</a></td>
-    <td>{{ '%.0f' % r.kcal_self if r.kcal_self else '–' }}</td>
-    <td>{{ '%.0f' % r.kcal_tube if r.kcal_tube else '–' }}</td>
-    <td><strong>{{ '%.0f' % r.kcal if r.kcal else '–' }}</strong></td>
-    <td>{{ '%.0f' % r.drinking_ml if r.drinking_ml is not none else '–' }}</td>
-    <td>{{ '%.0f' % r.from_food_ml if r.from_food_ml is not none else '–' }}</td>
-    <td>{{ r.urinations if r.urinations is not none else '–' }}</td>
-    <td>{{ r.stools if r.stools is not none else '–' }}</td>
-    <td>{{ r.vomiting or '–' }}</td>
-    <td>{{ r.refusals or '–' }}</td>
-    <td>{{ r.temperatures | join(', ') if r.temperatures else '–' }}</td>
-  </tr>
-  {% endfor %}
-  </tbody>
-  {% if mean %}
-  <tfoot><tr class="mean">
-    <td>В среднем</td>
-    <td>{{ '%.0f' % mean.kcal_self }}</td>
-    <td>{{ '%.0f' % mean.kcal_tube }}</td>
-    <td><strong>{{ '%.0f' % mean.kcal }}</strong></td>
-    <td>{{ '%.0f' % mean.drinking_ml }}</td>
-    <td>{{ '%.0f' % mean.from_food_ml }}</td>
-    <td>{{ '%.1f' % mean.urinations }}</td>
-    <td>{{ '%.1f' % mean.stools }}</td>
-    <td></td><td></td><td></td>
-  </tr></tfoot>
-  {% endif %}
-</table>
+
+<div class="grid-2">
+{% if mean %}
+<section class="card" aria-labelledby="avg-h">
+  <h2 id="avg-h" class="eyebrow">В среднем за день</h2>
+  <div class="metric">
+    <p><span class="big num">{{ '%.0f' % mean.kcal }}</span> <span class="muted">из {{ '%g' % current.profile.kcal_goal }} ккал</span></p>
+    <svg class="share" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+      <rect width="100" height="10" class="track"></rect>
+      <rect width="{{ kcal_share.first }}" height="10" class="tube"></rect>
+      <rect x="{{ kcal_share.first }}" width="{{ kcal_share.second }}" height="10" class="self"></rect>
+    </svg>
+    <p class="legend"><span class="key tube"></span>зонд {{ '%.0f' % mean.kcal_tube }} <span class="key self"></span>сама {{ '%.0f' % mean.kcal_self }}</p>
+  </div>
+  <div class="metric">
+    <p><span class="big num">{{ '%.0f' % (mean.drinking_ml + mean.from_food_ml) }}</span> <span class="muted">из {{ '%g' % current.profile.water_goal_ml }} мл воды</span></p>
+    <svg class="share" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+      <rect width="100" height="10" class="track"></rect>
+      <rect width="{{ water_share.first }}" height="10" class="drink"></rect>
+      <rect x="{{ water_share.first }}" width="{{ water_share.second }}" height="10" class="foodwater"></rect>
+    </svg>
+    <p class="legend"><span class="key drink"></span>вода {{ '%.0f' % mean.drinking_ml }} <span class="key foodwater"></span>из корма {{ '%.0f' % mean.from_food_ml }}</p>
+  </div>
+  <div class="trio">
+    <p><span class="mid num">{{ ('%.1f' % mean.urinations).replace('.', ',') }}</span><span class="muted">моча</span></p>
+    <p><span class="mid num">{{ stool_days }} из {{ recorded_days }}</span><span class="muted">дней со стулом</span></p>
+    <p><span class="mid num">{{ vomiting }}</span><span class="muted">рвота</span></p>
+  </div>
+  <p class="note">Среднее — по {{ mean.days }} дн. с записями. Дни без единой записи не считаются нулём.</p>
+</section>
+{% endif %}
+
+{% if chart %}
+<section class="card" aria-labelledby="chart-h">
+  <h2 id="chart-h" class="eyebrow">Калории по дням · цель {{ '%g' % current.profile.kcal_goal }}</h2>
+  <svg class="mini" viewBox="0 0 {{ chart.width }} {{ chart.height + 12 }}" role="img" aria-label="Калории по дням: зонд и сама">
+    <line x1="0" x2="{{ chart.width }}" y1="{{ chart.goal_y }}" y2="{{ chart.goal_y }}" class="goal"></line>
+    {% for b in chart.bars %}
+    <rect x="{{ b.x }}" y="{{ b.tube_y }}" width="{{ b.w }}" height="{{ b.tube_h }}" class="tube"></rect>
+    <rect x="{{ b.x }}" y="{{ b.self_y }}" width="{{ b.w }}" height="{{ b.self_h }}" class="self"></rect>
+    {% if chart.labelled and b.total %}<text x="{{ b.x + b.w / 2 }}" y="{{ b.self_y - 3 }}" class="total">{{ b.total }}</text>{% endif %}
+    {% if chart.labelled %}<text x="{{ b.x + b.w / 2 }}" y="{{ chart.height + 10 }}" class="day">{{ b.label[:2] }}</text>{% endif %}
+    {% endfor %}
+  </svg>
+</section>
+{% endif %}
 </div>
-<p class="note">«–» значит «ничего не записано», а не ноль. Цифры — сумма того, что записали в чат.
-{% if mean %}Среднее — за {{ mean.days }} дн. с записями; дни без единой записи в него не входят.{% endif %}</p>
-<img class="chart" src="/{{ current.subject }}/week.png?from={{ start.isoformat() }}&amp;to={{ end.isoformat() }}" alt="Графики за период">
+
+<section aria-labelledby="days-h">
+  <h2 id="days-h" class="eyebrow">Дни</h2>
+  <ul class="day-cards">
+  {% for r in rows|reverse %}
+    <li><a href="/{{ current.subject }}/day/{{ r.day.isoformat() }}">
+      <span class="when"><span class="muted">{{ weekday(r.day) }}</span><span class="num">{{ r.day.strftime('%d.%m') }}</span></span>
+      <span class="what">
+        {% if r.recorded %}
+        <span><b class="num">{{ '%.0f' % r.kcal }}</b> ккал · <b class="num">{{ '%.0f' % ((r.drinking_ml or 0) + (r.from_food_ml or 0)) }}</b> мл</span>
+        <span class="muted">моча {{ r.urinations if r.urinations is not none else '–' }} · стул {{ r.stools if r.stools is not none else '–' }}{% if r.vomiting %} · рвота {{ r.vomiting }}{% endif %}{% if r.refusals %} · отказов {{ r.refusals }}{% endif %}</span>
+        {% else %}<span class="muted">нет записей</span>{% endif %}
+      </span>
+      {{ icon('right') }}
+    </a></li>
+  {% endfor %}
+  </ul>
+
+  <div class="scroll day-table">
+  <table>
+    <thead><tr>
+      <th>День</th><th>Ккал сама</th><th>Ккал зонд</th><th>Ккал всего</th>
+      <th>Вода, мл</th><th>Из корма, мл</th><th>Моча</th><th>Стул</th><th>Рвота</th><th>Отказы</th><th>t °C</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><a href="/{{ current.subject }}/day/{{ r.day.isoformat() }}">{{ weekday(r.day) }} {{ r.day.strftime('%d.%m') }}</a></td>
+      <td>{{ '%.0f' % r.kcal_self if r.kcal_self else '–' }}</td>
+      <td>{{ '%.0f' % r.kcal_tube if r.kcal_tube else '–' }}</td>
+      <td><strong>{{ '%.0f' % r.kcal if r.kcal else '–' }}</strong></td>
+      <td>{{ '%.0f' % r.drinking_ml if r.drinking_ml is not none else '–' }}</td>
+      <td>{{ '%.0f' % r.from_food_ml if r.from_food_ml is not none else '–' }}</td>
+      <td>{{ r.urinations if r.urinations is not none else '–' }}</td>
+      <td>{{ r.stools if r.stools is not none else '–' }}</td>
+      <td>{{ r.vomiting or '–' }}</td>
+      <td>{{ r.refusals or '–' }}</td>
+      <td>{{ r.temperatures | join(', ') if r.temperatures else '–' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    {% if mean %}
+    <tfoot><tr class="mean">
+      <td>В среднем</td>
+      <td>{{ '%.0f' % mean.kcal_self }}</td>
+      <td>{{ '%.0f' % mean.kcal_tube }}</td>
+      <td><strong>{{ '%.0f' % mean.kcal }}</strong></td>
+      <td>{{ '%.0f' % mean.drinking_ml }}</td>
+      <td>{{ '%.0f' % mean.from_food_ml }}</td>
+      <td>{{ '%.1f' % mean.urinations }}</td>
+      <td>{{ '%.1f' % mean.stools }}</td>
+      <td></td><td></td><td></td>
+    </tr></tfoot>
+    {% endif %}
+  </table>
+  </div>
+  <p class="note">«–» значит «ничего не записано», а не ноль. Цифры — сумма того, что записали в чат.{% if mean %} Среднее — за {{ mean.days }} дн. с записями; дни без единой записи в него не входят.{% endif %}</p>
+</section>
+
+<details class="card">
+  <summary>Графики за период</summary>
+  <img class="chart" src="/{{ current.subject }}/week.png?from={{ start.isoformat() }}&amp;to={{ end.isoformat() }}" alt="Графики за период: вода, калории, туалет, температура" loading="lazy">
+</details>
 {% endblock %}

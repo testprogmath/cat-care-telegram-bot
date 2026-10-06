@@ -1,6 +1,16 @@
-<form class="period" method="get">
-  <label>с <input type="date" name="from" value="{{ start.isoformat() }}"></label>
-  <label>по <input type="date" name="to" value="{{ end.isoformat() }}"></label>
-  <button>Показать</button>
-  <a href="?all=1">Весь срок</a>
-</form>
+{% set presets = [(7, '7 дней'), (14, '14 дней'), (30, '30 дней')] %}
+{% set span_days = (end - start).days + 1 %}
+<nav class="chips" aria-label="Период">
+  {% for days, label in presets %}
+  <a class="chip" href="?from={{ (today - timedelta_days(days - 1)).isoformat() }}&amp;to={{ today.isoformat() }}"{% if span_days == days and end == today %} aria-current="true"{% endif %}>{{ label }}</a>
+  {% endfor %}
+  <a class="chip" href="?all=1"{% if request.query_params.get('all') %} aria-current="true"{% endif %}>Весь срок</a>
+</nav>
+<details class="custom-period">
+  <summary class="chip">Свой период</summary>
+  <form method="get">
+    <label>с <input type="date" name="from" value="{{ start.isoformat() }}"></label>
+    <label>по <input type="date" name="to" value="{{ end.isoformat() }}"></label>
+    <button>Показать</button>
+  </form>
+</details>

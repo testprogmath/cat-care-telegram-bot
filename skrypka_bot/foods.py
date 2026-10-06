@@ -3,10 +3,10 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import date
 
-UNNAMED_DRY = "сухой корм, без названия"
-UNNAMED_WET = "жидкий корм, без названия"
-UNNAMED_SNACK = "снек, без названия"
-UNNAMED = "корм не назван"
+UNNAMED_DRY = "сухой, неизвестно какой"
+UNNAMED_WET = "жидкий, неизвестно какой"
+UNNAMED_SNACK = "снек, неизвестно какой"
+UNNAMED = "неизвестно"
 
 _PURINA = r"purina|пурина|путина"
 _PRODUCTS: list[tuple[str, str, str | None]] = [
