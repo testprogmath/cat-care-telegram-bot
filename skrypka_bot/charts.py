@@ -15,6 +15,20 @@ from .profiles import Profile  # noqa: E402
 WEEK_DAYS = 7
 
 
+def _label_stack(ax, lower, upper, lower_values, upper_values) -> None:
+    totals = [a + b for a, b in zip(lower_values, upper_values)]
+    smallest = max(totals, default=0) * 0.06
+    for bars, values in ((lower, lower_values), (upper, upper_values)):
+        ax.bar_label(
+            bars, labels=[f"{v:.0f}" if v >= smallest and v > 0 else "" for v in values],
+            label_type="center", fontsize=8,
+        )
+    ax.bar_label(
+        upper, labels=[f"{t:.0f}" if t > 0 else "" for t in totals],
+        padding=2, fontsize=9, fontweight="bold",
+    )
+
+
 def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
     water_goal = profile.water_goal_ml
     days = [end_day - timedelta(days=i) for i in range(WEEK_DAYS - 1, -1, -1)]
@@ -64,8 +78,9 @@ def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
     ax = axes[0]
     dw = [drink[d] for d in days]
     lw = [liquid_water[d] for d in days]
-    ax.bar(x, dw, label="water (drinking)", color="#4C9BE8")
-    ax.bar(x, lw, bottom=dw, label="water from wet food", color="#9BD1A0")
+    drink_bars = ax.bar(x, dw, label="water (drinking)", color="#4C9BE8")
+    food_bars = ax.bar(x, lw, bottom=dw, label="water from wet food", color="#9BD1A0")
+    _label_stack(ax, drink_bars, food_bars, dw, lw)
     ax.axhline(water_goal, ls="--", color="#E8635C", label=f"goal {water_goal:g} ml")
     ax.set_title("Water per day, ml")
     ax.set_xticks(x)
@@ -75,8 +90,9 @@ def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
     ax = axes[1]
     kt = [kcal_tube[d] for d in days]
     ks = [kcal_self[d] for d in days]
-    ax.bar(x, kt, label="tube", color="#7B6CE8")
-    ax.bar(x, ks, bottom=kt, label="self-fed", color="#E8B54C")
+    tube_bars = ax.bar(x, kt, label="tube", color="#7B6CE8")
+    self_bars = ax.bar(x, ks, bottom=kt, label="self-fed", color="#E8B54C")
+    _label_stack(ax, tube_bars, self_bars, kt, ks)
     ax.set_title("Calories per day, kcal")
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
@@ -84,8 +100,12 @@ def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
 
     ax = axes[2]
     w = 0.38
-    ax.bar([i - w / 2 for i in x], [urine[d] for d in days], w, label="urine", color="#4C9BE8")
-    ax.bar([i + w / 2 for i in x], [stool[d] for d in days], w, label="stool", color="#B5793B")
+    for offset, counts, label, color in (
+        (-w / 2, [urine[d] for d in days], "urine", "#4C9BE8"),
+        (w / 2, [stool[d] for d in days], "stool", "#B5793B"),
+    ):
+        bars = ax.bar([i + offset for i in x], counts, w, label=label, color=color)
+        ax.bar_label(bars, labels=[str(n) if n else "" for n in counts], padding=2, fontsize=8)
     ax.set_title("Litter box, times per day")
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
