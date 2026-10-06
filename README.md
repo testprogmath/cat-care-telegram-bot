@@ -247,9 +247,15 @@ The `web` container gets only the variables it needs, not the whole `.env`:
 In BotFather, register `<WEB_BASE_URL>/auth/callback` as an allowed URL.
 
 The server's system Caddy publishes the pages with HTTPS. Add this block to
-`/etc/caddy/Caddyfile`, then run `sudo caddy validate --config /etc/caddy/Caddyfile` and
-`sudo systemctl reload caddy`. Caddy gets the certificate itself once the DNS record points
-at the server.
+`/etc/caddy/Caddyfile`, validate it and reload Caddy. Validate with the service's
+environment file loaded, because another site block reads a password from it:
+
+```bash
+sudo sh -c 'set -a; . /etc/caddy/ciwang.env; caddy validate --config /etc/caddy/Caddyfile' \
+  && sudo systemctl reload caddy
+```
+
+Caddy gets the certificate itself once the DNS record points at the server.
 
 ```
 cats.khvorostianova.com {
