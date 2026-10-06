@@ -28,7 +28,7 @@ Anyone running a copy should know where the sensitive parts are.
   SQLite file with no encryption. Treat a backup of it as personal data.
 - **`deploy.sh` reads `DEPLOY_HOST` from the environment.** Do not hardcode a
   host back into the script.
-- **The release workflow holds an SSH key to the server.** The key is stored in
+- **The deploy job in CI holds an SSH key to the server.** The key is stored in
   the `production` environment, which only `main` can use. On the server the
   key is limited with `restrict` and a forced command: it can run
   `deploy/redeploy` with a tag name and nothing else. Do not give that key a
