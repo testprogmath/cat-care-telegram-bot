@@ -1,0 +1,21 @@
+name: Release label
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  release-label:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          labels=$(jq -r '.pull_request.labels[].name | select(test("^release:(major|minor|patch|skip)$"))' "$GITHUB_EVENT_PATH")
+          count=$(grep -c . <<<"$labels" || true)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Set exactly one label: release:major, release:minor, release:patch or release:skip. Found: ${labels:-none}"
+            exit 1
+          fi
+          echo "Release label: $labels"

@@ -251,10 +251,11 @@ The label on the pull request sets the version, as in semantic versioning:
 |---|---|---|
 | `release:major` | `v1.4.2` → `v2.0.0` | a change a consumer must adapt to, e.g. the CareDay contract |
 | `release:minor` | `v1.4.2` → `v1.5.0` | a new command or feature |
-| no label | `v1.4.2` → `v1.4.3` | a fix |
+| `release:patch` | `v1.4.2` → `v1.4.3` | a fix |
 | `release:skip` | no release, no deploy | docs and CI changes |
 
-The first release is `v1.0.0`. The version in `pyproject.toml` is not updated; the tag is
+The `Release label` check fails on a pull request until it has exactly one of these
+labels. The first release is `v1.0.0`. The version in `pyproject.toml` is not updated; the tag is
 the version.
 
 The workflow cannot open a shell on the server. Its SSH key runs one command,
@@ -298,7 +299,8 @@ deploy to it, and add three secrets to it:
 | `DEPLOY_KNOWN_HOSTS` | the output of `ssh-keyscan` |
 | `DEPLOY_HOST` | `deploy@<host>` |
 
-Create the labels `release:major`, `release:minor` and `release:skip`.
+Create the labels `release:major`, `release:minor`, `release:patch` and `release:skip`.
+In the branch protection for `main`, make `release-label` a required status check.
 
 To deploy a tag by hand, use the same key: `ssh -i ~/.ssh/skrypka_deploy deploy@<host> v1.2.3`.
 To roll back, deploy an earlier tag the same way.
