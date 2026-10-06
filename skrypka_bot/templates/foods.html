@@ -1,27 +1,33 @@
 {% extends "base.html" %}
 {% block title %}{{ current.profile.name }}: корма{% endblock %}
 {% block content %}
-<h1>{{ current.profile.name }}: корма</h1>
-{% include "_period.html" %}
-{% if tube.feeds %}<p class="note">Через зонд: {{ tube.feeds }} кормлений, {{ '%.0f' % tube.kcal }} ккал. В таблице только то, что ели сами.</p>{% endif %}
-{% if not lines %}<p>За этот период ни еды, ни отказов не записано.</p>{% else %}
-<div class="scroll">
-<table>
-  <thead><tr><th>Корм</th><th>Съел(а), раз</th><th>Ккал</th><th>Последний раз ел(а)</th><th>Отказов</th><th>Последний отказ</th></tr></thead>
-  <tbody>
-  {% for l in lines %}
-  <tr class="{% if l.refused and not l.eaten %}refused{% endif %}">
-    <td>{{ l.product }}</td>
-    <td>{{ l.eaten or '–' }}</td>
-    <td>{{ '%.0f' % l.kcal if l.kcal else '–' }}</td>
-    <td>{{ l.last_eaten.strftime('%d.%m') if l.last_eaten else '–' }}</td>
-    <td>{{ l.refused or '–' }}</td>
-    <td>{{ l.last_refused.strftime('%d.%m') if l.last_refused else '–' }}</td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="page-head">
+  <h1>Корма</h1>
+  <p class="sub">{{ start.strftime('%d.%m') }} — {{ end.strftime('%d.%m.%Y') }}</p>
 </div>
-<p class="note">В дневник попадает то, что записали. Отказ записан, только если о нём написали в чат.</p>
-{% endif %}
+{% include "_period.html" %}
+<p class="legend"><span class="key ate"></span>ел(а), раз <span class="key refused"></span>отказ, раз</p>
+{% if tube.feeds %}<p class="note">Через зонд: {{ tube.feeds }} кормлений, {{ '%.0f' % tube.kcal }} ккал. Ниже только то, что ели сами.</p>{% endif %}
+{% if not groups %}<p class="card">За этот период ни еды, ни отказов не записано.</p>{% endif %}
+<div class="grid-3">
+{% for g in groups %}
+<section>
+  <h2 class="eyebrow">{{ g.title }}</h2>
+  <ul class="list card flush foods">
+    {% for l in g.lines %}
+    <li class="food{% if not l.eaten %} only-refused{% endif %}">
+      <div class="food-head"><span class="title">{{ l.product }}</span>{% if l.kcal %}<span class="num muted">{{ '%.0f' % l.kcal }} ккал</span>{% endif %}</div>
+      <svg class="share thin" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
+        {% set total = l.eaten + l.refused %}
+        <rect width="{{ l.eaten / total * 100 }}" height="6" class="ate"></rect>
+        <rect x="{{ l.eaten / total * 100 }}" width="{{ l.refused / total * 100 }}" height="6" class="refused"></rect>
+      </svg>
+      <span class="muted">{% if l.eaten %}ел(а) {{ l.eaten }} раз, последний {{ l.last_eaten.strftime('%d.%m') }}{% endif %}{% if l.eaten and l.refused %} · {% endif %}{% if l.refused %}отказ {{ l.refused }}, последний {{ l.last_refused.strftime('%d.%m') }}{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+</div>
+<p class="note">Отказ попадает сюда, только если о нём написали в чат.</p>
 {% endblock %}

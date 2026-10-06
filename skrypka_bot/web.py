@@ -16,22 +16,12 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
-from . import care_export, charts, db, foods, meds, web_auth
+from . import care_export, charts, db, foods, meds, views, web_auth
 from .profiles import Profile
 
 WEEK_DAYS = 7
 DEFAULT_PERIOD_DAYS = 30
 TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")
-TYPE_LABELS = {
-    "food": "еда",
-    "water": "вода",
-    "medication": "лекарство",
-    "refusal": "отказ",
-    "toilet": "туалет",
-    "temperature": "температура",
-    "state": "состояние",
-    "other": "прочее",
-}
 SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'self'; img-src 'self'; style-src 'self'; "
                                "form-action 'self' https://oauth.telegram.org; frame-ancestors 'none'",
@@ -113,10 +103,14 @@ def animal(subject: str, person: Annotated[Viewer, Depends(viewer)]) -> Animal:
 
 
 def page(request: Request, template: str, person: Viewer, current: Animal | None, **context):
+    section = request.url.path.split("/")[2] if current else ""
     return TEMPLATES.TemplateResponse(
         request,
         template,
-        {"viewer": person, "current": current, "animals": visible_animals(person), **context},
+        {"viewer": person, "current": current, "animals": visible_animals(person),
+         "section": "week" if section in ("day", "") else section.removesuffix(".png"),
+         "weekday": views.weekday, "today": today(), "timedelta_days": lambda n: timedelta(days=n),
+         **context},
     )
 
 
@@ -284,8 +278,15 @@ def week(request: Request, person: Annotated[Viewer, Depends(viewer)],
     start, last = days_period(current, day_from, day_to, all, end)
     span = timedelta(days=(last - start).days + 1)
     rows = day_rows(current, start, last)
-    return page(request, "week.html", person, current, start=start, end=last, rows=rows,
-                mean=averages(rows), previous=(start - span, start - timedelta(days=1)),
+    mean = averages(rows)
+    profile = current.profile
+    return page(request, "week.html", person, current, start=start, end=last, rows=rows, mean=mean,
+                kcal_share=mean and views.Share.of(mean.kcal_tube, mean.kcal_self, profile.kcal_goal),
+                water_share=mean and views.Share.of(mean.drinking_ml, mean.from_food_ml, profile.water_goal_ml),
+                stool_days=sum(1 for r in rows if r.stools), recorded_days=sum(1 for r in rows if r.recorded),
+                vomiting=sum(r.vomiting for r in rows),
+                chart=views.mini_chart(rows, profile.kcal_goal),
+                previous=(start - span, start - timedelta(days=1)),
                 following=(last + timedelta(days=1), last + span), is_current=last >= today())
 
 
@@ -301,9 +302,11 @@ def week_chart(current: Annotated[Animal, Depends(animal)],
 
 @app.get("/{subject}/day/{day}", response_class=HTMLResponse)
 def day_page(request: Request, day: date, person: Annotated[Viewer, Depends(viewer)],
-             current: Annotated[Animal, Depends(animal)]):
-    events = db.events_with_messages(current.chat_id, day, day)
-    return page(request, "day.html", person, current, day=day, events=events, labels=TYPE_LABELS,
+             current: Annotated[Animal, Depends(animal)], show: str | None = None):
+    rows = db.events_with_messages(current.chat_id, day, day)
+    events, water = views.day_events(rows, show)
+    return page(request, "day.html", person, current, day=day, events=events, water=water,
+                totals=day_rows(current, day, day)[0], show=show, filters=views.FILTERS,
                 previous=day - timedelta(days=1), following=day + timedelta(days=1))
 
 
@@ -313,9 +316,9 @@ def meds_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
               day_from: Annotated[date | None, Query(alias="from")] = None,
               day_to: Annotated[date | None, Query(alias="to")] = None, all: bool = False):
     start, end = period(day_from, day_to, current.chat_id, all)
-    courses = meds.courses(db.medications_in_days(current.chat_id, start, end))
-    return page(request, "meds.html", person, current, start=start, end=end, courses=courses,
-                label=meds._label, doses=meds._doses, span=meds._span)
+    ongoing, finished = views.courses(db.medications_in_days(current.chat_id, start, end), start, end)
+    return page(request, "meds.html", person, current, start=start, end=end, ongoing=ongoing,
+                finished=finished, span=meds._span)
 
 
 @app.get("/{subject}/meds.png")
@@ -336,7 +339,8 @@ def foods_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
                day_to: Annotated[date | None, Query(alias="to")] = None, all: bool = False):
     start, end = period(day_from, day_to, current.chat_id, all)
     lines, tube = foods.report(db.events_in_days(current.chat_id, start, end))
-    return page(request, "foods.html", person, current, start=start, end=end, lines=lines, tube=tube)
+    return page(request, "foods.html", person, current, start=start, end=end,
+                groups=views.food_groups(lines, end), tube=tube)
 
 
 @app.get("/{subject}/refusals", response_class=HTMLResponse)
@@ -345,9 +349,10 @@ def refusals_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
                   day_from: Annotated[date | None, Query(alias="from")] = None,
                   day_to: Annotated[date | None, Query(alias="to")] = None, all: bool = False):
     start, end = period(day_from, day_to, current.chat_id, all)
-    refusals = [e for e in db.events_with_messages(current.chat_id, start, end) if e["type"] == "refusal"]
-    return page(request, "refusals.html", person, current, start=start, end=end,
-                refusals=list(reversed(refusals)), products=foods.refused_products)
+    top, days = views.refusal_summary(db.events_with_messages(current.chat_id, start, end))
+    total = sum(len(d.items) for d in days)
+    return page(request, "refusals.html", person, current, start=start, end=end, top=top, days=days,
+                total=total, unnamed=sum(1 for d in days for i in d.items if foods.UNNAMED in i.tags))
 
 
 @app.get("/static/style.css")

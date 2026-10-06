@@ -59,14 +59,15 @@ def client(user_id=None) -> TestClient:
     return test_client
 
 
-def record(chat_id, hour, day=date(2026, 10, 6), **fields):
+def record(chat_id, hour, day=date(2026, 10, 6), text=None, **fields):
     event = dict(type="food", name=None, dose=None, water_ml=None, kcal=None, feeding="self",
                  amount_ml=None, temp_c=None, liquid=None, water_fraction=None, time=None,
                  description="запись")
     event.update(fields)
     sent = datetime(day.year, day.month, day.day, hour, 0, tzinfo=BERLIN)
     record.n = getattr(record, "n", 0) + 1
-    db.save_message(chat_id, record.n, "owner", sent, f"сообщение {record.n}", [SimpleNamespace(**event)])
+    db.save_message(chat_id, record.n, "owner", sent, text or f"сообщение {record.n}",
+                    [SimpleNamespace(**event)])
 
 
 @pytest.fixture
@@ -104,7 +105,7 @@ def test_a_member_lands_on_the_week_with_the_day_figures(settings, members, toda
     response = client(MEMBER).get("/", follow_redirects=False)
     assert response.headers["location"] == "/chipunya/week"
     page = client(MEMBER).get("/chipunya/week")
-    row = page.text.split('href="/chipunya/day/2026-10-06">06.10</a></td>')[1].split("</tr>")[0]
+    row = page.text.split('href="/chipunya/day/2026-10-06">Вт 06.10</a></td>')[1].split("</tr>")[0]
     cells = [cell.strip() for cell in row.replace("<strong>", "").replace("</strong>", "").split("<td>")[1:]]
     assert [cell.removesuffix("</td>").strip() for cell in cells][:7] == ["12", "40", "52", "–", "0", "1", "–"]
 
@@ -113,14 +114,15 @@ def test_any_period_lists_each_day_and_averages_only_the_recorded_ones(settings,
     record(chat, 9, day=date(2026, 9, 20), kcal=100.0)
     record(chat, 9, day=date(2026, 9, 22), kcal=60.0, feeding="tube")
     page = client(MEMBER).get("/chipunya/week?from=2026-09-20&to=2026-09-24").text
-    assert page.count('href="/chipunya/day/2026-09-2') == 5
+    assert page.count('class="when"') == 5
+    assert page.count('</a></td>') == 5
     mean = page.split('<tr class="mean">')[1].split("</tr>")[0]
     cells = [c.split("</td>")[0].replace("<strong>", "").replace("</strong>", "").strip()
              for c in mean.split("<td>")[1:]]
     assert cells[:4] == ["В среднем", "50", "30", "80"]
     assert "за 2 дн. с записями" in page
-    assert 'href="?from=2026-09-15&amp;to=2026-09-19">← раньше' in page
-    assert 'href="?from=2026-09-25&amp;to=2026-09-29">позже →' in page
+    assert 'href="?from=2026-09-15&amp;to=2026-09-19">' in page and "<span>15.09–19.09</span>" in page
+    assert 'href="?from=2026-09-25&amp;to=2026-09-29">' in page and "<span>25.09–29.09</span>" in page
 
 
 def test_the_period_chart_draws_a_long_range(settings, members, today, chat):
@@ -152,11 +154,14 @@ def test_a_network_failure_is_not_remembered_as_no_access(settings, monkeypatch)
     assert (-1, MEMBER) not in web_auth._membership
 
 
-def test_the_day_shows_each_event_with_its_message(settings, members, chat):
+def test_the_day_shows_each_event_and_the_chat_message_only_when_it_adds_something(settings, members, chat):
     record(chat, 10, name="felix sauce", kcal=10.0, amount_ml=40.0, description="выпил весь пакетик")
+    record(chat, 21, type="medication", feeding=None, name="серения", dose="6 мг", description="дала",
+           text="дала 22мл воды и лекарства:\n4мг ондансетрона\n6мг серении")
     page = client(MEMBER).get("/chipunya/day/2026-10-06").text
-    assert "<strong>felix sauce</strong>" in page and "10 ккал" in page and "40 мл" in page
-    assert "сообщение" in page
+    assert '<span class="title">Felix Sauce, 40 мл</span>' in page and "10 ккал" in page
+    assert page.count("сообщение в чате") == 1
+    assert "4мг ондансетрона" in page
 
 
 def test_the_food_report_puts_eating_and_refusing_side_by_side(settings, members, today, chat):
@@ -165,8 +170,10 @@ def test_the_food_report_puts_eating_and_refusing_side_by_side(settings, members
     record(chat, 11, kcal=30.0, feeding="tube", name="royal canin recovery liquid")
     page = client(MEMBER).get("/chipunya/foods").text
     assert "Через зонд: 1 кормлений, 30 ккал" in page
-    assert "<td>Felix Sauce</td>" in page
-    assert '<tr class="refused">\n    <td>RC Urinary</td>' in page
+    assert '<span class="title">Felix Sauce</span>' in page
+    only_refused = page.split('class="food only-refused"')[1].split("</li>")[0]
+    assert '<span class="title">RC Urinary</span>' in only_refused
+    assert "Не ест вовсе" in page
 
 
 def test_pages_render_for_a_member(settings, members, today, chat):

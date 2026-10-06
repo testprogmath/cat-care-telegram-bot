@@ -1,19 +1,47 @@
 {% extends "base.html" %}
 {% block title %}{{ current.profile.name }}: лекарства{% endblock %}
 {% block content %}
-<h1>{{ current.profile.name }}: лекарства</h1>
-{% include "_period.html" %}
-{% if not courses %}<p>За этот период лекарств не записано.</p>{% else %}
-<div class="scroll">
-<table>
-  <thead><tr><th>Препарат</th><th>Приёмов</th><th>Дней</th><th>Когда</th><th>Дозы</th></tr></thead>
-  <tbody>
-  {% for c in courses %}
-  <tr><td>{{ label(c.drug) }}</td><td>{{ c.given }}</td><td>{{ c.days | length }}</td><td>{{ span(c.first, c.last) }}</td><td>{{ doses(c) }}</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="page-head">
+  <h1>Лекарства</h1>
+  <p class="sub">{{ start.strftime('%d.%m') }} — {{ end.strftime('%d.%m.%Y') }} · {{ (end - start).days + 1 }} дн.</p>
 </div>
-<img class="chart" src="/{{ current.subject }}/meds.png?from={{ start.isoformat() }}&amp;to={{ end.isoformat() }}" alt="Дозы по дням">
+{% include "_period.html" %}
+{% if not ongoing and not finished %}<p class="card">За этот период лекарств не записано.</p>{% endif %}
+
+{% if ongoing %}
+<h2 class="eyebrow">Сейчас</h2>
+<div class="grid-2">
+{% for c in ongoing %}
+<article class="card course">
+  <div class="course-head">
+    <div><h3>{{ c.label }}</h3><p class="muted">{{ c.given }} приёмов за {{ c.days }} дн. · {{ span(c.first, c.last) }}</p></div>
+    <p class="dose"><span class="mid num">{{ c.dose }}</span><span class="muted">с {{ c.since.strftime('%d.%m') }}</span></p>
+  </div>
+  <svg class="strip" viewBox="0 0 {{ c.width }} 4" preserveAspectRatio="none" role="img" aria-label="Дни приёма по дозе">
+    <rect width="{{ c.width }}" height="4" class="track"></rect>
+    {% for cell in c.cells %}<rect x="{{ cell.x }}" width="1" height="4" fill="{{ cell.shade }}"></rect>{% endfor %}
+  </svg>
+  <p class="strip-ends muted"><span>{{ start.strftime('%d.%m') }}</span><span>{{ end.strftime('%d.%m') }}</span></p>
+  {% if c.gaps %}<p class="muted">Пропуски: {{ c.gaps[:5] | join(', ') }}{% if c.gaps|length > 5 %} и ещё {{ c.gaps|length - 5 }}{% endif %}</p>{% else %}<p class="muted">Без пропусков</p>{% endif %}
+</article>
+{% endfor %}
+</div>
+<p class="note">Цвет полосы — доза: чем темнее, тем больше. Серый — дали, но доза не записана.</p>
+{% endif %}
+
+{% if finished %}
+<h2 class="eyebrow">Завершены</h2>
+<ul class="list card flush">
+  {% for f in finished %}
+  <li><div class="grow"><span class="title">{{ f.label }}</span><span class="muted">{{ f.doses }}</span></div><span class="num muted">{{ span(f.first, f.last) }}</span></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if ongoing or finished %}
+<details class="card">
+  <summary>График доз</summary>
+  <img class="chart" src="/{{ current.subject }}/meds.png?from={{ start.isoformat() }}&amp;to={{ end.isoformat() }}" alt="Дозы по дням" loading="lazy">
+</details>
 {% endif %}
 {% endblock %}

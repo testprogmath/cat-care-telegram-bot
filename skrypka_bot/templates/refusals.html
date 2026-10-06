@@ -1,15 +1,41 @@
 {% extends "base.html" %}
 {% block title %}{{ current.profile.name }}: отказы{% endblock %}
 {% block content %}
-<h1>{{ current.profile.name }}: отказы</h1>
+<div class="page-head">
+  <h1>Отказы</h1>
+  <p class="sub">{{ start.strftime('%d.%m') }} — {{ end.strftime('%d.%m.%Y') }} · {{ total }}{% if unnamed %}, корм неизвестен в {{ unnamed }}{% endif %}</p>
+</div>
 {% include "_period.html" %}
-{% if not refusals %}<p>За этот период отказов не записано.</p>{% endif %}
-<ol class="events">
-{% for e in refusals %}
-  <li class="event refusal">
-    <span class="time"><a href="/{{ current.subject }}/day/{{ e.day }}">{{ e.day[8:10] }}.{{ e.day[5:7] }}</a> {{ e.occurred_at[11:16] }}</span>
-    <span class="what"><strong>{{ products(e) | join(', ') }}</strong> <span class="description">{{ e.description }}</span></span>
-  </li>
+{% if not days %}<p class="card">За этот период отказов не записано.</p>{% else %}
+<div class="grid-2">
+<section class="card" aria-labelledby="top-h">
+  <h2 id="top-h" class="eyebrow">Чаще всего</h2>
+  {% set most = top[0][1] %}
+  <ul class="bars">
+    {% for name, count in top %}
+    <li><span class="name">{{ name }}</span>
+      <svg class="share" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="8" class="track"></rect><rect width="{{ count / most * 100 }}" height="8" class="refused"></rect></svg>
+      <span class="num">{{ count }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+<div>
+{% for d in days %}
+<section class="refusal-day">
+  <h2 class="eyebrow"><a href="/{{ current.subject }}/day/{{ d.day.isoformat() }}">{{ weekday(d.day) }}, {{ d.day.strftime('%d.%m') }}</a></h2>
+  {% for r in d.items %}
+  <article class="card refusal">
+    <span class="time num">{{ r.time }}</span>
+    <div class="body">
+      <p class="tags">{% for p in r.tags %}<span class="tag">{{ p }}</span>{% endfor %}</p>
+      <p>{{ r.detail }}</p>
+      {% if r.message and r.message != r.detail %}<details><summary>сообщение в чате</summary><p class="message">{{ r.message }}</p></details>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
 {% endfor %}
-</ol>
+</div>
+</div>
+{% endif %}
 {% endblock %}
