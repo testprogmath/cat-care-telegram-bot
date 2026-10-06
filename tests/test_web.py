@@ -59,12 +59,12 @@ def client(user_id=None) -> TestClient:
     return test_client
 
 
-def record(chat_id, hour, **fields):
+def record(chat_id, hour, day=date(2026, 10, 6), **fields):
     event = dict(type="food", name=None, dose=None, water_ml=None, kcal=None, feeding="self",
                  amount_ml=None, temp_c=None, liquid=None, water_fraction=None, time=None,
                  description="запись")
     event.update(fields)
-    sent = datetime(2026, 10, 6, hour, 0, tzinfo=BERLIN)
+    sent = datetime(day.year, day.month, day.day, hour, 0, tzinfo=BERLIN)
     record.n = getattr(record, "n", 0) + 1
     db.save_message(chat_id, record.n, "owner", sent, f"сообщение {record.n}", [SimpleNamespace(**event)])
 
@@ -107,6 +107,25 @@ def test_a_member_lands_on_the_week_with_the_day_figures(settings, members, toda
     row = page.text.split('href="/chipunya/day/2026-10-06">06.10</a></td>')[1].split("</tr>")[0]
     cells = [cell.strip() for cell in row.replace("<strong>", "").replace("</strong>", "").split("<td>")[1:]]
     assert [cell.removesuffix("</td>").strip() for cell in cells][:7] == ["12", "40", "52", "–", "0", "1", "–"]
+
+
+def test_any_period_lists_each_day_and_averages_only_the_recorded_ones(settings, members, today, chat):
+    record(chat, 9, day=date(2026, 9, 20), kcal=100.0)
+    record(chat, 9, day=date(2026, 9, 22), kcal=60.0, feeding="tube")
+    page = client(MEMBER).get("/chipunya/week?from=2026-09-20&to=2026-09-24").text
+    assert page.count('href="/chipunya/day/2026-09-2') == 5
+    mean = page.split('<tr class="mean">')[1].split("</tr>")[0]
+    cells = [c.split("</td>")[0].replace("<strong>", "").replace("</strong>", "").strip()
+             for c in mean.split("<td>")[1:]]
+    assert cells[:4] == ["В среднем", "50", "30", "80"]
+    assert "за 2 дн. с записями" in page
+    assert 'href="?from=2026-09-15&amp;to=2026-09-19">← раньше' in page
+    assert 'href="?from=2026-09-25&amp;to=2026-09-29">позже →' in page
+
+
+def test_the_period_chart_draws_a_long_range(settings, members, today, chat):
+    png = client(MEMBER).get("/chipunya/week.png?from=2026-08-28&to=2026-10-06").content
+    assert png.startswith(b"\x89PNG")
 
 
 def test_membership_is_asked_once_and_then_cached(settings, members, today):

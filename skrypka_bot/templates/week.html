@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ current.profile.name }}: неделя{% endblock %}
+{% block title %}{{ current.profile.name }}: {{ start.strftime('%d.%m') }}–{{ end.strftime('%d.%m') }}{% endblock %}
 {% block content %}
-<h1>{{ current.profile.name }}: неделя по {{ end.strftime('%d.%m.%Y') }}</h1>
+<h1>{{ current.profile.name }}: {{ start.strftime('%d.%m') }}–{{ end.strftime('%d.%m.%Y') }}</h1>
+{% include "_period.html" %}
 <p class="pager">
-  <a href="?end={{ previous.isoformat() }}">← раньше</a>
-  {% if not is_current %}<a href="?end={{ following.isoformat() }}">позже →</a> <a href="?">сегодня</a>{% endif %}
+  <a href="?from={{ previous[0].isoformat() }}&amp;to={{ previous[1].isoformat() }}">← раньше</a>
+  {% if not is_current %}<a href="?from={{ following[0].isoformat() }}&amp;to={{ following[1].isoformat() }}">позже →</a> <a href="?">последние 7 дней</a>{% endif %}
 </p>
 <div class="scroll">
 <table>
@@ -29,8 +30,22 @@
   </tr>
   {% endfor %}
   </tbody>
+  {% if mean %}
+  <tfoot><tr class="mean">
+    <td>В среднем</td>
+    <td>{{ '%.0f' % mean.kcal_self }}</td>
+    <td>{{ '%.0f' % mean.kcal_tube }}</td>
+    <td><strong>{{ '%.0f' % mean.kcal }}</strong></td>
+    <td>{{ '%.0f' % mean.drinking_ml }}</td>
+    <td>{{ '%.0f' % mean.from_food_ml }}</td>
+    <td>{{ '%.1f' % mean.urinations }}</td>
+    <td>{{ '%.1f' % mean.stools }}</td>
+    <td></td><td></td><td></td>
+  </tr></tfoot>
+  {% endif %}
 </table>
 </div>
-<p class="note">«–» значит «ничего не записано», а не ноль. Цифры — сумма того, что записали в чат.</p>
-<img class="chart" src="/{{ current.subject }}/week.png?end={{ end.isoformat() }}" alt="Графики за неделю">
+<p class="note">«–» значит «ничего не записано», а не ноль. Цифры — сумма того, что записали в чат.
+{% if mean %}Среднее — за {{ mean.days }} дн. с записями; дни без единой записи в него не входят.{% endif %}</p>
+<img class="chart" src="/{{ current.subject }}/week.png?from={{ start.isoformat() }}&amp;to={{ end.isoformat() }}" alt="Графики за период">
 {% endblock %}

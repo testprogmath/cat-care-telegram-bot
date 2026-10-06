@@ -189,6 +189,7 @@ def home(request: Request, person: Annotated[Viewer, Depends(viewer)]):
 @dataclass
 class DayRow:
     day: date
+    recorded: bool
     kcal_self: float
     kcal_tube: float
     drinking_ml: float | None
@@ -204,17 +205,18 @@ class DayRow:
         return self.kcal_self + self.kcal_tube
 
 
-def week_rows(current: Animal, end: date) -> list[DayRow]:
-    start = end - timedelta(days=WEEK_DAYS - 1)
+def day_rows(current: Animal, start: date, end: date) -> list[DayRow]:
     exported = {d.care_day: d for d in care_export.export(current.subject, start, end)}
     events = db.events_in_days(current.chat_id, start, end)
     rows = []
-    for offset in range(WEEK_DAYS):
+    for offset in range((end - start).days + 1):
         day = start + timedelta(days=offset)
-        food = [e for e in events if e["day"] == day.isoformat() and e["type"] == "food"]
+        that_day = [e for e in events if e["day"] == day.isoformat()]
+        food = [e for e in that_day if e["type"] == "food"]
         record = exported[day]
         rows.append(DayRow(
             day=day,
+            recorded=bool(that_day),
             kcal_self=sum(e["kcal"] or 0 for e in food if e["feeding"] != "tube"),
             kcal_tube=sum(e["kcal"] or 0 for e in food if e["feeding"] == "tube"),
             drinking_ml=record.water_drinking_ml,
@@ -228,19 +230,73 @@ def week_rows(current: Animal, end: date) -> list[DayRow]:
     return rows
 
 
+@dataclass
+class Averages:
+    days: int
+    kcal_self: float
+    kcal_tube: float
+    kcal: float
+    drinking_ml: float
+    from_food_ml: float
+    urinations: float
+    stools: float
+
+
+def averages(rows: list[DayRow]) -> Averages | None:
+    """Per-day means over the days that have any record at all; a silent day is not a zero."""
+    recorded = [r for r in rows if r.recorded]
+    if not recorded:
+        return None
+    n = len(recorded)
+
+    def mean(values) -> float:
+        return sum(v or 0 for v in values) / n
+
+    return Averages(
+        days=n,
+        kcal_self=mean(r.kcal_self for r in recorded),
+        kcal_tube=mean(r.kcal_tube for r in recorded),
+        kcal=mean(r.kcal for r in recorded),
+        drinking_ml=mean(r.drinking_ml for r in recorded),
+        from_food_ml=mean(r.from_food_ml for r in recorded),
+        urinations=mean(r.urinations for r in recorded),
+        stools=mean(r.stools for r in recorded),
+    )
+
+
+def days_period(current: Animal, day_from: date | None, day_to: date | None, everything: bool,
+                end: date | None) -> tuple[date, date]:
+    if everything:
+        last = today()
+        return db.first_event_day(current.chat_id) or last, last
+    if day_from is None and day_to is None:
+        last = end or today()
+        return last - timedelta(days=WEEK_DAYS - 1), last
+    return period(day_from, day_to, current.chat_id, False)
+
+
 @app.get("/{subject}/week", response_class=HTMLResponse)
 def week(request: Request, person: Annotated[Viewer, Depends(viewer)],
-         current: Annotated[Animal, Depends(animal)], end: date | None = None):
-    end = end or today()
-    return page(request, "week.html", person, current, end=end, rows=week_rows(current, end),
-                previous=end - timedelta(days=WEEK_DAYS), following=end + timedelta(days=WEEK_DAYS),
-                is_current=end >= today())
+         current: Annotated[Animal, Depends(animal)],
+         day_from: Annotated[date | None, Query(alias="from")] = None,
+         day_to: Annotated[date | None, Query(alias="to")] = None,
+         all: bool = False, end: date | None = None):
+    start, last = days_period(current, day_from, day_to, all, end)
+    span = timedelta(days=(last - start).days + 1)
+    rows = day_rows(current, start, last)
+    return page(request, "week.html", person, current, start=start, end=last, rows=rows,
+                mean=averages(rows), previous=(start - span, start - timedelta(days=1)),
+                following=(last + timedelta(days=1), last + span), is_current=last >= today())
 
 
 @app.get("/{subject}/week.png")
-def week_chart(current: Annotated[Animal, Depends(animal)], end: date | None = None) -> Response:
-    png = charts.render_week(current.chat_id, end or today(), current.profile)
-    return Response(png, media_type="image/png")
+def week_chart(current: Annotated[Animal, Depends(animal)],
+               day_from: Annotated[date | None, Query(alias="from")] = None,
+               day_to: Annotated[date | None, Query(alias="to")] = None,
+               all: bool = False, end: date | None = None) -> Response:
+    start, last = days_period(current, day_from, day_to, all, end)
+    return Response(charts.render_days(current.chat_id, start, last, current.profile),
+                    media_type="image/png")
 
 
 @app.get("/{subject}/day/{day}", response_class=HTMLResponse)
