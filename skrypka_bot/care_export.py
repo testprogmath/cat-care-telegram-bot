@@ -163,7 +163,7 @@ class CareDay(Strict):
             payload[key] = sorted(payload[key], key=lambda item: json.dumps(item, sort_keys=True))
         return payload
 
-    def with_hash(self) -> "CareDay":
+    def with_hash(self) -> CareDay:
         digest = hashlib.sha256(
             json.dumps(self.hashed_payload(), sort_keys=True, ensure_ascii=False).encode()
         ).hexdigest()

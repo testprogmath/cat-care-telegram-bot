@@ -9,6 +9,16 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install "$(grep -o 'ruff==[0-9.]*' pyproject.toml)"
+      - run: ruff check --output-format=github .
+
   tests:
     runs-on: ubuntu-latest
     strategy:

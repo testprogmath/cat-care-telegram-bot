@@ -3,9 +3,7 @@ and a silence means a silence."""
 
 import json
 import sqlite3
-from datetime import date, datetime, timedelta, timezone as _tz
-
-utc = _tz.utc
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -63,7 +61,7 @@ def test_the_boundary_holds_its_wall_clock_time_across_a_dst_change(monkeypatch)
     start, end = care_export.window_of(date(2026, 10, 24), BERLIN)
     assert start.hour == end.hour == 11
     assert start.utcoffset() == timedelta(hours=2) and end.utcoffset() == timedelta(hours=1)
-    elapsed = end.astimezone(utc) - start.astimezone(utc)
+    elapsed = end.astimezone(UTC) - start.astimezone(UTC)
     assert elapsed == timedelta(hours=25)
 
 
@@ -147,7 +145,7 @@ def test_no_toilet_event_leaves_both_counts_unknown(chat):
 
 def test_logged_urinations_say_nothing_about_stools(chat):
     """The owner writing down three urinations did not watch the tray all day."""
-    for n, at in enumerate(("08:00", "13:00", "19:00")):
+    for at in ("08:00", "13:00", "19:00"):
         record(chat, event("toilet", at=at, description="пописал"))
     day = only()
     assert day.urinations_observed == 3

@@ -357,11 +357,13 @@ framework: schema changes are `ALTER TABLE` guarded by a column check at startup
 ```bash
 pip install -e '.[dev]'
 OPENAI_API_KEY=dummy pytest -q
+ruff check .
 ```
 
 The tests cover the deterministic parts: water from wet food, the care-day boundary, and
 Russian wording that has produced wrong entries before. CI runs them on Python 3.11 and
-3.12 and builds the Docker image. No test calls the model.
+3.12, runs `ruff check`, and builds the Docker image. No test calls the model. The ruff
+rules and the few deliberate exceptions are in `pyproject.toml`.
 
 ## Limits
 
