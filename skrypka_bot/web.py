@@ -3,6 +3,7 @@
 Nothing here writes to the diary. The admin API, which can, stays on the loopback.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -40,6 +41,7 @@ SECURITY_HEADERS = {
 }
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+logger = logging.getLogger(__name__)
 
 
 @app.middleware("http")
@@ -153,7 +155,8 @@ def auth_callback(request: Request, code: str = "", state: str = "", error: str 
         )
     try:
         session = web_auth.finish_login(settings(), request.cookies.get(web_auth.LOGIN_COOKIE), state, code)
-    except web_auth.AuthError:
+    except web_auth.AuthError as failure:
+        logger.warning("Sign-in failed: %s", failure)
         return TEMPLATES.TemplateResponse(
             request, "login.html",
             {"viewer": None, "current": None, "animals": [], "problem": "Не получилось войти. Попробуйте ещё раз."},
@@ -298,6 +301,7 @@ def stylesheet() -> Response:
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     app.state.settings = web_auth.Settings.from_env()
     uvicorn.run(app, host=os.environ.get("WEB_HOST", "127.0.0.1"), port=int(os.environ.get("WEB_PORT", "8080")),
                 proxy_headers=True, forwarded_allow_ips="*")

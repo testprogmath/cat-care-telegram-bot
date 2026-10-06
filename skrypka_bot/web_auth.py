@@ -6,6 +6,7 @@ removing someone from the chat takes their access away without a code change.
 """
 
 import base64
+import gzip
 import hashlib
 import hmac
 import json
@@ -30,10 +31,11 @@ LOGIN_COOKIE = "login"
 SESSION_SECONDS = 30 * 24 * 3600
 LOGIN_SECONDS = 10 * 60
 MEMBERSHIP_SECONDS = 10 * 60
+JWKS_SECONDS = 3600
 MIN_SECRET_LENGTH = 32
 MEMBER_STATUSES = {"creator", "administrator", "member"}
 
-_jwks = jwt.PyJWKClient(JWKS_URL, cache_keys=True, lifespan=3600)
+_jwks: dict[str, object] = {"at": 0.0, "keys": []}
 _membership: dict[tuple[int, int], tuple[float, bool]] = {}
 
 
@@ -127,6 +129,32 @@ def start_login(settings: Settings) -> tuple[str, str]:
     return f"{AUTHORIZE_URL}?{query}", cookie
 
 
+def _read_json(response) -> dict:
+    """Telegram's OAuth host sends gzip whether or not the client asked for it."""
+    body = response.read()
+    if body[:2] == b"\x1f\x8b":
+        body = gzip.decompress(body)
+    return json.loads(body)
+
+
+def _signing_keys(refresh: bool = False) -> list[jwt.PyJWK]:
+    if refresh or not _jwks["keys"] or time.time() - _jwks["at"] > JWKS_SECONDS:
+        with urllib.request.urlopen(JWKS_URL, timeout=10) as response:
+            _jwks["keys"] = jwt.PyJWKSet.from_dict(_read_json(response)).keys
+        _jwks["at"] = time.time()
+    return _jwks["keys"]
+
+
+def _signing_key(id_token: str) -> jwt.PyJWK:
+    kid = jwt.get_unverified_header(id_token).get("kid")
+    for refresh in (False, True):
+        keys = _signing_keys(refresh)
+        matching = [key for key in keys if key.key_id == kid] if kid else keys[:1]
+        if matching:
+            return matching[0]
+    raise AuthError(f"no Telegram signing key with kid {kid!r}")
+
+
 def _exchange(settings: Settings, code: str, verifier: str) -> str:
     credentials = base64.b64encode(f"{settings.client_id}:{settings.client_secret}".encode()).decode()
     request = urllib.request.Request(
@@ -142,11 +170,14 @@ def _exchange(settings: Settings, code: str, verifier: str) -> str:
                  "Content-Type": "application/x-www-form-urlencoded"},
     )
     with urllib.request.urlopen(request, timeout=10) as response:
-        return json.load(response)["id_token"]
+        payload = _read_json(response)
+    if "error" in payload:
+        raise AuthError(f"token endpoint refused the code: {payload['error']}")
+    return payload["id_token"]
 
 
 def verify_id_token(settings: Settings, id_token: str, nonce: str) -> dict:
-    key = _jwks.get_signing_key_from_jwt(id_token)
+    key = _signing_key(id_token)
     claims = jwt.decode(
         id_token,
         key.key,
@@ -171,7 +202,7 @@ def finish_login(settings: Settings, login_cookie: str | None, state: str, code:
         id_token = _exchange(settings, code, attempt["verifier"])
         claims = verify_id_token(settings, id_token, attempt["nonce"])
     except (OSError, KeyError, ValueError, jwt.PyJWTError) as error:
-        raise AuthError(f"Telegram did not confirm the login: {type(error).__name__}") from error
+        raise AuthError(f"Telegram did not confirm the login: {type(error).__name__}: {error}") from error
     return {"uid": claims["id"], "name": claims.get("name") or claims.get("preferred_username") or ""}
 
 
