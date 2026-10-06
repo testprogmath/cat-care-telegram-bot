@@ -31,8 +31,8 @@ def test_the_new_fields_are_stored_and_summarised(chat):
     ]
     text = asyncio.run(summary.render_summary(DAY, events, profiles.CHIPUNYA, complete=False))
     lines = text.splitlines()
-    assert "  пила сама 1 раз (13.5 мл), дали 10 мл" in lines
-    assert "  10:00 — 13.5 мл (сама)" in lines and "  11:00 — 10 мл (дали)" in lines
+    assert "  пил сам 1 раз (13.5 мл), дали 10 мл" in lines
+    assert "  10:00 — 13.5 мл (сам)" in lines and "  11:00 — 10 мл (дали)" in lines
     assert "  08:00 — 6.8 кг" in lines
     assert "  09:00 — 32 в минуту во сне — выше 30 во сне" in lines
     assert db.last_weight(chat) == (DAY, 6.8)

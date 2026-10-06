@@ -74,6 +74,7 @@ def test_the_day_groups_water_and_filters_by_kind(chat):
 
 
 def test_the_mini_chart_is_left_out_past_a_month():
-    row = SimpleNamespace(kcal=100.0, kcal_tube=60.0, kcal_self=40.0, day=date(2026, 10, 1))
+    row = SimpleNamespace(kcal=100.0, kcal_tube=60.0, kcal_self=40.0, day=date(2026, 10, 1),
+                          urinations=3, stools=None)
     assert views.mini_chart([row] * 31, 250) is not None
     assert views.mini_chart([row] * 32, 250) is None

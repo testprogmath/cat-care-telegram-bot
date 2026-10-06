@@ -156,6 +156,10 @@ tfoot td { font-weight: 600; border-top: 2px solid var(--line); }
 .grid-2, .grid-3 { display: grid; gap: 16px; }
 
 .drank { fill: #1E5F9E; } .key.drank { background: #1E5F9E; }
+.urine { fill: var(--toilet); } .stool { fill: #9A6A3A; }
+.key.urine { background: var(--toilet); } .key.stool { background: #9A6A3A; }
+.split { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--soft); }
+.split h3 { margin-bottom: 4px; }
 .warn { color: var(--refused); font-weight: 600; font-size: 0.9rem; margin-top: 8px; }
 .stool { margin-top: 10px; font-size: 0.9rem; }
 .spark, .trend { width: 100%; display: block; margin-top: 10px; }

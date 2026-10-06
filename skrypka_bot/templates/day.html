@@ -18,7 +18,7 @@
   <p><span class="mid num">{{ totals.urinations if totals.urinations is not none else '–' }}</span><span class="muted">моча</span></p>
   <p><span class="mid num">{{ totals.stools if totals.stools is not none else '–' }}</span><span class="muted">стул</span></p>
 </section>
-{% if totals.kcal %}<p class="note">Калории: зонд {{ '%.0f' % totals.kcal_tube }} + сама {{ '%.0f' % totals.kcal_self }}. «–» — ничего не записано.</p>{% endif %}
+{% if totals.kcal %}<p class="note">Калории: зонд {{ '%.0f' % totals.kcal_tube }} + {{ current.profile.self_label }} {{ '%.0f' % totals.kcal_self }}. «–» — ничего не записано.</p>{% endif %}
 
 <nav class="chips" aria-label="Что показать">
   <a class="chip" href="?"{% if not show %} aria-current="true"{% endif %}>Все</a>
@@ -47,7 +47,7 @@
     <div class="body">
       <span class="kind"><span class="dot water"></span>вода</span>
       <span class="title">Вода: {{ water.count }} раз, {{ '%.0f' % water.ml }} мл</span>
-      <span class="detail">пила сама {{ water.drank_count }} раз{% if water.drank_count %}, {{ '%.0f' % water.drank_ml }} мл{% endif %} · остальное дали</span>
+      <span class="detail">{{ current.profile.pick('пила сама', 'пил сам') }} {{ water.drank_count }} раз{% if water.drank_count %}, {{ '%.0f' % water.drank_ml }} мл{% endif %} · остальное дали</span>
     </div>
   </li>
   {% endif %}
