@@ -47,6 +47,7 @@
     <div class="body">
       <span class="kind"><span class="dot water"></span>вода</span>
       <span class="title">Вода: {{ water.count }} раз, {{ '%.0f' % water.ml }} мл</span>
+      <span class="detail">пила сама {{ water.drank_count }} раз{% if water.drank_count %}, {{ '%.0f' % water.drank_ml }} мл{% endif %} · остальное дали</span>
     </div>
   </li>
   {% endif %}

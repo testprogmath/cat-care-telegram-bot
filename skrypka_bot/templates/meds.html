@@ -8,6 +8,22 @@
 {% include "_period.html" %}
 {% if not ongoing and not finished %}<p class="card">За этот период лекарств не записано.</p>{% endif %}
 
+{% if comparisons %}
+<h2 class="eyebrow">До и после</h2>
+<div class="grid-2">
+{% for c in comparisons %}
+<article class="card compare">
+  <h3>{{ c.mark.label }} · {{ c.mark.day.strftime('%d.%m') }}</h3>
+  <table>
+    <thead><tr><th></th><th>до<br><span class="muted">{{ span(c.before[0], c.before[1]) }}</span></th><th>после<br><span class="muted">{{ span(c.after[0], c.after[1]) }}</span></th></tr></thead>
+    <tbody>{% for name, before, after in c.lines %}<tr><td>{{ name }}</td><td>{{ before }}</td><td><strong>{{ after }}</strong></td></tr>{% endfor %}</tbody>
+  </table>
+</article>
+{% endfor %}
+</div>
+<p class="note">Средние по дням с записями: 7 дней до изменения и до 7 дней после. Это сравнение записей, а не вывод о действии лекарства.</p>
+{% endif %}
+
 {% if ongoing %}
 <h2 class="eyebrow">Сейчас</h2>
 <div class="grid-2">

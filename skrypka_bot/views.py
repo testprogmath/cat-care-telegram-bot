@@ -5,13 +5,105 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-from . import db, foods, meds
+from . import care_export, db, foods, meds
 
 RECENT_DAYS = 7
 CURRENT_COURSE_DAYS = 2
 MINI_CHART_DAYS = 31
 DOSE_SHADES = ("#9ED6CC", "#3FA796", "#0F7B6C", "#0B4F45")
 WEEKDAYS = ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+
+
+@dataclass
+class DayRow:
+    day: date
+    recorded: bool
+    kcal_self: float
+    kcal_tube: float
+    drinking_ml: float | None
+    from_food_ml: float | None
+    urinations: int | None
+    stools: int | None
+    vomiting: int
+    refusals: int
+    temperatures: list[float]
+    drank_times: int = 0
+    drank_ml: float = 0.0
+    given_ml: float = 0.0
+
+    @property
+    def kcal(self) -> float:
+        return self.kcal_self + self.kcal_tube
+
+
+def day_rows(chat_id: int, subject: str, start: date, end: date) -> list[DayRow]:
+    exported = {d.care_day: d for d in care_export.export(subject, start, end)}
+    events = db.events_in_days(chat_id, start, end)
+    rows = []
+    for offset in range((end - start).days + 1):
+        day = start + timedelta(days=offset)
+        that_day = [e for e in events if e["day"] == day.isoformat()]
+        food = [e for e in that_day if e["type"] == "food"]
+        drank = [e for e in that_day if e["type"] == "water" and e["feeding"] == "self"]
+        given = [e for e in that_day if e["type"] == "water" and e["feeding"] == "tube"]
+        record = exported[day]
+        rows.append(DayRow(
+            day=day,
+            recorded=bool(that_day),
+            kcal_self=sum(e["kcal"] or 0 for e in food if e["feeding"] != "tube"),
+            kcal_tube=sum(e["kcal"] or 0 for e in food if e["feeding"] == "tube"),
+            drinking_ml=record.water_drinking_ml,
+            from_food_ml=record.water_from_food_ml,
+            urinations=record.urinations_observed,
+            stools=record.stools_observed,
+            vomiting=len(record.vomiting_episodes),
+            refusals=len(record.food_refusals),
+            temperatures=[t.value_c for t in record.temperatures],
+            drank_times=len(drank),
+            drank_ml=sum(e["water_ml"] or 0 for e in drank),
+            given_ml=sum(e["water_ml"] or 0 for e in given),
+        ))
+    return rows
+
+
+@dataclass
+class Averages:
+    days: int
+    kcal_self: float
+    kcal_tube: float
+    kcal: float
+    drinking_ml: float
+    from_food_ml: float
+    urinations: float
+    stools: float
+    drank_times: float = 0.0
+    drank_ml: float = 0.0
+    given_ml: float = 0.0
+
+
+def averages(rows: list[DayRow]) -> Averages | None:
+    """Per-day means over the days that have any record at all; a silent day is not a zero."""
+    recorded = [r for r in rows if r.recorded]
+    if not recorded:
+        return None
+    n = len(recorded)
+
+    def mean(values) -> float:
+        return sum(v or 0 for v in values) / n
+
+    return Averages(
+        days=n,
+        kcal_self=mean(r.kcal_self for r in recorded),
+        kcal_tube=mean(r.kcal_tube for r in recorded),
+        kcal=mean(r.kcal for r in recorded),
+        drinking_ml=mean(r.drinking_ml for r in recorded),
+        from_food_ml=mean(r.from_food_ml for r in recorded),
+        urinations=mean(r.urinations for r in recorded),
+        stools=mean(r.stools for r in recorded),
+        drank_times=mean(r.drank_times for r in recorded),
+        drank_ml=mean(r.drank_ml for r in recorded),
+        given_ml=mean(r.given_ml for r in recorded),
+    )
 
 
 def weekday(day: date) -> str:
@@ -29,6 +121,23 @@ class Share:
     def of(cls, first: float, second: float, goal: float) -> "Share":
         scale = max(goal, first + second, 1)
         return cls(round(first / scale * 100, 1), round(second / scale * 100, 1))
+
+
+@dataclass
+class Share3:
+    """Three parts of one total on a bar 100 units wide, with where each part starts."""
+
+    widths: tuple[float, float, float]
+
+    @classmethod
+    def of(cls, parts: tuple[float, float, float], goal: float) -> "Share3":
+        scale = max(goal, sum(parts), 1)
+        return cls(tuple(round(p / scale * 100, 1) for p in parts))
+
+    @property
+    def starts(self) -> tuple[float, float, float]:
+        a, b, _ = self.widths
+        return (0.0, a, round(a + b, 1))
 
 
 @dataclass
@@ -81,6 +190,8 @@ KINDS = {
     "refusal": ("отказ", "refusal"),
     "toilet": ("туалет", "toilet"),
     "temperature": ("температура", "state"),
+    "weight": ("вес", "state"),
+    "breathing": ("дыхание", "state"),
     "state": ("состояние", "state"),
     "other": ("прочее", "state"),
 }
@@ -88,7 +199,7 @@ FILTERS = {
     "food": ("Еда", {"food_self", "food_tube", "refusal"}),
     "meds": ("Лекарства", {"medication"}),
     "toilet": ("Туалет", {"toilet"}),
-    "state": ("Состояние", {"state", "other", "temperature"}),
+    "state": ("Состояние", {"state", "other", "temperature", "weight", "breathing"}),
 }
 
 
@@ -108,6 +219,8 @@ class DayEvent:
 class WaterLine:
     count: int
     ml: float
+    drank_count: int = 0
+    drank_ml: float = 0.0
 
 
 def _kind(row: sqlite3.Row) -> str:
@@ -138,6 +251,9 @@ def day_events(rows: list[sqlite3.Row], show: str | None) -> tuple[list[DayEvent
         if kind == "water":
             water.count += 1
             water.ml += row["water_ml"] or 0
+            if row["feeding"] == "self":
+                water.drank_count += 1
+                water.drank_ml += row["water_ml"] or 0
             continue
         if wanted is not None and kind not in wanted:
             continue
@@ -164,6 +280,10 @@ def day_events(rows: list[sqlite3.Row], show: str | None) -> tuple[list[DayEvent
             amount = f"{_fmt(round(row['kcal'], 1))} ккал"
         elif row["type"] == "temperature" and row["temp_c"] is not None:
             amount = f"{_fmt(row['temp_c'])} °C"
+        elif row["type"] == "weight" and row["weight_kg"]:
+            amount = f"{_fmt(row['weight_kg'])} кг"
+        elif row["type"] == "breathing" and row["breaths"]:
+            amount = f"{_fmt(row['breaths'])}/мин" + (" во сне" if row["asleep"] == 1 else "")
         events.append(DayEvent(
             time=row["occurred_at"][11:16], kind=label, tone=tone, title=title,
             detail=detail if detail != title else "", amount=amount,
@@ -287,3 +407,183 @@ def refusal_summary(rows: list[sqlite3.Row]) -> tuple[list[tuple[str, int]], lis
         ))
     days = [RefusalDay(date.fromisoformat(day), items) for day, items in by_day.items()]
     return counts.most_common(8), days
+
+
+WEIGHT_STALE_DAYS = 7
+SLEEP_BREATHS_LIMIT = 30
+STOOL_WARN_DAYS = 2
+TREND_WINDOW = 7
+TREND_MIN_DAYS = 4
+COMPARE_DAYS = 7
+COMPARE_MIN_AFTER = 3
+
+
+@dataclass
+class Weighing:
+    day: date
+    kg: float
+
+
+@dataclass
+class WeightSummary:
+    last: Weighing
+    days_ago: int
+    stale: bool
+    change_7: float | None
+    change_30: float | None
+    points: list[tuple[float, float]]
+    low: float
+    high: float
+
+
+def _weighings(chat_id: int, until: date) -> list[Weighing]:
+    with db._connect() as conn:
+        rows = conn.execute(
+            "SELECT day, weight_kg FROM events WHERE chat_id = ? AND type = 'weight' AND weight_kg > 0 "
+            "AND day <= ? ORDER BY occurred_at",
+            (chat_id, until.isoformat()),
+        ).fetchall()
+    return [Weighing(date.fromisoformat(r["day"]), r["weight_kg"]) for r in rows]
+
+
+def weight_summary(chat_id: int, start: date, end: date, today: date) -> WeightSummary | None:
+    weighings = _weighings(chat_id, end)
+    if not weighings:
+        return None
+    last = weighings[-1]
+
+    def change(days: int) -> float | None:
+        earlier = [w for w in weighings if w.day <= last.day - timedelta(days=days)]
+        return round(last.kg - earlier[-1].kg, 3) if earlier else None
+
+    shown = [w for w in weighings if start <= w.day <= end] or [last]
+    low, high = min(w.kg for w in shown), max(w.kg for w in shown)
+    span = max((end - start).days, 1)
+    spread = max(high - low, 0.05)
+    points = [(round((w.day - start).days / span * 100, 1), round(36 - (w.kg - low) / spread * 28, 1))
+              for w in shown]
+    return WeightSummary(last=last, days_ago=(today - last.day).days,
+                         stale=(today - last.day).days >= WEIGHT_STALE_DAYS,
+                         change_7=change(7), change_30=change(30), points=points, low=low, high=high)
+
+
+@dataclass
+class Mark:
+    day: date
+    label: str
+
+
+def treatment_marks(rows: list[sqlite3.Row]) -> list[Mark]:
+    """The day each medication started and each day its dose changed."""
+    marks = []
+    for course in meds.courses(rows):
+        previous = None
+        for day in sorted(course.doses_on):
+            amounts = {meds.dose_amount(d) for d in course.doses_on[day]} - {None}
+            amount = max(amounts) if amounts else None
+            if previous is None:
+                marks.append(Mark(day, f"{course.drug}: начало" + (f", {amount:g}" if amount else "")))
+            elif amount is not None and previous is not None and amount != previous:
+                marks.append(Mark(day, f"{course.drug}: {previous:g} → {amount:g}"))
+            previous = amount if amount is not None else previous
+    return sorted(marks, key=lambda m: m.day)
+
+
+@dataclass
+class TrendPoint:
+    day: date
+    pct: float
+
+
+@dataclass
+class Trend:
+    points: list[tuple[float, float]]
+    latest: float | None
+    marks: list[tuple[float, str]]
+
+
+def appetite_trend(rows: list[DayRow], start: date, end: date, goal: float,
+                   marks: list[Mark]) -> Trend | None:
+    """Self-fed calories as a share of the goal, averaged over the last seven recorded days."""
+    span = max((end - start).days, 1)
+    points, latest = [], None
+    for i, row in enumerate(rows):
+        if row.day < start:
+            continue
+        window = [r for r in rows[max(0, i - TREND_WINDOW + 1): i + 1] if r.recorded]
+        if len(window) < TREND_MIN_DAYS or not goal:
+            continue
+        pct = sum(r.kcal_self for r in window) / len(window) / goal * 100
+        latest = pct
+        points.append((round((row.day - start).days / span * 100, 1), round(100 - min(pct, 100), 1)))
+    if not points:
+        return None
+    shown = [(round((m.day - start).days / span * 100, 1), m.label) for m in marks if start <= m.day <= end]
+    return Trend(points=points, latest=latest, marks=shown)
+
+
+@dataclass
+class Comparison:
+    mark: Mark
+    before: tuple[date, date]
+    after: tuple[date, date]
+    lines: list[tuple[str, str, str]]
+
+
+def _mean(values: list[float]) -> float:
+    return sum(values) / len(values) if values else 0.0
+
+
+def compare_around(chat_id: int, subject: str, mark: Mark, today: date) -> Comparison | None:
+    before = (mark.day - timedelta(days=COMPARE_DAYS), mark.day - timedelta(days=1))
+    after = (mark.day, min(mark.day + timedelta(days=COMPARE_DAYS - 1), today))
+    if (after[1] - after[0]).days + 1 < COMPARE_MIN_AFTER:
+        return None
+    rows_before = [r for r in day_rows(chat_id, subject, *before) if r.recorded]
+    rows_after = [r for r in day_rows(chat_id, subject, *after) if r.recorded]
+    if not rows_before or not rows_after:
+        return None
+
+    def per_day(rows, attr) -> float:
+        return _mean([getattr(r, attr) or 0 for r in rows])
+
+    def share(rows, test) -> str:
+        return f"{sum(1 for r in rows if test(r))} из {len(rows)}"
+
+    lines = [
+        ("Ккал сама", f"{per_day(rows_before, 'kcal_self'):.0f}", f"{per_day(rows_after, 'kcal_self'):.0f}"),
+        ("Ккал через зонд", f"{per_day(rows_before, 'kcal_tube'):.0f}", f"{per_day(rows_after, 'kcal_tube'):.0f}"),
+        ("Моча в день", f"{per_day(rows_before, 'urinations'):.1f}", f"{per_day(rows_after, 'urinations'):.1f}"),
+        ("Дней со стулом", share(rows_before, lambda r: r.stools), share(rows_after, lambda r: r.stools)),
+        ("Дней с рвотой", share(rows_before, lambda r: r.vomiting), share(rows_after, lambda r: r.vomiting)),
+        ("Отказов в день", f"{per_day(rows_before, 'refusals'):.1f}", f"{per_day(rows_after, 'refusals'):.1f}"),
+    ]
+    return Comparison(mark=mark, before=before, after=after, lines=lines)
+
+
+def last_stool(chat_id: int, until: date) -> date | None:
+    with db._connect() as conn:
+        rows = conn.execute(
+            "SELECT day, description FROM events WHERE chat_id = ? AND type = 'toilet' AND day <= ? "
+            "ORDER BY occurred_at DESC",
+            (chat_id, until.isoformat()),
+        ).fetchall()
+    return next((date.fromisoformat(r["day"]) for r in rows if db.is_stool(r["description"])), None)
+
+
+@dataclass
+class Breath:
+    day: date
+    time: str
+    rate: float
+    asleep: bool | None
+
+    @property
+    def high(self) -> bool:
+        return bool(self.asleep) and self.rate > SLEEP_BREATHS_LIMIT
+
+
+def breathing(chat_id: int, start: date, end: date) -> list[Breath]:
+    rows = [r for r in db.events_in_days(chat_id, start, end) if r["type"] == "breathing" and r["breaths"]]
+    return [Breath(date.fromisoformat(r["day"]), r["occurred_at"][11:16], r["breaths"],
+                   None if r["asleep"] is None else bool(r["asleep"])) for r in reversed(rows)]
