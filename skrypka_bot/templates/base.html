@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Дневник ухода{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="/">🐾 Дневник</a>
+  {% if viewer %}
+  <nav class="animals">
+    {% for a in animals %}<a href="/{{ a.subject }}/week" {% if current and a.subject == current.subject %}aria-current="page"{% endif %}>{{ a.profile.name }}</a>{% endfor %}
+  </nav>
+  <form method="post" action="/logout"><button class="link">Выйти</button></form>
+  {% endif %}
+</header>
+{% if current %}
+<nav class="sections">
+  {% set here = request.url.path %}
+  <a href="/{{ current.subject }}/week" {% if '/week' in here or '/day/' in here %}aria-current="page"{% endif %}>Неделя</a>
+  <a href="/{{ current.subject }}/meds" {% if '/meds' in here %}aria-current="page"{% endif %}>Лекарства</a>
+  <a href="/{{ current.subject }}/foods" {% if '/foods' in here %}aria-current="page"{% endif %}>Корма</a>
+  <a href="/{{ current.subject }}/refusals" {% if '/refusals' in here %}aria-current="page"{% endif %}>Отказы</a>
+</nav>
+{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

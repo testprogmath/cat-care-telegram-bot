@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ current.profile.name }}: отказы{% endblock %}
+{% block content %}
+<h1>{{ current.profile.name }}: отказы</h1>
+{% include "_period.html" %}
+{% if not refusals %}<p>За этот период отказов не записано.</p>{% endif %}
+<ol class="events">
+{% for e in refusals %}
+  <li class="event refusal">
+    <span class="time"><a href="/{{ current.subject }}/day/{{ e.day }}">{{ e.day[8:10] }}.{{ e.day[5:7] }}</a> {{ e.occurred_at[11:16] }}</span>
+    <span class="what"><strong>{{ products(e) | join(', ') }}</strong> <span class="description">{{ e.description }}</span></span>
+  </li>
+{% endfor %}
+</ol>
+{% endblock %}

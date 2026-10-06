@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ current.profile.name }}: неделя{% endblock %}
+{% block content %}
+<h1>{{ current.profile.name }}: неделя по {{ end.strftime('%d.%m.%Y') }}</h1>
+<p class="pager">
+  <a href="?end={{ previous.isoformat() }}">← раньше</a>
+  {% if not is_current %}<a href="?end={{ following.isoformat() }}">позже →</a> <a href="?">сегодня</a>{% endif %}
+</p>
+<div class="scroll">
+<table>
+  <thead><tr>
+    <th>День</th><th>Ккал сама</th><th>Ккал зонд</th><th>Ккал всего</th>
+    <th>Вода, мл</th><th>Из корма, мл</th><th>Моча</th><th>Стул</th><th>Рвота</th><th>Отказы</th><th>t °C</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td><a href="/{{ current.subject }}/day/{{ r.day.isoformat() }}">{{ r.day.strftime('%d.%m') }}</a></td>
+    <td>{{ '%.0f' % r.kcal_self if r.kcal_self else '–' }}</td>
+    <td>{{ '%.0f' % r.kcal_tube if r.kcal_tube else '–' }}</td>
+    <td><strong>{{ '%.0f' % r.kcal if r.kcal else '–' }}</strong></td>
+    <td>{{ '%.0f' % r.drinking_ml if r.drinking_ml is not none else '–' }}</td>
+    <td>{{ '%.0f' % r.from_food_ml if r.from_food_ml is not none else '–' }}</td>
+    <td>{{ r.urinations if r.urinations is not none else '–' }}</td>
+    <td>{{ r.stools if r.stools is not none else '–' }}</td>
+    <td>{{ r.vomiting or '–' }}</td>
+    <td>{{ r.refusals or '–' }}</td>
+    <td>{{ r.temperatures | join(', ') if r.temperatures else '–' }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="note">«–» значит «ничего не записано», а не ноль. Цифры — сумма того, что записали в чат.</p>
+<img class="chart" src="/{{ current.subject }}/week.png?end={{ end.isoformat() }}" alt="Графики за неделю">
+{% endblock %}

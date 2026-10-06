@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ current.profile.name }}: лекарства{% endblock %}
+{% block content %}
+<h1>{{ current.profile.name }}: лекарства</h1>
+{% include "_period.html" %}
+{% if not courses %}<p>За этот период лекарств не записано.</p>{% else %}
+<div class="scroll">
+<table>
+  <thead><tr><th>Препарат</th><th>Приёмов</th><th>Дней</th><th>Когда</th><th>Дозы</th></tr></thead>
+  <tbody>
+  {% for c in courses %}
+  <tr><td>{{ label(c.drug) }}</td><td>{{ c.given }}</td><td>{{ c.days | length }}</td><td>{{ span(c.first, c.last) }}</td><td>{{ doses(c) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<img class="chart" src="/{{ current.subject }}/meds.png?from={{ start.isoformat() }}&amp;to={{ end.isoformat() }}" alt="Дозы по дням">
+{% endif %}
+{% endblock %}

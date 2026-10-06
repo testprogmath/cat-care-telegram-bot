@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ current.profile.name }}: корма{% endblock %}
+{% block content %}
+<h1>{{ current.profile.name }}: корма</h1>
+{% include "_period.html" %}
+{% if tube.feeds %}<p class="note">Через зонд: {{ tube.feeds }} кормлений, {{ '%.0f' % tube.kcal }} ккал. В таблице только то, что ели сами.</p>{% endif %}
+{% if not lines %}<p>За этот период ни еды, ни отказов не записано.</p>{% else %}
+<div class="scroll">
+<table>
+  <thead><tr><th>Корм</th><th>Съел(а), раз</th><th>Ккал</th><th>Последний раз ел(а)</th><th>Отказов</th><th>Последний отказ</th></tr></thead>
+  <tbody>
+  {% for l in lines %}
+  <tr class="{% if l.refused and not l.eaten %}refused{% endif %}">
+    <td>{{ l.product }}</td>
+    <td>{{ l.eaten or '–' }}</td>
+    <td>{{ '%.0f' % l.kcal if l.kcal else '–' }}</td>
+    <td>{{ l.last_eaten.strftime('%d.%m') if l.last_eaten else '–' }}</td>
+    <td>{{ l.refused or '–' }}</td>
+    <td>{{ l.last_refused.strftime('%d.%m') if l.last_refused else '–' }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="note">В дневник попадает то, что записали. Отказ записан, только если о нём написали в чат.</p>
+{% endif %}
+{% endblock %}

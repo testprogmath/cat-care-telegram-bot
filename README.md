@@ -222,6 +222,34 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 The API does not start without a token of at least 32 characters.
 
+## Web pages for the family
+
+`care-web` serves read-only pages from the same database: a week table and charts, every
+event of a day with the message it came from, medications, foods and refusals. It runs as a
+third container, `web`, on `127.0.0.1:8280`, and mounts `data/` read-only. Nothing on these
+pages writes to the diary; edits stay with the admin API.
+
+Sign-in is Telegram's OpenID Connect login. A person sees an animal only while they are a
+member of that animal's chat: the page asks Telegram with `getChatMember` and remembers the
+answer for ten minutes. Add someone to the chat to give them access, remove them to take it
+away. The bot must be an administrator of each chat, with no rights, because Telegram only
+guarantees `getChatMember` for administrators.
+
+The `web` container gets only the variables it needs, not the whole `.env`:
+
+| Variable | |
+|---|---|
+| `WEB_BASE_URL` | the public address, e.g. `https://cats.khvorostianova.com` |
+| `WEB_SESSION_SECRET` | at least 32 characters; signs the session cookie |
+| `TELEGRAM_OPENID_CLIENT_ID`, `TELEGRAM_OPENID_CLIENT_SECRET` | from BotFather → the bot → Login Widget → OpenID Connect |
+| `TELEGRAM_BOT_TOKEN` | for `getChatMember` |
+
+In BotFather, register `<WEB_BASE_URL>/auth/callback` as an allowed URL.
+
+The foods page groups recorded names into one product each ("hills digestive care",
+"hill's prescription diet i/d" → Hill's i/d). The rules are in `foods.py`. A refusal that
+names two foods counts once for each.
+
 ## Running it
 
 ```bash
