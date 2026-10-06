@@ -77,6 +77,21 @@ def _strip_kcal(text: str) -> str:
     return _KCAL_PAREN_RE.sub("", text).strip()
 
 
+SLEEP_BREATHS_LIMIT = 30
+WEIGHING_INTERVAL_DAYS = 7
+
+
+def weighing_reminder(last: tuple[date, float] | None, today: date) -> str | None:
+    if last is None:
+        return "⚖️ Взвешиваний в дневнике ещё нет. Взвесьте, пожалуйста, и напишите вес в чат."
+    day, kg = last
+    ago = (today - day).days
+    if ago < WEIGHING_INTERVAL_DAYS:
+        return None
+    return (f"⚖️ Последнее взвешивание {day.strftime('%d.%m')}, {kg:g} кг — "
+            f"{ago} {_plural(ago, 'день', 'дня', 'дней')} назад. Пора взвесить.")
+
+
 def _plural(n: int, one: str, few: str, many: str) -> str:
     if n % 100 in (11, 12, 13, 14):
         return many
@@ -360,9 +375,18 @@ async def render_summary(
         )
         if missed_wet:
             lines.append(_wet_note(missed_wet))
+        drank = [e for e in water if e["feeding"] == "self"]
+        given = [e for e in water if e["feeding"] == "tube"]
+        if drank or given:
+            parts = [f"пила сама {len(drank)} {_plural(len(drank), 'раз', 'раза', 'раз')}"
+                     f" ({_num(sum(e['water_ml'] or 0 for e in drank))} мл)"]
+            if given:
+                parts.append(f"дали {_num(sum(e['water_ml'] or 0 for e in given))} мл")
+            lines.append("  " + ", ".join(parts))
         for e in water:
             ml = f"{e['water_ml']:g} мл" if e["water_ml"] else e["description"]
-            lines.append(f"  {_time_of(e)} — {ml}")
+            source = {"self": " (сама)", "tube": " (дали)"}.get(e["feeding"], "")
+            lines.append(f"  {_time_of(e)} — {ml}{source}")
 
     if food:
         lines.append("\n🍗 Еда:")
@@ -386,6 +410,19 @@ async def render_summary(
         lines.append("\n🚫 Не стал есть:")
         for e in refused:
             lines.append(f"  {_time_of(e)} — {e['name'] or e['description']}")
+
+    weights = [e for e in events if e["type"] == "weight" and e["weight_kg"]]
+    if weights:
+        lines.append("\n⚖️ Вес:")
+        lines.extend(f"  {_time_of(e)} — {e['weight_kg']:g} кг" for e in weights)
+
+    breathing = [e for e in events if e["type"] == "breathing" and e["breaths"]]
+    if breathing:
+        lines.append("\n🫁 Дыхание:")
+        for e in breathing:
+            state = {1: " во сне", 0: " не во сне"}.get(e["asleep"], "")
+            flag = " — выше 30 во сне" if e["asleep"] == 1 and e["breaths"] > SLEEP_BREATHS_LIMIT else ""
+            lines.append(f"  {_time_of(e)} — {_num(e['breaths'])} в минуту{state}{flag}")
 
     temperature = [e for e in events if e["type"] == "temperature"]
     if temperature:
