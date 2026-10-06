@@ -265,11 +265,12 @@ In BotFather, disable privacy mode for the bot, otherwise it never sees ordinary
 messages.
 
 `./deploy.sh` rsyncs to a VPS and restarts the containers there, the bot and the admin
-API. It needs `DEPLOY_HOST` set. Use it only when the release workflow cannot run.
+API. It needs `DEPLOY_HOST` set. Use it only when the release job cannot run.
 
 ## Releases and deploys
 
-Every merge to `main` is a release. When CI passes on `main`, the `Release` workflow tags
+Every merge to `main` is a release. When lint, static checks, tests and the image build
+pass on `main`, the `release` job in CI tags
 the merge commit, publishes a GitHub Release with notes generated from the merged pull
 requests, and deploys that tag to the server.
 
@@ -357,11 +358,18 @@ framework: schema changes are `ALTER TABLE` guarded by a column check at startup
 ```bash
 pip install -e '.[dev]'
 OPENAI_API_KEY=dummy pytest -q
+ruff check .
 ```
 
 The tests cover the deterministic parts: water from wet food, the care-day boundary, and
 Russian wording that has produced wrong entries before. CI runs them on Python 3.11 and
-3.12 and builds the Docker image. No test calls the model.
+3.12, runs `ruff check`, and builds the Docker image. No test calls the model. The ruff
+rules and the few deliberate exceptions are in `pyproject.toml`.
+
+The `static` job checks everything that is not Python: shellcheck on the deploy scripts,
+hadolint on the Dockerfile, actionlint and zizmor on the workflows, and gitleaks on the
+whole git history. Every action is pinned to a commit and every tool image to a digest;
+Dependabot proposes updates for pip, GitHub Actions and the base image every week.
 
 ## Limits
 

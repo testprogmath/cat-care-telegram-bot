@@ -1,12 +1,13 @@
 import logging
 import os
 from functools import lru_cache
-from typing import Literal, Optional
+from typing import Literal
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
-from .profiles import Profile, get as get_profile
+from .profiles import Profile
+from .profiles import get as get_profile
 
 logger = logging.getLogger(__name__)
 
@@ -207,16 +208,16 @@ EventType = Literal[
 
 class Event(BaseModel):
     type: EventType
-    name: Optional[str] = None
-    dose: Optional[str] = None
-    water_ml: Optional[float] = None
-    kcal: Optional[float] = None
-    time: Optional[str] = None
-    feeding: Optional[Literal["tube", "self"]] = None
-    amount_ml: Optional[float] = None
-    liquid: Optional[bool] = None
-    water_fraction: Optional[float] = None
-    temp_c: Optional[float] = None
+    name: str | None = None
+    dose: str | None = None
+    water_ml: float | None = None
+    kcal: float | None = None
+    time: str | None = None
+    feeding: Literal["tube", "self"] | None = None
+    amount_ml: float | None = None
+    liquid: bool | None = None
+    water_fraction: float | None = None
+    temp_c: float | None = None
     description: str
 
 

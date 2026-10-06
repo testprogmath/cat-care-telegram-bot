@@ -16,7 +16,7 @@ WEEK_DAYS = 7
 
 
 def _label_stack(ax, lower, upper, lower_values, upper_values) -> None:
-    totals = [a + b for a, b in zip(lower_values, upper_values)]
+    totals = [a + b for a, b in zip(lower_values, upper_values, strict=True)]
     smallest = max(totals, default=0) * 0.06
     for bars, values in ((lower, lower_values), (upper, upper_values)):
         ax.bar_label(
@@ -159,7 +159,7 @@ def render_meds(rows: list, day_from: date, day_to: date, profile: Profile) -> b
         fontweight="bold",
     )
 
-    for ax, course in zip(axes[:, 0], courses):
+    for ax, course in zip(axes[:, 0], courses, strict=True):
         points = [
             (day, amount)
             for day, doses in sorted(course.doses_on.items())

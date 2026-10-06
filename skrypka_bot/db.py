@@ -671,7 +671,7 @@ def delete_event(event_id: int, edited_at: datetime) -> sqlite3.Row | None:
         if row is None:
             return None
         conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
-        stored = {key: row[key] for key in row.keys() if key != "message_text"}
+        stored = {key: row[key] for key in row.keys() if key != "message_text"}  # noqa: SIM118 sqlite3.Row `in` checks values, not keys
         _log_edit(conn, event_id, edited_at, "delete", stored, None)
         return row
 

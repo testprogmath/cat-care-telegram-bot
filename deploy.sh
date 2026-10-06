@@ -3,6 +3,7 @@ set -euo pipefail
 
 if [ -f .env ]; then
   set -a
+  # shellcheck source=/dev/null
   . ./.env
   set +a
 fi
