@@ -80,9 +80,11 @@ def test_the_appetite_trend_needs_four_recorded_days_in_the_window(chat):
     for offset in range(10):
         record(chat, date(2026, 9, 20) + timedelta(days=offset), type="food", feeding="self", kcal=100.0)
     rows = views.day_rows(chat, "chipunya", date(2026, 9, 20), date(2026, 9, 29))
-    trend = views.appetite_trend(rows, date(2026, 9, 20), date(2026, 9, 29), 250, [])
-    assert len(trend.points) == 7
-    assert trend.latest == 40.0
+    mark = views.Mark(date(2026, 9, 25), "серения: 8 → 6")
+    trend = views.appetite_trend(rows, date(2026, 9, 20), date(2026, 9, 29), 250, [mark])
+    assert len(trend.line.split()) == 7 and len(trend.bars) == 10
+    assert (trend.latest_pct, trend.latest_kcal) == (40.0, 100.0)
+    assert [(m.number, m.day) for m in trend.marks] == [(1, date(2026, 9, 25))]
 
 
 def test_the_last_stool_ignores_urination(chat):

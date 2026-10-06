@@ -538,36 +538,76 @@ def treatment_marks(rows: list[sqlite3.Row]) -> list[Mark]:
 
 
 @dataclass
-class TrendPoint:
+class TrendBar:
+    x: float
+    w: float
+    y: float
+    h: float
+
+
+@dataclass
+class TrendMark:
+    number: int
+    x: float
     day: date
-    pct: float
+    label: str
 
 
 @dataclass
 class Trend:
-    points: list[tuple[float, float]]
-    latest: float | None
-    marks: list[tuple[float, str]]
+    width: int
+    height: int
+    left: float
+    right: float
+    top: float
+    bottom: float
+    bars: list[TrendBar]
+    line: str
+    marks: list[TrendMark]
+    latest_pct: float
+    latest_kcal: float
+    first_label: str
+    last_label: str
+
+    def y(self, pct: float) -> float:
+        return round(self.bottom - min(pct, 100) / 100 * (self.bottom - self.top), 1)
 
 
 def appetite_trend(rows: list[DayRow], start: date, end: date, goal: float,
                    marks: list[Mark]) -> Trend | None:
-    """Self-fed calories as a share of the goal, averaged over the last seven recorded days."""
-    span = max((end - start).days, 1)
+    """Each day's self-fed calories as a share of the goal, and their mean over seven recorded days."""
+    if not goal:
+        return None
+    width, height, left, right, top, bottom = 240, 132, 26.0, 236.0, 12.0, 112.0
+    days = (end - start).days + 1
+    slot = (right - left) / days
+    trend = Trend(width, height, left, right, top, bottom, [], "", [], 0.0, 0.0,
+                  start.strftime("%d.%m"), end.strftime("%d.%m"))
     points, latest = [], None
     for i, row in enumerate(rows):
         if row.day < start:
             continue
+        offset = (row.day - start).days
+        centre = left + offset * slot + slot / 2
+        if row.recorded:
+            pct = row.kcal_self / goal * 100
+            y = trend.y(pct)
+            trend.bars.append(TrendBar(round(left + offset * slot + slot * 0.18, 2), round(slot * 0.64, 2), y,
+                                       round(bottom - y, 1)))
         window = [r for r in rows[max(0, i - TREND_WINDOW + 1): i + 1] if r.recorded]
-        if len(window) < TREND_MIN_DAYS or not goal:
-            continue
-        pct = sum(r.kcal_self for r in window) / len(window) / goal * 100
-        latest = pct
-        points.append((round((row.day - start).days / span * 100, 1), round(100 - min(pct, 100), 1)))
-    if not points:
+        if len(window) >= TREND_MIN_DAYS:
+            mean_kcal = sum(r.kcal_self for r in window) / len(window)
+            latest = mean_kcal
+            points.append(f"{round(centre, 1)},{trend.y(mean_kcal / goal * 100)}")
+    if latest is None:
         return None
-    shown = [(round((m.day - start).days / span * 100, 1), m.label) for m in marks if start <= m.day <= end]
-    return Trend(points=points, latest=latest, marks=shown)
+    trend.line = " ".join(points)
+    trend.latest_kcal = latest
+    trend.latest_pct = latest / goal * 100
+    shown = [m for m in marks if start <= m.day <= end]
+    trend.marks = [TrendMark(n, round(left + (m.day - start).days * slot + slot / 2, 1), m.day, m.label)
+                   for n, m in enumerate(shown, start=1)]
+    return trend
 
 
 @dataclass

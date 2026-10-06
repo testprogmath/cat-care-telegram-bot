@@ -67,15 +67,27 @@
 
 {% if trend %}
 <section class="card" aria-labelledby="trend-h">
-  <h2 id="trend-h" class="eyebrow">Ест {{ current.profile.self_label }} · % цели, среднее за 7 дней</h2>
-  <p><span class="big num">{{ '%.0f' % trend.latest }}%</span> <span class="muted">сейчас</span></p>
-  <svg class="trend" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Доля цели, которую {{ current.profile.pick('съела сама', 'съел сам') }}">
-    <line x1="0" x2="100" y1="50" y2="50" class="grid"></line>
-    {% for x, label in trend.marks %}<line x1="{{ x }}" x2="{{ x }}" y1="0" y2="100" class="mark"></line>{% endfor %}
-    <polyline points="{% for x, y in trend.points %}{{ x }},{{ y }} {% endfor %}" class="line"></polyline>
+  <h2 id="trend-h" class="eyebrow">Ест {{ current.profile.self_label }} · доля цели {{ '%g' % current.profile.kcal_goal }} ккал</h2>
+  <p><span class="big num">{{ '%.0f' % trend.latest_pct }}%</span> <span class="muted">цели · {{ '%.0f' % trend.latest_kcal }} ккал в день за последние 7 дней</span></p>
+  <svg class="trend" viewBox="0 0 {{ trend.width }} {{ trend.height }}" role="img" aria-label="Сколько процентов цели {{ current.profile.pick('съела сама', 'съел сам') }}: по дням и среднее за 7 дней">
+    {% for pct in (100, 50, 0) %}
+    <line x1="{{ trend.left }}" x2="{{ trend.right }}" y1="{{ trend.y(pct) }}" y2="{{ trend.y(pct) }}" class="grid"></line>
+    <text x="{{ trend.left - 4 }}" y="{{ trend.y(pct) + 3 }}" class="axis">{{ pct }}%</text>
+    {% endfor %}
+    {% for b in trend.bars %}<rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" class="day-bar"></rect>{% endfor %}
+    {% for m in trend.marks %}
+    <line x1="{{ m.x }}" x2="{{ m.x }}" y1="{{ trend.top }}" y2="{{ trend.bottom }}" class="mark"></line>
+    <circle cx="{{ m.x }}" cy="{{ trend.top - 4 }}" r="5" class="mark-dot"></circle>
+    <text x="{{ m.x }}" y="{{ trend.top - 1.5 }}" class="mark-n">{{ m.number }}</text>
+    {% endfor %}
+    <polyline points="{{ trend.line }}" class="line"></polyline>
+    <text x="{{ trend.left }}" y="{{ trend.height - 4 }}" class="axis start">{{ trend.first_label }}</text>
+    <text x="{{ trend.right }}" y="{{ trend.height - 4 }}" class="axis">{{ trend.last_label }}</text>
   </svg>
-  <p class="strip-ends muted"><span>{{ start.strftime('%d.%m') }}</span><span>50% — пунктир</span><span>{{ end.strftime('%d.%m') }}</span></p>
-  {% if trend.marks %}<ul class="marks">{% for x, label in trend.marks %}<li>{{ label }}</li>{% endfor %}</ul>{% endif %}
+  <p class="legend"><span class="key self"></span>каждый день <span class="key line"></span>среднее за 7 дней</p>
+  {% if trend.marks %}
+  <ol class="marks">{% for m in trend.marks %}<li><span class="mark-chip">{{ m.number }}</span> {{ m.day.strftime('%d.%m') }} · {{ m.label }}</li>{% endfor %}</ol>
+  {% endif %}
 </section>
 {% endif %}
 
