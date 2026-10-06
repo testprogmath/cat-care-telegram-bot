@@ -227,6 +227,19 @@ def test_a_telegram_login_signs_the_member_in(settings, monkeypatch, telegram_ke
     assert (session["uid"], session["name"]) == (MEMBER, "Анна")
 
 
+def test_a_user_id_sent_as_a_string_is_accepted(settings, monkeypatch, telegram_key):
+    response, *_ = login(settings, monkeypatch,
+                         lambda nonce: id_token(telegram_key, nonce, id=str(MEMBER)))
+    session = web_auth.unsign(response.cookies[web_auth.SESSION_COOKIE], SECRET)
+    assert session["uid"] == MEMBER
+
+
+def test_a_missing_user_id_names_the_claims_that_came(settings, monkeypatch, telegram_key, caplog):
+    response, *_ = login(settings, monkeypatch, lambda nonce: id_token(telegram_key, nonce, id=None))
+    assert response.status_code == 400
+    assert "claims present: ['aud', 'exp', 'iat', 'iss', 'name', 'nonce', 'sub']" in caplog.text
+
+
 @pytest.mark.parametrize(
     "overrides",
     [{"aud": "someone-else"}, {"iss": "https://evil.example"}, {"exp": int(time.time()) - 10},
