@@ -246,6 +246,33 @@ The `web` container gets only the variables it needs, not the whole `.env`:
 
 In BotFather, register `<WEB_BASE_URL>/auth/callback` as an allowed URL.
 
+The server's system Caddy publishes the pages with HTTPS. Add this block to
+`/etc/caddy/Caddyfile`, validate it and reload Caddy. Validate with the service's
+environment file loaded, because another site block reads a password from it:
+
+```bash
+sudo sh -c 'set -a; . /etc/caddy/ciwang.env; caddy validate --config /etc/caddy/Caddyfile' \
+  && sudo systemctl reload caddy
+```
+
+Caddy gets the certificate itself once the DNS record points at the server.
+
+```
+cats.khvorostianova.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8280
+	header Strict-Transport-Security "max-age=31536000"
+
+	log {
+		output file /var/log/caddy/cats.log
+		format console
+	}
+}
+```
+
+Caddy leaves cookies out of its access log by default, so the session cookie is not
+written there.
+
 The foods page groups recorded names into one product each ("hills digestive care",
 "hill's prescription diet i/d" → Hill's i/d). The rules are in `foods.py`. A refusal that
 names two foods counts once for each.
