@@ -153,12 +153,27 @@ class MiniBar:
 
 
 @dataclass
+class ToiletBar:
+    urine_x: float
+    stool_x: float
+    w: float
+    urine_y: float
+    urine_h: float
+    stool_y: float
+    stool_h: float
+    urine: int | None
+    stool: int | None
+
+
+@dataclass
 class MiniChart:
     width: float
     height: int
     goal_y: float
     bars: list[MiniBar]
     labelled: bool
+    toilet: list[ToiletBar] = field(default_factory=list)
+    toilet_height: int = 0
 
 
 def mini_chart(rows: list, goal: float) -> MiniChart | None:
@@ -178,12 +193,27 @@ def mini_chart(rows: list, goal: float) -> MiniChart | None:
             self_y=round(base - tube_h - self_h, 1), self_h=round(self_h, 1),
             total=round(r.kcal), label=r.day.strftime("%d.%m"),
         ))
-    return MiniChart(width=width, height=int(top + height), goal_y=round(top + height - goal * scale, 1),
+    toilet_top, toilet_height = 12.0, 50.0
+    most = max([r.urinations or 0 for r in rows] + [r.stools or 0 for r in rows] + [1])
+    toilet = []
+    for i, r in enumerate(rows):
+        bar = round(slot * 0.32, 2)
+        urine_h = (r.urinations or 0) / most * toilet_height
+        stool_h = (r.stools or 0) / most * toilet_height
+        base = toilet_top + toilet_height
+        toilet.append(ToiletBar(
+            urine_x=round(i * slot + slot * 0.15, 2), stool_x=round(i * slot + slot * 0.15 + bar + slot * 0.06, 2),
+            w=bar, urine_y=round(base - urine_h, 1), urine_h=round(urine_h, 1),
+            stool_y=round(base - stool_h, 1), stool_h=round(stool_h, 1),
+            urine=r.urinations, stool=r.stools,
+        ))
+    return MiniChart(toilet=toilet, toilet_height=int(toilet_top + toilet_height),
+                     width=width, height=int(top + height), goal_y=round(top + height - goal * scale, 1),
                      bars=bars, labelled=len(rows) <= 14)
 
 
 KINDS = {
-    "food_self": ("еда · сама", "self"),
+    "food_self": ("еда · {self}", "self"),
     "food_tube": ("еда · зонд", "tube"),
     "water": ("вода", "water"),
     "medication": ("лекарство", "meds"),
@@ -243,7 +273,8 @@ def _fmt(value: float) -> str:
     return f"{value:g}".replace(".", ",")
 
 
-def day_events(rows: list[sqlite3.Row], show: str | None) -> tuple[list[DayEvent], WaterLine | None]:
+def day_events(rows: list[sqlite3.Row], show: str | None,
+               self_label: str = "сама") -> tuple[list[DayEvent], WaterLine | None]:
     wanted = FILTERS[show][1] if show in FILTERS else None
     events, water = [], WaterLine(0, 0.0)
     for row in rows:
@@ -258,6 +289,7 @@ def day_events(rows: list[sqlite3.Row], show: str | None) -> tuple[list[DayEvent
         if wanted is not None and kind not in wanted:
             continue
         label, tone = KINDS[kind]
+        label = label.format(self=self_label)
         tags: list[str] = []
         if kind == "toilet" and db.is_stool(row["description"]):
             label = "туалет · стул"
@@ -416,6 +448,7 @@ TREND_WINDOW = 7
 TREND_MIN_DAYS = 4
 COMPARE_DAYS = 7
 COMPARE_MIN_AFTER = 3
+STEADY_DAYS = 3
 
 
 @dataclass
@@ -429,7 +462,7 @@ class WeightSummary:
     last: Weighing
     days_ago: int
     stale: bool
-    change_7: float | None
+    previous: Weighing | None
     change_30: float | None
     points: list[tuple[float, float]]
     low: float
@@ -452,9 +485,7 @@ def weight_summary(chat_id: int, start: date, end: date, today: date) -> WeightS
         return None
     last = weighings[-1]
 
-    def change(days: int) -> float | None:
-        earlier = [w for w in weighings if w.day <= last.day - timedelta(days=days)]
-        return round(last.kg - earlier[-1].kg, 3) if earlier else None
+    earlier = [w for w in weighings if w.day <= last.day - timedelta(days=30)]
 
     shown = [w for w in weighings if start <= w.day <= end] or [last]
     low, high = min(w.kg for w in shown), max(w.kg for w in shown)
@@ -464,7 +495,9 @@ def weight_summary(chat_id: int, start: date, end: date, today: date) -> WeightS
               for w in shown]
     return WeightSummary(last=last, days_ago=(today - last.day).days,
                          stale=(today - last.day).days >= WEIGHT_STALE_DAYS,
-                         change_7=change(7), change_30=change(30), points=points, low=low, high=high)
+                         previous=weighings[-2] if len(weighings) > 1 else None,
+                         change_30=round(last.kg - earlier[-1].kg, 3) if earlier else None,
+                         points=points, low=low, high=high)
 
 
 @dataclass
@@ -474,52 +507,107 @@ class Mark:
 
 
 def treatment_marks(rows: list[sqlite3.Row]) -> list[Mark]:
-    """The day each medication started and each day its dose changed."""
+    """The day each medication started, and each day a new dose began that then held.
+
+    A dose counts as changed only when the new amount is given on STEADY_DAYS days running;
+    a single evening at another dose is a wobble, not a change of treatment.
+    """
     marks = []
     for course in meds.courses(rows):
-        previous = None
-        for day in sorted(course.doses_on):
-            amounts = {meds.dose_amount(d) for d in course.doses_on[day]} - {None}
-            amount = max(amounts) if amounts else None
-            if previous is None:
-                marks.append(Mark(day, f"{course.drug}: начало" + (f", {amount:g}" if amount else "")))
-            elif amount is not None and previous is not None and amount != previous:
-                marks.append(Mark(day, f"{course.drug}: {previous:g} → {amount:g}"))
-            previous = amount if amount is not None else previous
+        days = sorted(course.doses_on)
+        amounts = []
+        for day in days:
+            known = {meds.dose_amount(d) for d in course.doses_on[day]} - {None}
+            amounts.append(max(known) if known else None)
+        opening = [a for a in amounts[:STEADY_DAYS] if a is not None]
+        counts = Counter(opening)
+        first_amount = (max(reversed(opening), key=counts.__getitem__) if opening
+                        else next((a for a in amounts if a is not None), None))
+        marks.append(Mark(days[0], f"{course.drug}: начало" + (f", {first_amount:g}" if first_amount else "")))
+        steady = first_amount
+        for i, amount in enumerate(amounts):
+            if i < STEADY_DAYS:
+                continue
+            if amount is None or steady is None or amount == steady:
+                continue
+            run = amounts[i:i + STEADY_DAYS]
+            if len(run) == STEADY_DAYS and all(a == amount for a in run):
+                marks.append(Mark(days[i], f"{course.drug}: {steady:g} → {amount:g}"))
+                steady = amount
     return sorted(marks, key=lambda m: m.day)
 
 
 @dataclass
-class TrendPoint:
+class TrendBar:
+    x: float
+    w: float
+    y: float
+    h: float
+
+
+@dataclass
+class TrendMark:
+    number: int
+    x: float
     day: date
-    pct: float
+    label: str
 
 
 @dataclass
 class Trend:
-    points: list[tuple[float, float]]
-    latest: float | None
-    marks: list[tuple[float, str]]
+    width: int
+    height: int
+    left: float
+    right: float
+    top: float
+    bottom: float
+    bars: list[TrendBar]
+    line: str
+    marks: list[TrendMark]
+    latest_pct: float
+    latest_kcal: float
+    first_label: str
+    last_label: str
+
+    def y(self, pct: float) -> float:
+        return round(self.bottom - min(pct, 100) / 100 * (self.bottom - self.top), 1)
 
 
 def appetite_trend(rows: list[DayRow], start: date, end: date, goal: float,
                    marks: list[Mark]) -> Trend | None:
-    """Self-fed calories as a share of the goal, averaged over the last seven recorded days."""
-    span = max((end - start).days, 1)
+    """Each day's self-fed calories as a share of the goal, and their mean over seven recorded days."""
+    if not goal:
+        return None
+    width, height, left, right, top, bottom = 240, 132, 26.0, 236.0, 12.0, 112.0
+    days = (end - start).days + 1
+    slot = (right - left) / days
+    trend = Trend(width, height, left, right, top, bottom, [], "", [], 0.0, 0.0,
+                  start.strftime("%d.%m"), end.strftime("%d.%m"))
     points, latest = [], None
     for i, row in enumerate(rows):
         if row.day < start:
             continue
+        offset = (row.day - start).days
+        centre = left + offset * slot + slot / 2
+        if row.recorded:
+            pct = row.kcal_self / goal * 100
+            y = trend.y(pct)
+            trend.bars.append(TrendBar(round(left + offset * slot + slot * 0.18, 2), round(slot * 0.64, 2), y,
+                                       round(bottom - y, 1)))
         window = [r for r in rows[max(0, i - TREND_WINDOW + 1): i + 1] if r.recorded]
-        if len(window) < TREND_MIN_DAYS or not goal:
-            continue
-        pct = sum(r.kcal_self for r in window) / len(window) / goal * 100
-        latest = pct
-        points.append((round((row.day - start).days / span * 100, 1), round(100 - min(pct, 100), 1)))
-    if not points:
+        if len(window) >= TREND_MIN_DAYS:
+            mean_kcal = sum(r.kcal_self for r in window) / len(window)
+            latest = mean_kcal
+            points.append(f"{round(centre, 1)},{trend.y(mean_kcal / goal * 100)}")
+    if latest is None:
         return None
-    shown = [(round((m.day - start).days / span * 100, 1), m.label) for m in marks if start <= m.day <= end]
-    return Trend(points=points, latest=latest, marks=shown)
+    trend.line = " ".join(points)
+    trend.latest_kcal = latest
+    trend.latest_pct = latest / goal * 100
+    shown = [m for m in marks if start <= m.day <= end]
+    trend.marks = [TrendMark(n, round(left + (m.day - start).days * slot + slot / 2, 1), m.day, m.label)
+                   for n, m in enumerate(shown, start=1)]
+    return trend
 
 
 @dataclass
@@ -534,7 +622,16 @@ def _mean(values: list[float]) -> float:
     return sum(values) / len(values) if values else 0.0
 
 
-def compare_around(chat_id: int, subject: str, mark: Mark, today: date) -> Comparison | None:
+def same_day_marks(marks: list[Mark]) -> list[Mark]:
+    """One mark per day, so two changes on one day give one comparison."""
+    merged: dict[date, list[str]] = {}
+    for mark in marks:
+        merged.setdefault(mark.day, []).append(mark.label)
+    return [Mark(day, "; ".join(labels)) for day, labels in sorted(merged.items())]
+
+
+def compare_around(chat_id: int, subject: str, mark: Mark, today: date,
+                   self_label: str = "сама") -> Comparison | None:
     before = (mark.day - timedelta(days=COMPARE_DAYS), mark.day - timedelta(days=1))
     after = (mark.day, min(mark.day + timedelta(days=COMPARE_DAYS - 1), today))
     if (after[1] - after[0]).days + 1 < COMPARE_MIN_AFTER:
@@ -551,7 +648,7 @@ def compare_around(chat_id: int, subject: str, mark: Mark, today: date) -> Compa
         return f"{sum(1 for r in rows if test(r))} из {len(rows)}"
 
     lines = [
-        ("Ккал сама", f"{per_day(rows_before, 'kcal_self'):.0f}", f"{per_day(rows_after, 'kcal_self'):.0f}"),
+        (f"Ккал {self_label}", f"{per_day(rows_before, 'kcal_self'):.0f}", f"{per_day(rows_after, 'kcal_self'):.0f}"),
         ("Ккал через зонд", f"{per_day(rows_before, 'kcal_tube'):.0f}", f"{per_day(rows_after, 'kcal_tube'):.0f}"),
         ("Моча в день", f"{per_day(rows_before, 'urinations'):.1f}", f"{per_day(rows_after, 'urinations'):.1f}"),
         ("Дней со стулом", share(rows_before, lambda r: r.stools), share(rows_after, lambda r: r.stools)),

@@ -156,15 +156,28 @@ tfoot td { font-weight: 600; border-top: 2px solid var(--line); }
 .grid-2, .grid-3 { display: grid; gap: 16px; }
 
 .drank { fill: #1E5F9E; } .key.drank { background: #1E5F9E; }
+.urine { fill: var(--toilet); } .stool { fill: #9A6A3A; }
+.key.urine { background: var(--toilet); } .key.stool { background: #9A6A3A; }
+.split { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--soft); }
+.split h3 { margin-bottom: 4px; }
 .warn { color: var(--refused); font-weight: 600; font-size: 0.9rem; margin-top: 8px; }
 .stool { margin-top: 10px; font-size: 0.9rem; }
 .spark, .trend { width: 100%; display: block; margin-top: 10px; }
-.spark { height: 56px; } .trend { height: 120px; }
+.spark { height: 56px; }
+.trend { height: auto; }
 .spark .line, .trend .line { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.trend .line { stroke-width: 2.2; stroke-linejoin: round; }
+.trend .day-bar { fill: var(--self); opacity: 0.45; }
+.trend .axis { font-size: 7px; fill: var(--muted); text-anchor: end; }
+.trend .axis.start { text-anchor: start; }
+.trend .mark-dot { fill: var(--meds); }
+.trend .mark-n { font-size: 6.5px; fill: #fff; font-weight: 700; text-anchor: middle; }
+.key.line { background: var(--accent); height: 3px; border-radius: 2px; }
 .spark .pt { fill: var(--accent); }
 .trend .grid { stroke: var(--line); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
-.trend .mark { stroke: var(--meds); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
-.marks { margin: 6px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--muted); }
+.trend .mark { stroke: var(--meds); stroke-width: 1; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; opacity: 0.7; }
+.marks { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+.mark-chip { display: inline-flex; width: 18px; height: 18px; align-items: center; justify-content: center; border-radius: 999px; background: var(--meds); color: #fff; font-size: 0.7rem; font-weight: 700; }
 .compare table { margin-top: 8px; }
 .compare th, .compare td { white-space: normal; }
 

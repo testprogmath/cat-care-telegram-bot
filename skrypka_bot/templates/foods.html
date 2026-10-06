@@ -6,7 +6,7 @@
   <p class="sub">{{ start.strftime('%d.%m') }} — {{ end.strftime('%d.%m.%Y') }}</p>
 </div>
 {% include "_period.html" %}
-<p class="legend"><span class="key ate"></span>ел(а), раз <span class="key refused"></span>отказ, раз</p>
+<p class="legend"><span class="key ate"></span>{{ current.profile.pick('ела', 'ел') }}, раз <span class="key refused"></span>отказ, раз</p>
 {% if tube.feeds %}<p class="note">Через зонд: {{ tube.feeds }} кормлений, {{ '%.0f' % tube.kcal }} ккал. Ниже только то, что ели сами.</p>{% endif %}
 {% if not groups %}<p class="card">За этот период ни еды, ни отказов не записано.</p>{% endif %}
 <div class="grid-3">
@@ -22,7 +22,7 @@
         <rect width="{{ l.eaten / total * 100 }}" height="6" class="ate"></rect>
         <rect x="{{ l.eaten / total * 100 }}" width="{{ l.refused / total * 100 }}" height="6" class="refused"></rect>
       </svg>
-      <span class="muted">{% if l.eaten %}ел(а) {{ l.eaten }} раз, последний {{ l.last_eaten.strftime('%d.%m') }}{% endif %}{% if l.eaten and l.refused %} · {% endif %}{% if l.refused %}отказ {{ l.refused }}, последний {{ l.last_refused.strftime('%d.%m') }}{% endif %}</span>
+      <span class="muted">{% if l.eaten %}{{ current.profile.pick('ела', 'ел') }} {{ l.eaten }} раз, последний {{ l.last_eaten.strftime('%d.%m') }}{% endif %}{% if l.eaten and l.refused %} · {% endif %}{% if l.refused %}отказ {{ l.refused }}, последний {{ l.last_refused.strftime('%d.%m') }}{% endif %}</span>
     </li>
     {% endfor %}
   </ul>

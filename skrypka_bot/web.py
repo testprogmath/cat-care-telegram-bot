@@ -236,7 +236,7 @@ def week_chart(current: Annotated[Animal, Depends(animal)],
 def day_page(request: Request, day: date, person: Annotated[Viewer, Depends(viewer)],
              current: Annotated[Animal, Depends(animal)], show: str | None = None):
     rows = db.events_with_messages(current.chat_id, day, day)
-    events, water = views.day_events(rows, show)
+    events, water = views.day_events(rows, show, current.profile.self_label)
     return page(request, "day.html", person, current, day=day, events=events, water=water,
                 totals=views.day_rows(current.chat_id, current.subject, day, day)[0], show=show, filters=views.FILTERS,
                 previous=day - timedelta(days=1), following=day + timedelta(days=1))
@@ -250,8 +250,9 @@ def meds_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
     start, end = period(day_from, day_to, current.chat_id, all)
     ongoing, finished = views.courses(db.medications_in_days(current.chat_id, start, end), start, end)
     marks = views.treatment_marks(db.medications_in_days(current.chat_id, date(2000, 1, 1), end))
-    comparisons = [c for c in (views.compare_around(current.chat_id, current.subject, m, today())
-                               for m in marks if start <= m.day <= end) if c][-4:]
+    comparisons = [c for c in (views.compare_around(current.chat_id, current.subject, m, today(),
+                                                    current.profile.self_label)
+                               for m in views.same_day_marks(marks) if start <= m.day <= end) if c][-4:]
     return page(request, "meds.html", person, current, start=start, end=end, ongoing=ongoing,
                 finished=finished, span=meds._span, comparisons=list(reversed(comparisons)))
 

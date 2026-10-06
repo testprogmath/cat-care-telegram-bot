@@ -25,18 +25,35 @@ def test_weight_reports_the_change_over_a_week_and_a_month_and_goes_stale(chat):
     record(chat, date(2026, 9, 28), type="weight", weight_kg=7.60)
     record(chat, date(2026, 10, 6), type="weight", weight_kg=7.55)
     summary = views.weight_summary(chat, date(2026, 9, 7), date(2026, 10, 6), date(2026, 10, 14))
-    assert (summary.last.kg, summary.change_7, summary.change_30) == (7.55, -0.05, -0.18)
+    assert (summary.last.kg, summary.previous.kg, summary.change_30) == (7.55, 7.60, -0.18)
     assert summary.stale and summary.days_ago == 8
     assert len(summary.points) == 2
 
 
-def test_treatment_marks_are_starts_and_dose_changes(chat):
-    for day, dose in [(1, "6 мг"), (2, "6 мг"), (3, "4 мг"), (4, "4 мг")]:
+def test_treatment_marks_are_starts_and_dose_changes_that_hold(chat):
+    doses = ["6 мг", "6 мг", "4 мг", "6 мг", "4 мг", "4 мг", "4 мг", "4 мг"]
+    for day, dose in enumerate(doses, start=1):
         record(chat, date(2026, 10, day), type="medication", name="ондансетрон", dose=dose)
-    rows = db.medications_in_days(chat, date(2026, 1, 1), date(2026, 10, 6))
+    rows = db.medications_in_days(chat, date(2026, 1, 1), date(2026, 10, 9))
     assert [(m.day, m.label) for m in views.treatment_marks(rows)] == [
         (date(2026, 10, 1), "ондансетрон: начало, 6"),
-        (date(2026, 10, 3), "ондансетрон: 6 → 4"),
+        (date(2026, 10, 5), "ондансетрон: 6 → 4"),
+    ]
+
+
+def test_an_opening_dose_settled_in_the_first_days_is_the_start(chat):
+    for day, dose in [(29, "2 мг"), (30, "2.5 мг")]:
+        record(chat, date(2026, 9, day), type="medication", name="преднизолон", dose=dose)
+    for day in range(1, 4):
+        record(chat, date(2026, 10, day), type="medication", name="преднизолон", dose="2.5 мг")
+    rows = db.medications_in_days(chat, date(2026, 1, 1), date(2026, 10, 6))
+    assert [m.label for m in views.treatment_marks(rows)] == ["преднизолон: начало, 2.5"]
+
+
+def test_changes_on_one_day_are_one_comparison():
+    marks = [views.Mark(date(2026, 9, 25), "кротакс: начало"), views.Mark(date(2026, 9, 25), "серения: 8 → 6")]
+    assert [(m.day, m.label) for m in views.same_day_marks(marks)] == [
+        (date(2026, 9, 25), "кротакс: начало; серения: 8 → 6"),
     ]
 
 
@@ -63,9 +80,11 @@ def test_the_appetite_trend_needs_four_recorded_days_in_the_window(chat):
     for offset in range(10):
         record(chat, date(2026, 9, 20) + timedelta(days=offset), type="food", feeding="self", kcal=100.0)
     rows = views.day_rows(chat, "chipunya", date(2026, 9, 20), date(2026, 9, 29))
-    trend = views.appetite_trend(rows, date(2026, 9, 20), date(2026, 9, 29), 250, [])
-    assert len(trend.points) == 7
-    assert trend.latest == 40.0
+    mark = views.Mark(date(2026, 9, 25), "серения: 8 → 6")
+    trend = views.appetite_trend(rows, date(2026, 9, 20), date(2026, 9, 29), 250, [mark])
+    assert len(trend.line.split()) == 7 and len(trend.bars) == 10
+    assert (trend.latest_pct, trend.latest_kcal) == (40.0, 100.0)
+    assert [(m.number, m.day) for m in trend.marks] == [(1, date(2026, 9, 25))]
 
 
 def test_the_last_stool_ignores_urination(chat):
