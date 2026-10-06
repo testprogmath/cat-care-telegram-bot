@@ -5,7 +5,6 @@ from datetime import date
 
 UNNAMED_DRY = "сухой, неизвестно какой"
 UNNAMED_WET = "жидкий, неизвестно какой"
-UNNAMED_SNACK = "снек, неизвестно какой"
 UNNAMED = "неизвестно"
 
 _PURINA = r"purina|пурина|путина"
@@ -57,7 +56,7 @@ def product(text: str, liquid: bool | None = None, named: bool = True) -> str:
     if re.search(r"жидк|\bжк\b|влажн", t):
         return UNNAMED_WET
     if re.search(r"снек|снэк|snack", t):
-        return UNNAMED_SNACK
+        return "Vitakraft"
     return text.strip() if named and text.strip() else UNNAMED
 
 

@@ -52,8 +52,8 @@ def test_refusals_without_a_named_food_count_as_unknown(chat):
     record(chat, date(2026, 10, 5), 10, type="refusal", name="сухарики, снек", description="от сухариков и снэка")
     rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
     top, days = views.refusal_summary(rows)
-    assert dict(top) == {foods.UNNAMED: 1, foods.UNNAMED_DRY: 1, foods.UNNAMED_SNACK: 1}
-    assert [item.tags for item in days[0].items] == [[foods.UNNAMED_DRY, foods.UNNAMED_SNACK], [foods.UNNAMED]]
+    assert dict(top) == {foods.UNNAMED: 1, foods.UNNAMED_DRY: 1, "Vitakraft": 1}
+    assert [item.tags for item in days[0].items] == [[foods.UNNAMED_DRY, "Vitakraft"], [foods.UNNAMED]]
 
 
 def test_the_day_groups_water_and_filters_by_kind(chat):
