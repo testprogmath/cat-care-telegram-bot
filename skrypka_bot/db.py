@@ -125,6 +125,9 @@ def init() -> None:
             conn.execute("ALTER TABLE events ADD COLUMN liquid INTEGER")
         if "water_fraction" not in columns:
             conn.execute("ALTER TABLE events ADD COLUMN water_fraction REAL")
+        for column, kind in (("weight_kg", "REAL"), ("breaths", "REAL"), ("asleep", "INTEGER")):
+            if column not in columns:
+                conn.execute(f"ALTER TABLE events ADD COLUMN {column} {kind}")
         if "subject" not in columns:
             conn.execute("ALTER TABLE events ADD COLUMN subject TEXT")
             conn.execute(
@@ -510,8 +513,8 @@ def _insert_events(
                 continue
         conn.execute(
             "INSERT INTO events "
-            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, description) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, weight_kg, breaths, asleep, description) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 chat_id,
                 subject,
@@ -528,6 +531,9 @@ def _insert_events(
                 event.temp_c,
                 1 if event.liquid else None,
                 event.water_fraction,
+                getattr(event, "weight_kg", None),
+                getattr(event, "breaths_per_min", None),
+                {True: 1, False: 0}.get(getattr(event, "asleep", None)),
                 event.description,
             ),
         )
@@ -562,6 +568,16 @@ def medications_in_days(chat_id: int, day_from: date, day_to: date) -> list[sqli
                 (chat_id, day_from.isoformat(), day_to.isoformat()),
             )
         )
+
+
+def last_weight(chat_id: int) -> tuple[date, float] | None:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT day, weight_kg FROM events WHERE chat_id = ? AND type = 'weight' AND weight_kg > 0 "
+            "ORDER BY occurred_at DESC LIMIT 1",
+            (chat_id,),
+        ).fetchone()
+    return None if row is None else (date.fromisoformat(row["day"]), row["weight_kg"])
 
 
 def first_event_day(chat_id: int) -> date | None:
@@ -604,6 +620,9 @@ EDITABLE_COLUMNS = (
     "dose",
     "liquid",
     "feeding",
+    "weight_kg",
+    "breaths",
+    "asleep",
     "occurred_at",
     "day",
 )

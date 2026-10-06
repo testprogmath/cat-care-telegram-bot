@@ -74,6 +74,9 @@ class Event(EventSummary):
     temp_c: float | None
     liquid: bool | None
     water_fraction: float | None
+    weight_kg: float | None = None
+    breaths: float | None = None
+    asleep: bool | None = None
     message_text: str | None
 
 
@@ -90,6 +93,9 @@ class EventPatch(BaseModel):
     dose: str | None = None
     liquid: bool | None = None
     feeding: str | None = None
+    weight_kg: float | None = None
+    breaths: float | None = None
+    asleep: bool | None = None
     occurred_at: datetime | None = None
 
 
@@ -131,6 +137,8 @@ def patch_event(event_id: int, patch: EventPatch) -> Event:
         raise HTTPException(status_code=422, detail="type cannot be null")
     if "liquid" in changes:
         changes["liquid"] = 1 if changes["liquid"] else None
+    if "asleep" in changes and changes["asleep"] is not None:
+        changes["asleep"] = 1 if changes["asleep"] else 0
     if "occurred_at" in changes:
         if changes["occurred_at"] is None:
             raise HTTPException(status_code=422, detail="occurred_at cannot be null")

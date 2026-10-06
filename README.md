@@ -13,8 +13,9 @@ second chat. Both are still using it.
 ## How it works
 
 Every message in the group goes to an LLM with a per-animal prompt, and comes back as zero
-or more typed events: medication with dose, water in ml, food with calories, litter box,
-body temperature, general state. Events land in SQLite. Commands and the daily summary read
+or more typed events: medication with dose, water in ml and whether the cat drank it or was given it, food with
+calories, refusals, litter box, body temperature, weight, breathing rate, general state.
+Events land in SQLite. Commands and the daily summary read
 from there.
 
 The interesting part is everything the prompt has to get right, because a diary that

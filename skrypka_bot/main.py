@@ -18,7 +18,13 @@ from telegram.ext import (
 from . import charts, db, meds, profiles
 from .parser import ParseFailed, parse_message
 from .profiles import Profile
-from .summary import effective_water, render_progress, render_risk, render_summary
+from .summary import (
+    effective_water,
+    render_progress,
+    render_risk,
+    render_summary,
+    weighing_reminder,
+)
 
 WATER_REMINDER_START_HOUR = 9
 WATER_REMINDER_END_HOUR = 23
@@ -450,10 +456,12 @@ async def daily_summary(context: ContextTypes.DEFAULT_TYPE) -> None:
         events = db.events_for_day(chat_id, day)
         if not events:
             continue
+        text = await render_summary(day, events, profile, chat_id=chat_id)
+        reminder = weighing_reminder(db.last_weight(chat_id), day + timedelta(days=1))
+        if reminder:
+            text = f"{text}\n\n{reminder}"
         try:
-            sent = await context.bot.send_message(
-                chat_id, await render_summary(day, events, profile, chat_id=chat_id)
-            )
+            sent = await context.bot.send_message(chat_id, text)
         except Exception:
             logger.exception("Failed to send daily summary to chat %s", chat_id)
             continue
