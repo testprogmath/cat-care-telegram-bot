@@ -1,5 +1,6 @@
 """The family web pages: who gets in, who sees which animal, and what the pages show."""
 
+import gzip
 import io
 import json
 import sqlite3
@@ -175,9 +176,18 @@ def test_the_read_only_connection_cannot_write(chat, monkeypatch):
 
 @pytest.fixture
 def telegram_key(monkeypatch):
+    """Telegram's JWKS, served gzip-compressed without being asked, as the real host does."""
     private = ec.generate_private_key(ec.SECP256R1())
-    monkeypatch.setattr(web_auth._jwks, "get_signing_key_from_jwt",
-                        lambda token: SimpleNamespace(key=private.public_key()))
+    jwk = {**jwt.algorithms.ECAlgorithm.to_jwk(private.public_key(), as_dict=True),
+           "kid": "test-es256", "alg": "ES256", "use": "sig"}
+    body = gzip.compress(json.dumps({"keys": [jwk]}).encode())
+
+    def serve(url, timeout):
+        assert url == web_auth.JWKS_URL
+        return io.BytesIO(body)
+
+    monkeypatch.setattr(web_auth.urllib.request, "urlopen", serve)
+    monkeypatch.setitem(web_auth._jwks, "keys", [])
     return private
 
 
@@ -185,7 +195,8 @@ def id_token(private, expected_nonce, **overrides):
     claims = {"iss": web_auth.ISSUER, "aud": CLIENT_ID, "sub": "x", "iat": int(time.time()),
               "exp": int(time.time()) + 600, "id": MEMBER, "name": "Анна", "nonce": expected_nonce}
     claims.update(overrides)
-    return jwt.encode({k: v for k, v in claims.items() if v is not None}, private, algorithm="ES256")
+    return jwt.encode({k: v for k, v in claims.items() if v is not None}, private, algorithm="ES256",
+                      headers={"kid": "test-es256"})
 
 
 def login(settings, monkeypatch, make_token):
@@ -225,6 +236,26 @@ def test_a_token_that_does_not_check_out_is_refused(settings, monkeypatch, teleg
     response, *_ = login(settings, monkeypatch, lambda nonce: id_token(telegram_key, nonce, **overrides))
     assert response.status_code == 400
     assert web_auth.SESSION_COOKIE not in response.cookies
+
+
+def test_a_refused_code_is_reported_not_crashed_on(settings, monkeypatch, caplog):
+    def refused(url, timeout):
+        return io.BytesIO(json.dumps({"error": "invalid_grant"}).encode())
+
+    monkeypatch.setattr(web_auth.urllib.request, "urlopen", refused)
+    start = client().get("/auth/start", follow_redirects=False)
+    state = urllib.parse.parse_qs(urllib.parse.urlparse(start.headers["location"]).query)["state"][0]
+    callback = client()
+    callback.cookies.set(web_auth.LOGIN_COOKIE, start.cookies[web_auth.LOGIN_COOKIE], path="/auth")
+    response = callback.get(f"/auth/callback?code=used&state={state}", follow_redirects=False)
+    assert response.status_code == 400
+    assert "token endpoint refused the code: invalid_grant" in caplog.text
+
+
+def test_an_unknown_key_id_is_refused(settings, telegram_key):
+    token = jwt.encode({"id": 1}, telegram_key, algorithm="ES256", headers={"kid": "rotated-away"})
+    with pytest.raises(web_auth.AuthError, match="no Telegram signing key"):
+        web_auth.verify_id_token(settings, token, "nonce")
 
 
 def test_a_callback_without_its_login_attempt_is_refused(settings):
