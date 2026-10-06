@@ -1,4 +1,5 @@
 import io
+import math
 from datetime import date, datetime, timedelta
 
 import matplotlib
@@ -13,25 +14,42 @@ from . import db, meds  # noqa: E402
 from .profiles import Profile  # noqa: E402
 
 WEEK_DAYS = 7
+SEGMENT_LABEL_DAYS = 14
+TOTAL_LABEL_DAYS = 31
+TICKS_PER_CHART = 14
 
 
 def _label_stack(ax, lower, upper, lower_values, upper_values) -> None:
     totals = [a + b for a, b in zip(lower_values, upper_values, strict=True)]
-    smallest = max(totals, default=0) * 0.06
-    for bars, values in ((lower, lower_values), (upper, upper_values)):
+    if len(totals) <= SEGMENT_LABEL_DAYS:
+        smallest = max(totals, default=0) * 0.06
+        for bars, values in ((lower, lower_values), (upper, upper_values)):
+            ax.bar_label(
+                bars, labels=[f"{v:.0f}" if v >= smallest and v > 0 else "" for v in values],
+                label_type="center", fontsize=8,
+            )
+    if len(totals) <= TOTAL_LABEL_DAYS:
         ax.bar_label(
-            bars, labels=[f"{v:.0f}" if v >= smallest and v > 0 else "" for v in values],
-            label_type="center", fontsize=8,
+            upper, labels=[f"{t:.0f}" if t > 0 else "" for t in totals],
+            padding=2, fontsize=9 if len(totals) <= SEGMENT_LABEL_DAYS else 7, fontweight="bold",
         )
-    ax.bar_label(
-        upper, labels=[f"{t:.0f}" if t > 0 else "" for t in totals],
-        padding=2, fontsize=9, fontweight="bold",
-    )
+
+
+def _day_axis(ax, x: list[int], labels: list[str]) -> None:
+    step = max(1, math.ceil(len(x) / TICKS_PER_CHART))
+    ax.set_xticks(x[::step])
+    ax.set_xticklabels(labels[::step], rotation=45 if step > 1 else 0, ha="right" if step > 1 else "center")
 
 
 def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
+    start = end_day - timedelta(days=WEEK_DAYS - 1)
+    return render_days(chat_id, start, end_day, profile,
+                       f"{profile.name_en}: week to {end_day.strftime('%d.%m.%Y')}")
+
+
+def render_days(chat_id: int, start: date, end_day: date, profile: Profile, title: str = "") -> bytes:
     water_goal = profile.water_goal_ml
-    days = [end_day - timedelta(days=i) for i in range(WEEK_DAYS - 1, -1, -1)]
+    days = [start + timedelta(days=i) for i in range((end_day - start).days + 1)]
     rows = db.events_in_days(chat_id, days[0], days[-1])
 
     drink = {d: 0.0 for d in days}
@@ -68,9 +86,9 @@ def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
     labels = [d.strftime("%d.%m") for d in days]
     x = list(range(len(days)))
 
-    fig, axes = plt.subplots(4, 1, figsize=(9, 13), constrained_layout=True)
+    fig, axes = plt.subplots(4, 1, figsize=(min(18, max(9, len(days) * 0.3)), 13), constrained_layout=True)
     fig.suptitle(
-        f"{profile.name_en}: week to {end_day.strftime('%d.%m.%Y')}",
+        title or f"{profile.name_en}: {start.strftime('%d.%m')}–{end_day.strftime('%d.%m.%Y')}",
         fontsize=15,
         fontweight="bold",
     )
@@ -83,9 +101,8 @@ def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
     _label_stack(ax, drink_bars, food_bars, dw, lw)
     ax.axhline(water_goal, ls="--", color="#E8635C", label=f"goal {water_goal:g} ml")
     ax.set_title("Water per day, ml")
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.legend(fontsize=8, loc="upper left")
+    _day_axis(ax, x, labels)
+    ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
 
     ax = axes[1]
     kt = [kcal_tube[d] for d in days]
@@ -94,9 +111,8 @@ def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
     self_bars = ax.bar(x, ks, bottom=kt, label="self-fed", color="#E8B54C")
     _label_stack(ax, tube_bars, self_bars, kt, ks)
     ax.set_title("Calories per day, kcal")
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.legend(fontsize=8, loc="upper left")
+    _day_axis(ax, x, labels)
+    ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
 
     ax = axes[2]
     w = 0.38
@@ -105,12 +121,12 @@ def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
         (w / 2, [stool[d] for d in days], "stool", "#B5793B"),
     ):
         bars = ax.bar([i + offset for i in x], counts, w, label=label, color=color)
-        ax.bar_label(bars, labels=[str(n) if n else "" for n in counts], padding=2, fontsize=8)
+        if len(days) <= TOTAL_LABEL_DAYS:
+            ax.bar_label(bars, labels=[str(n) if n else "" for n in counts], padding=2, fontsize=8)
     ax.set_title("Litter box, times per day")
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
+    _day_axis(ax, x, labels)
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-    ax.legend(fontsize=8, loc="upper left")
+    ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
 
     ax = axes[3]
     ax.set_title("Temperature, °C")
@@ -131,14 +147,14 @@ def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
             datetime.combine(days[0], datetime.min.time()),
             datetime.combine(end_day, datetime.max.time()),
         )
-        ax.legend(fontsize=8, loc="upper left")
+        ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
     else:
         ax.text(0.5, 0.5, "no temperature readings", ha="center", va="center", transform=ax.transAxes)
         ax.set_yticks([])
 
-    axes[0].set_ylim(0, max(max(drink[d] + liquid_water[d] for d in days), water_goal) * 1.18)
-    axes[1].set_ylim(0, max(max(kcal_tube[d] + kcal_self[d] for d in days), 1) * 1.18)
-    axes[2].set_ylim(0, max((max(urine[d], stool[d]) for d in days), default=0) + 1)
+    axes[0].set_ylim(0, max(max(drink[d] + liquid_water[d] for d in days), water_goal) * 1.3)
+    axes[1].set_ylim(0, max(max(kcal_tube[d] + kcal_self[d] for d in days), 1) * 1.3)
+    axes[2].set_ylim(0, max((max(urine[d], stool[d]) for d in days), default=0) * 1.3 + 1)
 
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=110)
