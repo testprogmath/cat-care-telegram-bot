@@ -99,6 +99,26 @@ class EventPatch(BaseModel):
     occurred_at: datetime | None = None
 
 
+class EventCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    subject: str
+    type: EventType
+    occurred_at: datetime
+    description: str
+    name: str | None = None
+    dose: str | None = None
+    kcal: float | None = None
+    water_ml: float | None = None
+    amount_ml: float | None = None
+    water_fraction: float | None = None
+    liquid: bool | None = None
+    feeding: str | None = None
+    weight_kg: float | None = None
+    breaths: float | None = None
+    asleep: bool | None = None
+
+
 class Edit(BaseModel):
     edited_at: str
     action: str
@@ -125,6 +145,23 @@ def get_event(event_id: int) -> Event:
     row = db.event_by_id(event_id)
     if row is None:
         raise _not_found(event_id)
+    return Event(**dict(row))
+
+
+@app.post("/events", response_model=Event, status_code=201)
+def create_event(event: EventCreate) -> Event:
+    chat_id = db.chat_for_subject(event.subject)
+    if chat_id is None:
+        raise HTTPException(status_code=404, detail=f"no chat keeps the diary of {event.subject}")
+    fields = event.model_dump(exclude={"subject"}, exclude_none=True)
+    moment = in_care_zone(fields["occurred_at"])
+    fields["occurred_at"] = moment.isoformat()
+    fields["day"] = db.care_day(moment).isoformat()
+    if "liquid" in fields:
+        fields["liquid"] = 1 if fields["liquid"] else None
+    if "asleep" in fields:
+        fields["asleep"] = 1 if fields["asleep"] else 0
+    row = db.create_event(chat_id, event.subject, fields, datetime.now(timezone()))
     return Event(**dict(row))
 
 

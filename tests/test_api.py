@@ -203,3 +203,24 @@ def test_a_delete_keeps_the_whole_row_in_the_history(chat, client):
     [edit] = client.get(f"/events/{event_id}/edits").json()
     expected = {key: value for key, value in deleted.items() if key != "message_text"}
     assert (edit["action"], edit["before"], edit["after"]) == ("delete", expected, None)
+
+
+def test_post_creates_an_event_and_logs_it(chat, client, monkeypatch):
+    monkeypatch.setattr(db, "_DAY_START_HOUR", 0)
+    body = client.post("/events", json={
+        "subject": "chipunya", "type": "weight", "occurred_at": "2026-09-28T12:00:00",
+        "weight_kg": 7.61, "description": "вес 7,61 кг",
+    })
+    assert body.status_code == 201
+    event = body.json()
+    assert (event["type"], event["weight_kg"], event["day"], event["message_id"]) == ("weight", 7.61, "2026-09-28", None)
+    assert event["occurred_at"] == "2026-09-28T12:00:00+02:00"
+    [edit] = client.get(f"/events/{event['id']}/edits").json()
+    assert (edit["action"], edit["before"], edit["after"]["weight_kg"]) == ("create", {}, 7.61)
+
+
+def test_post_refuses_an_unknown_animal_and_missing_fields(chat, client):
+    unknown = client.post("/events", json={"subject": "kasya", "type": "weight",
+                                           "occurred_at": "2026-09-28T12:00:00", "description": "вес"})
+    assert unknown.status_code == 404
+    assert client.post("/events", json={"subject": "chipunya", "type": "weight"}).status_code == 422

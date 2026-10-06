@@ -704,6 +704,25 @@ def update_event(
         return _event_with_source(conn, event_id)
 
 
+def chat_for_subject(subject: str) -> int | None:
+    return next((chat_id for chat_id, profile in all_chats() if profile.subject_id == subject), None)
+
+
+def create_event(chat_id: int, subject: str, fields: dict[str, object], edited_at: datetime) -> sqlite3.Row:
+    unknown = set(fields) - set(EDITABLE_COLUMNS)
+    if unknown:
+        raise ValueError(f"not editable: {', '.join(sorted(unknown))}")
+    values = {"chat_id": chat_id, "subject": subject, **fields}
+    columns = ", ".join(values)
+    with _connect() as conn:
+        cursor = conn.execute(
+            f"INSERT INTO events ({columns}) VALUES ({', '.join('?' * len(values))})",
+            list(values.values()),
+        )
+        _log_edit(conn, cursor.lastrowid, edited_at, "create", {}, values)
+        return _event_with_source(conn, cursor.lastrowid)
+
+
 def delete_event(event_id: int, edited_at: datetime) -> sqlite3.Row | None:
     with _connect() as conn:
         row = _event_with_source(conn, event_id)
