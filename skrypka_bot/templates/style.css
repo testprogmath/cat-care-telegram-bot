@@ -155,6 +155,19 @@ tfoot td { font-weight: 600; border-top: 2px solid var(--line); }
 
 .grid-2, .grid-3 { display: grid; gap: 16px; }
 
+.drank { fill: #1E5F9E; } .key.drank { background: #1E5F9E; }
+.warn { color: var(--refused); font-weight: 600; font-size: 0.9rem; margin-top: 8px; }
+.stool { margin-top: 10px; font-size: 0.9rem; }
+.spark, .trend { width: 100%; display: block; margin-top: 10px; }
+.spark { height: 56px; } .trend { height: 120px; }
+.spark .line, .trend .line { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.spark .pt { fill: var(--accent); }
+.trend .grid { stroke: var(--line); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.trend .mark { stroke: var(--meds); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
+.marks { margin: 6px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--muted); }
+.compare table { margin-top: 8px; }
+.compare th, .compare td { white-space: normal; }
+
 @media (min-width: 900px) {
   body.with-tabs { padding-bottom: 0; }
   header.top { max-width: 1120px; margin: 0 auto; padding: 18px 16px 10px; gap: 16px; }

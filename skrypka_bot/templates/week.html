@@ -29,17 +29,65 @@
     <p><span class="big num">{{ '%.0f' % (mean.drinking_ml + mean.from_food_ml) }}</span> <span class="muted">из {{ '%g' % current.profile.water_goal_ml }} мл воды</span></p>
     <svg class="share" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
       <rect width="100" height="10" class="track"></rect>
-      <rect width="{{ water_share.first }}" height="10" class="drink"></rect>
-      <rect x="{{ water_share.first }}" width="{{ water_share.second }}" height="10" class="foodwater"></rect>
+      <rect width="{{ water_share.widths[0] }}" height="10" class="drank"></rect>
+      <rect x="{{ water_share.starts[1] }}" width="{{ water_share.widths[1] }}" height="10" class="drink"></rect>
+      <rect x="{{ water_share.starts[2] }}" width="{{ water_share.widths[2] }}" height="10" class="foodwater"></rect>
     </svg>
-    <p class="legend"><span class="key drink"></span>вода {{ '%.0f' % mean.drinking_ml }} <span class="key foodwater"></span>из корма {{ '%.0f' % mean.from_food_ml }}</p>
+    <p class="legend"><span class="key drank"></span>пила сама {{ ('%.1f' % mean.drank_times).replace('.', ',') }} раза · {{ '%.0f' % mean.drank_ml }} мл <span class="key drink"></span>дали {{ '%.0f' % (mean.drinking_ml - mean.drank_ml) }} <span class="key foodwater"></span>из корма {{ '%.0f' % mean.from_food_ml }}</p>
   </div>
   <div class="trio">
     <p><span class="mid num">{{ ('%.1f' % mean.urinations).replace('.', ',') }}</span><span class="muted">моча</span></p>
     <p><span class="mid num">{{ stool_days }} из {{ recorded_days }}</span><span class="muted">дней со стулом</span></p>
     <p><span class="mid num">{{ vomiting }}</span><span class="muted">рвота</span></p>
   </div>
+  {% if stool %}<p class="stool{% if stool_ago > stool_warn %} warn{% endif %}">Последний стул {{ stool.strftime('%d.%m') }}{% if stool_ago == 0 %}, сегодня{% else %}, {{ stool_ago }} дн. назад{% endif %}{% if stool_ago > stool_warn %} — больше {{ stool_warn }} дней{% endif %}</p>{% endif %}
   <p class="note">Среднее — по {{ mean.days }} дн. с записями. Дни без единой записи не считаются нулём.</p>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="weight-h">
+  <h2 id="weight-h" class="eyebrow">Вес</h2>
+  {% if weight %}
+  <p><span class="big num">{{ ('%g' % weight.last.kg).replace('.', ',') }}</span> <span class="muted">кг · {{ weight.last.day.strftime('%d.%m') }}</span></p>
+  <p class="legend">
+    {% if weight.change_7 is not none %}<span>за 7 дн. {{ ('%+.2f' % weight.change_7).replace('.', ',') }} кг</span>{% endif %}
+    {% if weight.change_30 is not none %}<span>за 30 дн. {{ ('%+.2f' % weight.change_30).replace('.', ',') }} кг</span>{% endif %}
+  </p>
+  {% if weight.points|length > 1 %}
+  <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Вес за период">
+    <polyline points="{% for x, y in weight.points %}{{ x }},{{ y }} {% endfor %}" class="line"></polyline>
+    {% for x, y in weight.points %}<circle cx="{{ x }}" cy="{{ y }}" r="1.6" class="pt"></circle>{% endfor %}
+  </svg>
+  {% endif %}
+  {% if weight.stale %}<p class="warn">Не взвешивали {{ weight.days_ago }} дн. Взвесьте и напишите вес в чат.</p>{% endif %}
+  {% else %}
+  <p class="warn">Взвешиваний пока нет. Напишите вес в чат, например «вес 7,6 кг».</p>
+  {% endif %}
+</section>
+
+{% if trend %}
+<section class="card" aria-labelledby="trend-h">
+  <h2 id="trend-h" class="eyebrow">Ест сама · % цели, среднее за 7 дней</h2>
+  <p><span class="big num">{{ '%.0f' % trend.latest }}%</span> <span class="muted">сейчас</span></p>
+  <svg class="trend" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Доля цели, которую съела сама">
+    <line x1="0" x2="100" y1="50" y2="50" class="grid"></line>
+    {% for x, label in trend.marks %}<line x1="{{ x }}" x2="{{ x }}" y1="0" y2="100" class="mark"></line>{% endfor %}
+    <polyline points="{% for x, y in trend.points %}{{ x }},{{ y }} {% endfor %}" class="line"></polyline>
+  </svg>
+  <p class="strip-ends muted"><span>{{ start.strftime('%d.%m') }}</span><span>50% — пунктир</span><span>{{ end.strftime('%d.%m') }}</span></p>
+  {% if trend.marks %}<ul class="marks">{% for x, label in trend.marks %}<li>{{ label }}</li>{% endfor %}</ul>{% endif %}
+</section>
+{% endif %}
+
+{% if breaths %}
+<section class="card" aria-labelledby="breath-h">
+  <h2 id="breath-h" class="eyebrow">Дыхание · вдохов в минуту</h2>
+  <ul class="list">
+    {% for b in breaths[:6] %}
+    <li><span class="time num">{{ b.day.strftime('%d.%m') }}</span><div class="grow"><span class="title num">{{ '%g' % b.rate }}</span> <span class="muted">{% if b.asleep %}во сне{% elif b.asleep is sameas false %}не во сне{% endif %} · {{ b.time }}</span></div>{% if b.high %}<span class="tag">выше {{ breath_limit }}</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  <p class="note">Во сне обычно до {{ breath_limit }} в минуту. Считайте, когда кошка спит и не мурлычет.</p>
 </section>
 {% endif %}
 
