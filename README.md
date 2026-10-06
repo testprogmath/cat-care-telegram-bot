@@ -193,11 +193,15 @@ curl -H "$AUTH" -X PATCH -H 'content-type: application/json' \
   -d '{"kcal": 8.6, "water_fraction": 0.795}' http://127.0.0.1:8080/events/3029
 curl -H "$AUTH" -X DELETE 'http://127.0.0.1:8080/events/2949?confirm=true'
 curl -H "$AUTH" http://127.0.0.1:8080/events/3029/edits
+curl -H "$AUTH" -X POST -H 'content-type: application/json' \
+  -d '{"subject": "skripa", "type": "weight", "occurred_at": "2026-09-28T12:00:00", "weight_kg": 7.61, "description": "вес 7,61 кг"}' \
+  http://127.0.0.1:8080/events
 ```
 
 | Request | Result |
 |---|---|
 | `GET /events` | Rows of one care day: id, time, type, description, kcal, water, amount. The day is today unless you give `day`. `subject` and `type` filter. |
+| `POST /events` | Creates one row the chat never had, e.g. a weighing told by voice: `subject`, `type`, `occurred_at`, `description`, and the fields `PATCH` takes. The care day comes from the time. |
 | `GET /events/{id}` | Every column of one row, and the chat message it came from. |
 | `PATCH /events/{id}` | Sets `type`, `description`, `kcal`, `water_ml`, `amount_ml`, `water_fraction`, `name`, `dose`, `liquid`, `feeding` or `occurred_at`. Send `null` to clear a field. |
 | `DELETE /events/{id}?confirm=true` | Deletes one row and returns it. Without `confirm=true` the API refuses. |
