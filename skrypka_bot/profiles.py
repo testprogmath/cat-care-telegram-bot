@@ -47,7 +47,7 @@ class Profile:
 
 
 def _goal(key: str, field: str, default: float) -> float:
-    return float(os.environ.get(f"{key.upper()}_{field}", default))
+    return float(os.environ.get(f"{key.upper()}_{field}") or default)
 
 
 _ROYAL_CANIN_SENSORY = (

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ current.profile.name }}: {{ day.strftime('%d.%m') }}{% endblock %}
+{% block content %}
+<h1>{{ current.profile.name }}: {{ day.strftime('%d.%m.%Y') }}</h1>
+<p class="pager">
+  <a href="../day/{{ previous.isoformat() }}">← {{ previous.strftime('%d.%m') }}</a>
+  <a href="../day/{{ following.isoformat() }}">{{ following.strftime('%d.%m') }} →</a>
+  <a href="/{{ current.subject }}/week?end={{ day.isoformat() }}">неделя</a>
+</p>
+{% if not events %}<p>За этот день записей нет.</p>{% endif %}
+<ol class="events">
+{% for e in events %}
+  <li class="event {{ e.type }}">
+    <span class="time">{{ e.occurred_at[11:16] }}</span>
+    <span class="type">{{ labels.get(e.type, e.type) }}{% if e.feeding == 'tube' %} · зонд{% endif %}</span>
+    <span class="what">
+      {% if e.name %}<strong>{{ e.name }}</strong>{% endif %}
+      {% if e.dose %} {{ e.dose }}{% endif %}
+      {% if e.kcal %} · {{ '%g' % e.kcal }} ккал{% endif %}
+      {% if e.amount_ml %} · {{ '%g' % e.amount_ml }} мл{% endif %}
+      {% if e.water_ml %} · {{ '%g' % e.water_ml }} мл воды{% endif %}
+      {% if e.temp_c %} · {{ e.temp_c }} °C{% endif %}
+      <span class="description">{{ e.description }}</span>
+    </span>
+    {% if e.message_text %}<details><summary>сообщение</summary><p class="message">{{ e.message_text }}</p></details>{% endif %}
+  </li>
+{% endfor %}
+</ol>
+{% endblock %}

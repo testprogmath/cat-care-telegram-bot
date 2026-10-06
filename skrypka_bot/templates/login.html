@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+{% block content %}
+<section class="login">
+  <h1>Дневник ухода</h1>
+  <p>Войдите через Telegram. Вы увидите тех кошек, в чьих чатах состоите.</p>
+  {% if problem %}<p class="problem">{{ problem }}</p>{% endif %}
+  <a class="button" href="/auth/start">Войти через Telegram</a>
+</section>
+{% endblock %}

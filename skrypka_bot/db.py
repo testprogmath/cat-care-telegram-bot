@@ -50,8 +50,11 @@ def care_day(dt: datetime) -> date:
 
 
 def _connect() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    if os.environ.get("DB_READ_ONLY"):
+        conn = sqlite3.connect(DB_PATH.resolve().as_uri() + "?mode=ro", uri=True)
+    else:
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -545,6 +548,18 @@ def first_event_day(chat_id: int) -> date | None:
     with _connect() as conn:
         (day,) = conn.execute("SELECT min(day) FROM events WHERE chat_id = ?", (chat_id,)).fetchone()
     return None if day is None else date.fromisoformat(day)
+
+
+def events_with_messages(chat_id: int, day_from: date, day_to: date) -> list[sqlite3.Row]:
+    with _connect() as conn:
+        return list(
+            conn.execute(
+                "SELECT e.*, m.text AS message_text FROM events e LEFT JOIN messages m "
+                "ON m.chat_id = e.chat_id AND m.message_id = e.message_id "
+                "WHERE e.chat_id = ? AND e.day BETWEEN ? AND ? ORDER BY e.occurred_at, e.id",
+                (chat_id, day_from.isoformat(), day_to.isoformat()),
+            )
+        )
 
 
 def events_in_range(chat_id: int, start: datetime, end: datetime) -> list[sqlite3.Row]:

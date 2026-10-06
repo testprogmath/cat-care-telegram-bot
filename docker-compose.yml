@@ -29,3 +29,33 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  web:
+    image: skrypka-telegram-bot
+    command: care-web
+    depends_on:
+      - bot
+    restart: unless-stopped
+    environment:
+      WEB_HOST: 0.0.0.0
+      WEB_BASE_URL: ${WEB_BASE_URL}
+      WEB_SESSION_SECRET: ${WEB_SESSION_SECRET}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_OPENID_CLIENT_ID: ${TELEGRAM_OPENID_CLIENT_ID}
+      TELEGRAM_OPENID_CLIENT_SECRET: ${TELEGRAM_OPENID_CLIENT_SECRET}
+      TIMEZONE: ${TIMEZONE:-Europe/Berlin}
+      DAY_START: ${DAY_START:-00:00}
+      DB_PATH: ${DB_PATH:-data/skrypka.db}
+      DB_READ_ONLY: "1"
+      SKRIPA_WATER_GOAL_ML: ${SKRIPA_WATER_GOAL_ML:-}
+      SKRIPA_KCAL_GOAL: ${SKRIPA_KCAL_GOAL:-}
+      CHIPUNYA_WATER_GOAL_ML: ${CHIPUNYA_WATER_GOAL_ML:-}
+      CHIPUNYA_KCAL_GOAL: ${CHIPUNYA_KCAL_GOAL:-}
+    ports:
+      - "127.0.0.1:8280:8080"
+    volumes:
+      - ./data:/app/data:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,6 @@
+<form class="period" method="get">
+  <label>с <input type="date" name="from" value="{{ start.isoformat() }}"></label>
+  <label>по <input type="date" name="to" value="{{ end.isoformat() }}"></label>
+  <button>Показать</button>
+  <a href="?all=1">Весь срок</a>
+</form>
