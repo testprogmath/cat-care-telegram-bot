@@ -15,7 +15,7 @@ from telegram.ext import (
     filters,
 )
 
-from . import charts, db, profiles
+from . import charts, db, meds, profiles
 from .parser import ParseFailed, parse_message
 from .profiles import Profile
 from .summary import effective_water, render_progress, render_risk, render_summary
@@ -41,6 +41,7 @@ TIMEZONE = ZoneInfo(os.environ.get("TIMEZONE", "Europe/Berlin"))
 REPORT_MARKER_PREFIX = "[бот отправил"
 SUMMARY_MARKER = f"{REPORT_MARKER_PREFIX} сводку за сутки]"
 WEEK_MARKER = f"{REPORT_MARKER_PREFIX} недельный график]"
+MEDS_MARKER = f"{REPORT_MARKER_PREFIX} отчёт о лекарствах]"
 
 def help_text(profile: Profile) -> str:
     return (
@@ -56,6 +57,9 @@ def help_text(profile: Profile) -> str:
         "/stats 09:00 — сводка за сегодня, начиная с указанного часа\n"
         "/risk — прогноз на конец суток по еде и жидкости против порогов тревоги\n"
         "/week — графики за неделю (вода, калории, туалет, температура)\n"
+        "/meds — лекарства за 7 дней по суткам\n"
+        "/meds all — лекарства за весь срок наблюдений, с графиком\n"
+        "/meds 2026-09-01 2026-09-30 — лекарства за период, с графиком\n"
         "/profile — чей дневник ведётся в этом чате\n"
         "/reminders — напоминания и автосводка: пауза или работа\n\n"
         f"Каждый день в {db.DAY_START} я сам присылаю сводку за прошедшие сутки.\n"
@@ -75,6 +79,7 @@ BOT_COMMANDS = [
     ("stats", "Сводка за текущие сутки"),
     ("risk", "Прогноз на конец суток: еда и жидкость против порогов"),
     ("week", "Графики за неделю: вода, калории, туалет, температура"),
+    ("meds", "Лекарства: неделя, весь срок или период"),
     ("profile", "Чей дневник ведётся в этом чате"),
     ("reminders", "Напоминания и автосводка: пауза на время стационара"),
     ("help", "Что я умею и как считаю"),
@@ -299,6 +304,53 @@ async def week_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     db.note_bot_report(chat.id, sent.message_id, sent.date.astimezone(TIMEZONE), WEEK_MARKER)
 
 
+def meds_period(chat_id: int, args: list[str], today: date) -> tuple[date, date] | None:
+    if args == ["all"]:
+        return db.first_event_day(chat_id) or today, today
+    if len(args) == 2:
+        start, end = _parse_date(args[0]), _parse_date(args[1])
+        if start is not None and end is not None and start <= end:
+            return start, end
+    return None
+
+
+def render_meds(chat_id: int, args: list[str], today: date) -> str | None:
+    profile = db.profile_for(chat_id)
+    if not args:
+        start = today - timedelta(days=6)
+        return meds.render_week(db.medications_in_days(chat_id, start, today), today, profile)
+    period = meds_period(chat_id, args, today)
+    if period is None:
+        return None
+    start, end = period
+    return meds.render_period(db.medications_in_days(chat_id, start, end), start, end, profile)
+
+
+async def meds_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat = update.effective_chat
+    if chat is None:
+        return
+    args = context.args or []
+    today = db.care_day(datetime.now(TIMEZONE))
+    text = render_meds(chat.id, args, today)
+    if text is None:
+        await context.bot.send_message(
+            chat.id, "Формат: /meds, /meds all или /meds 2026-09-01 2026-09-30"
+        )
+        return
+    sent = await context.bot.send_message(chat.id, text, parse_mode="HTML")
+    db.note_bot_report(chat.id, sent.message_id, sent.date.astimezone(TIMEZONE), MEDS_MARKER)
+    period = meds_period(chat.id, args, today)
+    if period is None:
+        return
+    rows = db.medications_in_days(chat.id, *period)
+    if not rows:
+        return
+    png = await asyncio.to_thread(charts.render_meds, rows, *period, db.profile_for(chat.id))
+    sent = await context.bot.send_photo(chat.id, photo=BytesIO(png))
+    db.note_bot_report(chat.id, sent.message_id, sent.date.astimezone(TIMEZONE), MEDS_MARKER)
+
+
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     if chat is None:
@@ -457,6 +509,7 @@ def main() -> None:
     app.add_handler(CommandHandler("autoleft", autoleft_command))
     app.add_handler(CommandHandler("risk", risk_command))
     app.add_handler(CommandHandler("week", week_command))
+    app.add_handler(CommandHandler("meds", meds_command))
     app.add_handler(CommandHandler("profile", profile_command))
     app.add_handler(CommandHandler("reminders", reminders_command))
     app.add_handler(CommandHandler(["help", "start"], help_command))

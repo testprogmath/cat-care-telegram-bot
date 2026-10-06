@@ -530,6 +530,23 @@ def events_in_days(chat_id: int, day_from: date, day_to: date) -> list[sqlite3.R
         )
 
 
+def medications_in_days(chat_id: int, day_from: date, day_to: date) -> list[sqlite3.Row]:
+    with _connect() as conn:
+        return list(
+            conn.execute(
+                "SELECT * FROM events WHERE chat_id = ? AND type = 'medication' "
+                "AND day BETWEEN ? AND ? ORDER BY occurred_at",
+                (chat_id, day_from.isoformat(), day_to.isoformat()),
+            )
+        )
+
+
+def first_event_day(chat_id: int) -> date | None:
+    with _connect() as conn:
+        (day,) = conn.execute("SELECT min(day) FROM events WHERE chat_id = ?", (chat_id,)).fetchone()
+    return None if day is None else date.fromisoformat(day)
+
+
 def events_in_range(chat_id: int, start: datetime, end: datetime) -> list[sqlite3.Row]:
     lo_day = care_day(start)
     hi_day = end.date()

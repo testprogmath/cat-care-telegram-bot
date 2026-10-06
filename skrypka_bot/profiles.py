@@ -31,6 +31,7 @@ class Profile:
     key: str
     subject_id: str
     name: str
+    name_en: str
     title_markers: tuple[str, ...]
     aliases: tuple[str, ...]
     self_label: str
@@ -67,6 +68,7 @@ SKRIPA = Profile(
     key="skripa",
     subject_id="skripa",
     name="Скрипа",
+    name_en="Skripa",
     title_markers=("скрип", "скрып"),
     aliases=("скрипа", "скрипка", "скрыпка"),
     self_label="сама",
@@ -174,6 +176,7 @@ CHIPUNYA = Profile(
     key="chipunya",
     subject_id="chipunya",
     name="Чипуня",
+    name_en="Chipunya",
     title_markers=("чипун", "чип"),
     aliases=("чипуня", "чип", "чипун"),
     self_label="сам",
