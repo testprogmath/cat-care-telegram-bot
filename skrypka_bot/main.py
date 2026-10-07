@@ -6,7 +6,7 @@ from datetime import date, datetime, time, timedelta
 from io import BytesIO
 from zoneinfo import ZoneInfo
 
-from telegram import ReplyParameters, Update
+from telegram import LinkPreviewOptions, ReplyParameters, Update
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -222,6 +222,16 @@ def _parse_date(arg: str) -> date | None:
         return None
 
 
+NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
+
+
+def with_site_link(text: str, profile: Profile, day: date) -> str:
+    base = os.environ.get("WEB_BASE_URL", "").rstrip("/")
+    if not base:
+        return text
+    return f"{text}\n\n🔗 {base}/{profile.subject_id}/day/{day.isoformat()}"
+
+
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     if chat is None:
@@ -251,6 +261,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         end = start + timedelta(days=1)
         events = db.events_in_range(chat.id, start, end)
         header = f"📊 {profile.name} — сводка с {start.strftime('%d.%m.%Y %H:%M')}"
+        day = start.date()
         text = await render_summary(
             start.date(), events, profile, header=header, chat_id=chat.id, complete=False
         )
@@ -259,16 +270,18 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await context.bot.send_message(chat.id, text)
         return
 
-    sent = await context.bot.send_message(chat.id, text)
+    text = with_site_link(text, profile, day)
+    sent = await context.bot.send_message(chat.id, text, link_preview_options=NO_PREVIEW)
     db.note_bot_report(chat.id, sent.message_id, sent.date.astimezone(TIMEZONE), SUMMARY_MARKER)
 
 
 async def _send_progress(bot, chat_id: int, reply_to: int | None = None) -> None:
     now = datetime.now(TIMEZONE)
     day = db.care_day(now)
-    text = render_progress(db.events_for_day(chat_id, day), now, db.profile_for(chat_id))
+    profile = db.profile_for(chat_id)
+    text = with_site_link(render_progress(db.events_for_day(chat_id, day), now, profile), profile, day)
     reply = ReplyParameters(reply_to, allow_sending_without_reply=True) if reply_to else None
-    sent = await bot.send_message(chat_id, text, reply_parameters=reply)
+    sent = await bot.send_message(chat_id, text, reply_parameters=reply, link_preview_options=NO_PREVIEW)
     db.note_bot_report(chat_id, sent.message_id, sent.date.astimezone(TIMEZONE), SUMMARY_MARKER)
 
 
