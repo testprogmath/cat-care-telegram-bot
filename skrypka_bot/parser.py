@@ -84,6 +84,11 @@ liquid true, water_fraction 0.938. «Выпил 85% соуса Феликс» �
 water_fraction = (40 × 0.938 + мл воды) / (40 + мл воды), округли до 0.001. Отдельное событие \
 water для этой воды не создавай: она уже в amount_ml. «Выпил 90% (Felix sauce с лососем + \
 23мл воды)» → kcal 9, amount_ml 56.7, water_fraction 0.961. \
+Вместо доли часто пишут остаток в граммах («осталось 13г», «оставил 10 г»); 1 мл воды = 1 г. \
+Тогда съедено = 40 + мл воды − остаток, доля = съедено / (40 + мл воды), amount_ml = съедено, \
+kcal = доля × 10, water_fraction считай для смеси, как выше. «Выпил соус Felix + 25мл воды, \
+осталось 13г» → съедено 52 г, доля 0.8: kcal 8, amount_ml 52, water_fraction 0.962. Без воды \
+«осталось 10г» → kcal 7.5, amount_ml 30, water_fraction 0.938. \
 Royal Canin Sterilised in Gravy (пауч 85 г, «жидкий корм Royal Canin Sterilized») — 0.8 ккал/г, \
 около 68 ккал на пауч: kcal = граммы × 0.8, amount_ml равен граммам, liquid true, \
 water_fraction 0.8. Плотность энергии взята по родственной линейке Indoor Sterilised in Gravy \
