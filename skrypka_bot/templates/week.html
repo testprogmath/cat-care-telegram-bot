@@ -33,7 +33,7 @@
       <rect x="{{ water_share.starts[1] }}" width="{{ water_share.widths[1] }}" height="10" class="drink"></rect>
       <rect x="{{ water_share.starts[2] }}" width="{{ water_share.widths[2] }}" height="10" class="foodwater"></rect>
     </svg>
-    <p class="legend"><span class="key drank"></span>{{ current.profile.pick('пила сама', 'пил сам') }} {{ ('%.1f' % mean.drank_times).replace('.', ',') }} раза · {{ '%.0f' % mean.drank_ml }} мл <span class="key drink"></span>дали {{ '%.0f' % (mean.drinking_ml - mean.drank_ml) }} <span class="key foodwater"></span>из корма {{ '%.0f' % mean.from_food_ml }}</p>
+    <p class="legend"><span class="key drank"></span>{{ current.profile.pick('пила сама', 'пил сам') }} {{ ('%.1f' % mean.drank_times).replace('.', ',') }} раза · {{ '%.0f' % mean.drank_ml }} мл {% if mean.drinking_ml - mean.drank_ml >= 0.5 %}<span class="key drink"></span>дали {{ '%.0f' % (mean.drinking_ml - mean.drank_ml) }} {% endif %}<span class="key foodwater"></span>из корма {{ '%.0f' % mean.from_food_ml }}</p>
   </div>
   <div class="trio">
     <p><span class="mid num">{{ ('%.1f' % mean.urinations).replace('.', ',') }}</span><span class="muted">моча</span></p>
@@ -81,6 +81,21 @@
     </svg>
 </section>
 {% endif %}
+{% if breaths %}
+<section class="card" aria-labelledby="breath-h">
+  <h2 id="breath-h" class="eyebrow">Дыхание · вдохов в минуту</h2>
+  <ul class="list flat breaths">
+    {% for b in breaths[:6] %}
+    <li>
+      <span class="num muted">{{ b.day.strftime('%d.%m') }}</span>
+      <span class="grow"><b class="rate num">{{ '%g' % b.rate }}</b> в минуту <span class="muted">· {{ b.time }}{% if b.asleep %} · во сне{% elif b.asleep is sameas false %} · не во сне{% endif %}</span></span>
+      {% if b.high %}<span class="tag">выше {{ breath_limit }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="note">Во сне обычно до {{ breath_limit }} в минуту. Считайте, когда кошка спит и не мурлычет.</p>
+</section>
+{% endif %}
 </div>
 
 {% if trend %}
@@ -109,17 +124,6 @@
 </section>
 {% endif %}
 
-{% if breaths %}
-<section class="card" aria-labelledby="breath-h">
-  <h2 id="breath-h" class="eyebrow">Дыхание · вдохов в минуту</h2>
-  <ul class="list">
-    {% for b in breaths[:6] %}
-    <li><span class="time num">{{ b.day.strftime('%d.%m') }}</span><div class="grow"><span class="title num">{{ '%g' % b.rate }}</span> <span class="muted">{% if b.asleep %}во сне{% elif b.asleep is sameas false %}не во сне{% endif %} · {{ b.time }}</span></div>{% if b.high %}<span class="tag">выше {{ breath_limit }}</span>{% endif %}</li>
-    {% endfor %}
-  </ul>
-  <p class="note">Во сне обычно до {{ breath_limit }} в минуту. Считайте, когда кошка спит и не мурлычет.</p>
-</section>
-{% endif %}
 
 {% if chart %}
 <section class="card" aria-labelledby="chart-h">
