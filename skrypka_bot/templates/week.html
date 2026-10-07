@@ -45,6 +45,7 @@
 </section>
 {% endif %}
 
+<div class="stack">
 <section class="card" aria-labelledby="weight-h">
   <h2 id="weight-h" class="eyebrow">Вес</h2>
   {% if weight %}
@@ -64,6 +65,23 @@
   <p class="warn">Взвешиваний пока нет. Напишите вес в чат, например «вес 7,6 кг».</p>
   {% endif %}
 </section>
+
+{% if chart %}
+<section class="card" aria-labelledby="toilet-h">
+    <h2 id="toilet-h" class="eyebrow">Моча и стул по дням</h2>
+    <p class="legend"><span class="key urine"></span>моча <span class="key stool"></span>стул</p>
+    <svg class="mini" viewBox="0 0 {{ chart.width }} {{ chart.toilet_height + 12 }}" role="img" aria-label="Моча и стул по дням">
+      {% for t in chart.toilet %}
+      <rect x="{{ t.urine_x }}" y="{{ t.urine_y }}" width="{{ t.w }}" height="{{ t.urine_h }}" class="urine"></rect>
+      <rect x="{{ t.stool_x }}" y="{{ t.stool_y }}" width="{{ t.w }}" height="{{ t.stool_h }}" class="stool"></rect>
+      {% if chart.labelled and t.urine %}<text x="{{ t.urine_x + t.w / 2 }}" y="{{ t.urine_y - 3 }}" class="total">{{ t.urine }}</text>{% endif %}
+      {% if chart.labelled and t.stool %}<text x="{{ t.stool_x + t.w / 2 }}" y="{{ t.stool_y - 3 }}" class="total">{{ t.stool }}</text>{% endif %}
+      {% endfor %}
+      {% for b in chart.bars %}{% if chart.labelled %}<text x="{{ b.x + b.w / 2 }}" y="{{ chart.toilet_height + 10 }}" class="day">{{ b.label[:2] }}</text>{% endif %}{% endfor %}
+    </svg>
+</section>
+{% endif %}
+</div>
 
 {% if trend %}
 <section class="card" aria-labelledby="trend-h">
@@ -116,19 +134,6 @@
     {% if chart.labelled %}<text x="{{ b.x + b.w / 2 }}" y="{{ chart.height + 10 }}" class="day">{{ b.label[:2] }}</text>{% endif %}
     {% endfor %}
   </svg>
-  <div class="split">
-    <h3 class="eyebrow">Моча и стул по дням</h3>
-    <p class="legend"><span class="key urine"></span>моча <span class="key stool"></span>стул</p>
-    <svg class="mini" viewBox="0 0 {{ chart.width }} {{ chart.toilet_height + 12 }}" role="img" aria-label="Моча и стул по дням">
-      {% for t in chart.toilet %}
-      <rect x="{{ t.urine_x }}" y="{{ t.urine_y }}" width="{{ t.w }}" height="{{ t.urine_h }}" class="urine"></rect>
-      <rect x="{{ t.stool_x }}" y="{{ t.stool_y }}" width="{{ t.w }}" height="{{ t.stool_h }}" class="stool"></rect>
-      {% if chart.labelled and t.urine %}<text x="{{ t.urine_x + t.w / 2 }}" y="{{ t.urine_y - 3 }}" class="total">{{ t.urine }}</text>{% endif %}
-      {% if chart.labelled and t.stool %}<text x="{{ t.stool_x + t.w / 2 }}" y="{{ t.stool_y - 3 }}" class="total">{{ t.stool }}</text>{% endif %}
-      {% endfor %}
-      {% for b in chart.bars %}{% if chart.labelled %}<text x="{{ b.x + b.w / 2 }}" y="{{ chart.toilet_height + 10 }}" class="day">{{ b.label[:2] }}</text>{% endif %}{% endfor %}
-    </svg>
-  </div>
 </section>
 {% endif %}
 </div>
