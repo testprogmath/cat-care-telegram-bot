@@ -239,7 +239,9 @@ def day_page(request: Request, day: date, person: Annotated[Viewer, Depends(view
     events, water = views.day_events(rows, show, current.profile.self_label)
     clock = views.day_clock(rows, day, current.profile.kcal_goal, current.profile.water_goal_ml,
                             datetime.now(timezone()))
-    return page(request, "day.html", person, current, day=day, events=events, water=water, clock=clock,
+    legend = views.clock_legend(clock, current.profile.self_label,
+                                current.profile.pick("пила сама", "пил сам")) if clock else []
+    return page(request, "day.html", person, current, day=day, events=events, water=water, clock=clock, legend=legend,
                 totals=views.day_rows(current.chat_id, current.subject, day, day)[0], show=show, filters=views.FILTERS,
                 previous=day - timedelta(days=1), following=day + timedelta(days=1))
 

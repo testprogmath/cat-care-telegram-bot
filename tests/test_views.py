@@ -109,3 +109,17 @@ def test_a_day_with_only_notes_has_no_clock(chat):
     record(chat, date(2026, 10, 5), 9, type="state", description="спит")
     rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
     assert views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN)) is None
+
+
+def test_the_legend_lists_only_the_marks_the_day_has(chat):
+    record(chat, date(2026, 10, 5), 6, type="food", feeding="tube", kcal=50.0, description="зонд")
+    record(chat, date(2026, 10, 5), 7, type="water", feeding="tube", water_ml=15.0, description="промыли зонд")
+    record(chat, date(2026, 10, 5), 12, type="toilet", description="пописала")
+    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN))
+    legend = views.clock_legend(clock, "сама", "пила сама")
+    assert [(name, [(i.shape, i.tone, i.label) for i in items]) for name, items in legend] == [
+        ("Еда", [("circle", "tube", "зонд")]),
+        ("Вода", [("ring", "drink", "дали в зонд")]),
+        ("Туалет", [("circle", "toilet", "моча")]),
+    ]
