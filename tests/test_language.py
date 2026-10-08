@@ -29,13 +29,14 @@ def test_nausea_is_not_vomiting(row, description):
 
 @pytest.mark.parametrize(
     "description",
-    ["покакала в лоток", "жидкий стул", "понос с утра", "дефекация в 6 утра"],
+    ["покакала в лоток", "жидкий стул", "понос с утра", "дефекация в 6 утра", "немного какала",
+     "какает в лоток"],
 )
 def test_stool_is_recognised(description):
     assert db.is_stool(description)
 
 
-@pytest.mark.parametrize("description", ["пописала", "сходила на жёлтый коврик", ""])
+@pytest.mark.parametrize("description", ["пописала", "сходила на жёлтый коврик", "какао", ""])
 def test_other_toilet_wording_is_not_stool(description):
     assert not db.is_stool(description)
 

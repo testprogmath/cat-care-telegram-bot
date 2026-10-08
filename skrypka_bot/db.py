@@ -25,7 +25,7 @@ _RECAP_RE = re.compile(
     re.IGNORECASE,
 )
 _STOOL_RE = re.compile(
-    r"покака|покак|какаш|дефекац|стул|диаре|диарре|понос|\bкал\b", re.IGNORECASE
+    r"покак|\bкака(?:л|ет|ть|ю)|какаш|дефекац|стул|диаре|диарре|понос|\bкал\b", re.IGNORECASE
 )
 
 
