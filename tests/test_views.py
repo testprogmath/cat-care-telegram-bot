@@ -78,3 +78,34 @@ def test_the_mini_chart_is_left_out_past_a_month():
                           urinations=3, stools=None)
     assert views.mini_chart([row] * 31, 250) is not None
     assert views.mini_chart([row] * 32, 250) is None
+
+
+def test_the_day_clock_places_each_event_on_its_hour(chat):
+    record(chat, date(2026, 10, 5), 6, type="food", feeding="tube", kcal=50.0, amount_ml=50.0, liquid=True,
+           water_fraction=0.8, description="зонд")
+    record(chat, date(2026, 10, 5), 12, type="food", feeding="self", kcal=75.0, description="поела")
+    record(chat, date(2026, 10, 5), 12, type="toilet", description="покакала")
+    record(chat, date(2026, 10, 5), 18, type="toilet", description="пыталась пописать, не получилось")
+    record(chat, date(2026, 10, 5), 20, name="серения", dose="6 мг")
+    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, 9, tzinfo=BERLIN))
+    assert clock.kcal_pct == 50.0 and round(clock.water_pct, 1) == 11.8
+    assert [(m.x, m.shape, m.tone) for m in clock.marks] == [
+        (88.5, "circle", "tube"), (137.0, "circle", "self"), (137.0, "square", "stool"),
+        (185.5, "ring", "toilet"), (201.7, "diamond", "meds"),
+    ]
+    assert clock.kcal_line.split()[-1] == f"234.0,{clock.y(50)}"
+    assert [label for _, label in clock.ticks] == ["00:00", "06:00", "12:00", "18:00", "00:00"]
+
+
+def test_today_stops_the_lines_at_now(chat):
+    record(chat, date(2026, 10, 5), 6, type="food", feeding="self", kcal=25.0, description="поела")
+    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 5, 12, tzinfo=BERLIN))
+    assert clock.kcal_line.split()[-1] == f"137.0,{clock.y(10)}"
+
+
+def test_a_day_with_only_notes_has_no_clock(chat):
+    record(chat, date(2026, 10, 5), 9, type="state", description="спит")
+    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    assert views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN)) is None

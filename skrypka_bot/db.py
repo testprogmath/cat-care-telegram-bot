@@ -73,6 +73,10 @@ def care_day(dt: datetime) -> date:
     return (dt - timedelta(hours=_DAY_START_HOUR, minutes=_DAY_START_MINUTE)).date()
 
 
+def care_day_start(day: date, tz) -> datetime:
+    return datetime(day.year, day.month, day.day, _DAY_START_HOUR, _DAY_START_MINUTE, tzinfo=tz)
+
+
 def _connect() -> sqlite3.Connection:
     if os.environ.get("DB_READ_ONLY"):
         conn = sqlite3.connect(DB_PATH.resolve().as_uri() + "?mode=ro", uri=True)

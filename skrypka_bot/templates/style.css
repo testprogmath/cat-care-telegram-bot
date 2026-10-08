@@ -3,7 +3,7 @@
   --accent: #3F3AA8; --ink-button: #17201D;
   --tube: #6B5CE0; --self: #E3A836; --drink: #3D8FDF; --foodwater: #7CC48A;
   --ate: #2E8B57; --refused: #C9563F; --tag-bg: #FBE9E4; --tag-fg: #8E2F1D;
-  --meds: #0F7B6C; --toilet: #5B8DB8; --state: #8A938E;
+  --meds: #0F7B6C; --toilet: #5B8DB8; --state: #8A938E; --stool: #9A6A3A;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -161,7 +161,7 @@ tfoot td { font-weight: 600; border-top: 2px solid var(--line); }
 
 .drank { fill: #1E5F9E; } .key.drank { background: #1E5F9E; }
 .urine { fill: var(--toilet); } .stool { fill: #9A6A3A; }
-.key.urine { background: var(--toilet); } .key.stool { background: #9A6A3A; }
+.key.urine { background: var(--toilet); } .key.stool { background: var(--stool); }
 .split { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--soft); }
 .split h3 { margin-bottom: 4px; }
 .warn { color: var(--refused); font-weight: 600; font-size: 0.9rem; margin-top: 8px; }
@@ -199,3 +199,23 @@ tfoot td { font-weight: 600; border-top: 2px solid var(--line); }
   .day-cards { display: none; }
   .day-table { display: block; }
 }
+
+.clock { width: 100%; height: auto; display: block; margin-top: 6px; }
+.clock .grid { stroke: var(--line); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.clock .hour { stroke: var(--line); vector-effect: non-scaling-stroke; }
+.clock .lane { stroke: var(--soft); vector-effect: non-scaling-stroke; }
+.clock .pace { stroke: var(--muted); stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; opacity: 0.6; }
+.clock .kcal, .clock .water { fill: none; stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.clock .kcal { stroke: var(--self); } .clock .water { stroke: var(--drink); }
+.clock .axis { font-size: 6.5px; fill: var(--muted); text-anchor: end; }
+.clock .tick { font-size: 6.5px; fill: var(--muted); text-anchor: middle; }
+.clock .tick.start { text-anchor: start; } .clock .tick.end { text-anchor: end; }
+.clock .lane-name { font-size: 6.5px; fill: var(--fg); }
+.clock .m { stroke: var(--card); stroke-width: 0.6; }
+.clock .m.self { fill: var(--self); } .clock .m.tube { fill: var(--tube); } .clock .m.drink { fill: var(--drink); }
+.clock .m.toilet { fill: var(--toilet); } .clock .m.stool { fill: var(--stool); } .clock .m.meds { fill: var(--meds); }
+.clock .m.ring { fill: var(--card); stroke-width: 1.2; }
+.clock .m.ring.drink { stroke: var(--drink); } .clock .m.ring.refused { stroke: var(--refused); }
+.key.kcal-line, .key.water-line { height: 3px; border-radius: 2px; width: 14px; }
+.key.kcal-line { background: var(--self); } .key.water-line { background: var(--drink); }
+.key.pace-line { height: 0; width: 18px; border-radius: 0; border-top: 2px dashed var(--muted); }

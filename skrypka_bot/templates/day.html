@@ -20,6 +20,37 @@
 </section>
 {% if totals.kcal %}<p class="note">Калории: зонд {{ '%.0f' % totals.kcal_tube }} + {{ current.profile.self_label }} {{ '%.0f' % totals.kcal_self }}. «–» — ничего не записано.</p>{% endif %}
 
+{% if clock %}
+<section class="card" aria-labelledby="clock-h">
+  <h2 id="clock-h" class="eyebrow">Сутки по часам</h2>
+  <p class="legend"><span class="key kcal-line"></span>калории {{ '%.0f' % clock.kcal_pct }}% <span class="key water-line"></span>вода {{ '%.0f' % clock.water_pct }}% <span class="key pace-line"></span>темп</p>
+  <svg class="clock" viewBox="0 0 {{ clock.width }} {{ clock.height }}" role="img" aria-label="Калории и вода нарастающим итогом в процентах от цели, и когда были еда, вода, туалет и лекарства">
+    {% for pct in (100, 50, 0) %}
+    <line x1="{{ clock.left }}" x2="{{ clock.right }}" y1="{{ clock.y(pct) }}" y2="{{ clock.y(pct) }}" class="grid"></line>
+    <text x="{{ clock.left - 4 }}" y="{{ clock.y(pct) + 2.5 }}" class="axis">{{ pct }}%</text>
+    {% endfor %}
+    <line x1="{{ clock.left }}" y1="{{ clock.y(0) }}" x2="{{ clock.right }}" y2="{{ clock.y(100) }}" class="pace"></line>
+    {% if clock.water_line %}<polyline points="{{ clock.water_line }}" class="water"></polyline>{% endif %}
+    {% if clock.kcal_line %}<polyline points="{{ clock.kcal_line }}" class="kcal"></polyline>{% endif %}
+    {% for tx, label in clock.ticks %}
+    <line x1="{{ tx }}" x2="{{ tx }}" y1="{{ clock.top }}" y2="{{ clock.axis_y - 6 }}" class="hour"></line>
+    <text x="{{ tx }}" y="{{ clock.axis_y + 2 }}" class="tick {{ clock.tick_anchor.get(loop.index0, '') }}">{{ label }}</text>
+    {% endfor %}
+    {% for name, ly in clock.lanes %}
+    <line x1="{{ clock.left }}" x2="{{ clock.right }}" y1="{{ ly }}" y2="{{ ly }}" class="lane"></line>
+    <text x="0" y="{{ ly + 2.5 }}" class="lane-name">{{ name }}</text>
+    {% endfor %}
+    {% for m in clock.marks %}
+    {% if m.shape == 'square' %}<rect x="{{ m.x - m.r }}" y="{{ m.y - m.r }}" width="{{ m.r * 2 }}" height="{{ m.r * 2 }}" class="m {{ m.tone }}"><title>{{ m.title }}</title></rect>
+    {% elif m.shape == 'diamond' %}<path d="M{{ m.x }} {{ m.y - m.r }}L{{ m.x + m.r }} {{ m.y }}L{{ m.x }} {{ m.y + m.r }}L{{ m.x - m.r }} {{ m.y }}Z" class="m {{ m.tone }}"><title>{{ m.title }}</title></path>
+    {% else %}<circle cx="{{ m.x }}" cy="{{ m.y }}" r="{{ m.r }}" class="m {{ m.tone }}{% if m.shape == 'ring' %} ring{% endif %}"><title>{{ m.title }}</title></circle>{% endif %}
+    {% endfor %}
+  </svg>
+  <p class="note">Чем больше точка, тем больше съедено или выпито. Еда: оранжевая — {{ current.profile.self_label }}, фиолетовая — зонд, красный кружок — отказ. Вода: ● {{ current.profile.pick('пила сама', 'пил сам') }}, ○ дали. Туалет: ● моча, ■ стул, ○ без результата.</p>
+  <p class="note">Точка стоит на времени записи: если о ночном событии написали утром, оно окажется утром.</p>
+</section>
+{% endif %}
+
 <nav class="chips" aria-label="Что показать">
   <a class="chip" href="?"{% if not show %} aria-current="true"{% endif %}>Все</a>
   {% for key, (label, _) in filters.items() %}
