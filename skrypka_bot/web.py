@@ -237,7 +237,9 @@ def day_page(request: Request, day: date, person: Annotated[Viewer, Depends(view
              current: Annotated[Animal, Depends(animal)], show: str | None = None):
     rows = db.events_with_messages(current.chat_id, day, day)
     events, water = views.day_events(rows, show, current.profile.self_label)
-    return page(request, "day.html", person, current, day=day, events=events, water=water,
+    clock = views.day_clock(rows, day, current.profile.kcal_goal, current.profile.water_goal_ml,
+                            datetime.now(timezone()))
+    return page(request, "day.html", person, current, day=day, events=events, water=water, clock=clock,
                 totals=views.day_rows(current.chat_id, current.subject, day, day)[0], show=show, filters=views.FILTERS,
                 previous=day - timedelta(days=1), following=day + timedelta(days=1))
 

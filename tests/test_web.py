@@ -164,6 +164,13 @@ def test_the_day_shows_each_event_and_the_chat_message_only_when_it_adds_somethi
     assert "4мг ондансетрона" in page
 
 
+def test_the_day_draws_the_hours_with_a_title_on_each_mark(settings, members, chat):
+    record(chat, 10, name="felix sauce", kcal=10.0, amount_ml=40.0, description="выпил весь пакетик")
+    page = client(MEMBER).get("/chipunya/day/2026-10-06").text
+    assert '<svg class="clock"' in page
+    assert "<title>10:00 выпил весь пакетик, 10 ккал</title>" in page
+
+
 def test_the_food_report_puts_eating_and_refusing_side_by_side(settings, members, today, chat):
     record(chat, 9, name="felix sauce", kcal=10.0, liquid=True)
     record(chat, 10, type="refusal", feeding=None, name="royal canin urinary s/o", description="не стал")
