@@ -306,6 +306,7 @@ def test_a_callback_without_its_login_attempt_is_refused(settings):
     ("text", "liquid", "expected"),
     [("purina one zalm", False, "Purina One salmon"), ("purina one", False, "Purina One beef"),
      ("felix sauce", True, "Felix Sauce"), ("felix soup", True, "Felix Soup"),
+     ("felix sensations sauces eend/wortel", True, "Felix Sensations"),
      ("royal canin digestive care", True, "RC Digestive Care, wet"),
      ("royal canin digestive care", False, "Hill's i/d, dry"),
      ("monge salmon kitten", True, "Monge"), ("royal canin kitten", True, "RC Kitten"),
