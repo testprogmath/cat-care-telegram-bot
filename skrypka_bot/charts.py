@@ -74,9 +74,10 @@ def render_days(chat_id: int, start: date, end_day: date, profile: Profile, titl
             else:
                 kcal_self[d] += r["kcal"] or 0
         elif t == "toilet":
-            if db.is_stool(r["description"]):
+            kind = db.toilet_kind(r["description"])
+            if kind == "stool":
                 stool[d] += 1
-            else:
+            elif kind == "urine":
                 urine[d] += 1
         elif t == "temperature" and r["temp_c"] is not None:
             temps.append(

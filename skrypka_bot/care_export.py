@@ -280,9 +280,9 @@ def _toilet(rows: list[sqlite3.Row]) -> tuple[int | None, int | None]:
     on a day full of other toilet records. cat-care has no way to express "the owner
     watched all day and there was none", so no asserted-absence field exists here.
     """
-    toilet = [r for r in rows if r["type"] == "toilet"]
-    stools = sum(1 for r in toilet if db.is_stool(r["description"]))
-    urinations = len(toilet) - stools
+    kinds = [db.toilet_kind(r["description"]) for r in rows if r["type"] == "toilet"]
+    stools = kinds.count("stool")
+    urinations = kinds.count("urine")
     return (urinations or None), (stools or None)
 
 

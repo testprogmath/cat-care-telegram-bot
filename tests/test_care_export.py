@@ -137,6 +137,13 @@ def test_toilet_counts_are_what_was_seen(chat):
     assert day.urinations_observed == 1 and day.stools_observed == 1
 
 
+def test_attempts_without_a_result_are_not_counted(chat):
+    record(chat, event("toilet", description="пописал"),
+           event("toilet", at="13:00", description="пытался покакать, ничего не получилось"))
+    day = only()
+    assert day.urinations_observed == 1 and day.stools_observed is None
+
+
 def test_no_toilet_event_leaves_both_counts_unknown(chat):
     record(chat, event("state", description="спит"))
     day = only()
