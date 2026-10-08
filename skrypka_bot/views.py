@@ -803,3 +803,30 @@ def day_clock(rows: list[sqlite3.Row], day: date, kcal_goal: float, water_goal: 
     clock.ticks = [(x(h), (start + timedelta(hours=h)).strftime("%H:%M")) for h in (0, 6, 12, 18, 24)]
     clock.tick_anchor = {0: "start", len(clock.ticks) - 1: "end"}
     return clock
+
+
+@dataclass
+class LegendItem:
+    shape: str
+    tone: str
+    label: str
+
+
+def clock_legend(clock: DayClock, self_label: str, drank: str) -> list[tuple[str, list[LegendItem]]]:
+    """What each mark on this day's clock means, listing only the marks it has."""
+    seen = {(m.y, m.shape, m.tone) for m in clock.marks}
+    lane = dict(clock.lanes)
+    tube = (lane["Еда"], "circle", "tube") in seen
+    groups = [
+        ("Еда", lane["Еда"], [("circle", "self", self_label), ("circle", "tube", "зонд"), ("ring", "refused", "отказ")]),
+        ("Вода", lane["Вода"], [("circle", "drink", drank), ("ring", "drink", "дали в зонд" if tube else "дали")]),
+        ("Туалет", lane["Туалет"], [("circle", "toilet", "моча"), ("square", "stool", "стул"),
+                                    ("ring", "toilet", "без результата")]),
+        ("Лекарства", lane["Лекарства"], [("diamond", "meds", "лекарства")]),
+    ]
+    legend = []
+    for name, y, items in groups:
+        present = [LegendItem(shape, tone, label) for shape, tone, label in items if (y, shape, tone) in seen]
+        if present:
+            legend.append((name, present))
+    return legend
