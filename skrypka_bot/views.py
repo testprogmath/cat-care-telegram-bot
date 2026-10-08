@@ -291,8 +291,9 @@ def day_events(rows: list[sqlite3.Row], show: str | None,
         label, tone = KINDS[kind]
         label = label.format(self=self_label)
         tags: list[str] = []
-        if kind == "toilet" and db.is_stool(row["description"]):
-            label = "туалет · стул"
+        if kind == "toilet":
+            label = {"stool": "туалет · стул", "failed": "туалет · без результата"}.get(
+                db.toilet_kind(row["description"]), label)
         title = row["description"] or ""
         detail = ""
         if kind in ("food_self", "food_tube"):
@@ -665,7 +666,7 @@ def last_stool(chat_id: int, until: date) -> date | None:
             "ORDER BY occurred_at DESC",
             (chat_id, until.isoformat()),
         ).fetchall()
-    return next((date.fromisoformat(r["day"]) for r in rows if db.is_stool(r["description"])), None)
+    return next((date.fromisoformat(r["day"]) for r in rows if db.toilet_kind(r["description"]) == "stool"), None)
 
 
 @dataclass

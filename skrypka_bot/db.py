@@ -29,8 +29,31 @@ _STOOL_RE = re.compile(
 )
 
 
+_NO_RESULT_RE = re.compile(
+    r"не получил|ничего не|не сделал|безуспеш|ни с чем|без результат|не смогл|не смог\b"
+    r"|\bне (?:какал|какает|писал|писает)",
+    re.IGNORECASE,
+)
+_ATTEMPT_RE = re.compile(r"пыта|попыт|пробует|пробовал|тужит|тужил|покопал", re.IGNORECASE)
+_DONE_RE = re.compile(r"пописал|покакал|помочил|наделал|какашк|сходил\S* в (?:туалет|лоток|горшок)", re.IGNORECASE)
+
+
 def is_stool(description: str) -> bool:
     return bool(_STOOL_RE.search(description or ""))
+
+
+def is_failed_toilet(description: str) -> bool:
+    """An attempt that produced nothing, or a note that the cat has not gone."""
+    text = description or ""
+    if _NO_RESULT_RE.search(text):
+        return True
+    return bool(_ATTEMPT_RE.search(text)) and not _DONE_RE.search(text)
+
+
+def toilet_kind(description: str) -> str:
+    if is_failed_toilet(description):
+        return "failed"
+    return "stool" if is_stool(description) else "urine"
 
 
 def is_liquid_food(row: sqlite3.Row) -> bool:
@@ -322,7 +345,7 @@ def _dedup_food(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, e
 def _dedup_toilet(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, event) -> bool:
     lo = (occurred_at - FOOD_DEDUP_WINDOW).isoformat()
     hi = (occurred_at + FOOD_DEDUP_WINDOW).isoformat()
-    stool = is_stool(event.description)
+    kind = toilet_kind(event.description)
     same_kind = [
         row
         for row in conn.execute(
@@ -330,7 +353,7 @@ def _dedup_toilet(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime,
             "WHERE chat_id = ? AND type = 'toilet' AND occurred_at BETWEEN ? AND ?",
             (chat_id, lo, hi),
         )
-        if is_stool(row["description"]) == stool
+        if toilet_kind(row["description"]) == kind
     ]
     if not same_kind:
         return True

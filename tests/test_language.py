@@ -50,3 +50,33 @@ def test_other_toilet_wording_is_not_stool(description):
 def test_daily_recaps_are_recognised(text):
     """A message that sums the day up must not be counted as intake again."""
     assert db._RECAP_RE.search(text)
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "пыталась какать, ничего не получилось",
+        "тужится, пробует покакать (третий раз)",
+        "покопала горшок",
+        "22 августа не какала",
+        "не писает",
+        "подходила к лотку, не получилось (1 из 2)",
+        "не сделала никакой туалет (не помочила/не покакала)",
+    ],
+)
+def test_attempts_without_a_result_are_failed(description):
+    assert db.toilet_kind(description) == "failed"
+
+
+@pytest.mark.parametrize(
+    ("description", "kind"),
+    [
+        ("покакала тремя маленькими какашечками — не успели упасть, вытерла", "stool"),
+        ("покакала, часть прилипла к попе, достать не получается", "stool"),
+        ("покопала, посидела и покакала", "stool"),
+        ("тужилась и пописала", "urine"),
+        ("пописала, не очень много", "urine"),
+    ],
+)
+def test_a_visit_with_a_result_counts(description, kind):
+    assert db.toilet_kind(description) == kind
