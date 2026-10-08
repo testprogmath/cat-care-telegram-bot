@@ -89,6 +89,13 @@ water для этой воды не создавай: она уже в amount_ml
 kcal = доля × 10, water_fraction считай для смеси, как выше. «Выпил соус Felix + 25мл воды, \
 осталось 13г» → съедено 52 г, доля 0.8: kcal 8, amount_ml 52, water_fraction 0.962. Без воды \
 «осталось 10г» → kcal 7.5, amount_ml 30, water_fraction 0.938. \
+Felix Sensations Sauces («Felix Sensations», «сенсейшнс»; утка с морковью, говядина с томатом, \
+индейка со вкусом бекона, ягнёнок; на упаковке Eend/Wortel, Rund/Tomaat, Kalkoen/Bacon, Lam/Wild) — \
+кусочки в соусе, пауч 85 г, влажность 80% по данным Purina. Это не Felix Sauce Time, хотя в \
+названии есть «Sauces»: правило соуса 40 г к нему не применяй. Калорийность Purina не публикует; \
+0.74 ккал/г — расчёт по составу (белок 12.5%, жир 2.5%). kcal = граммы × 0.74, amount_ml равен \
+граммам, liquid true, water_fraction 0.8. «Съел 16г Felix sensations with lamb» → kcal 11.8, \
+amount_ml 16. Целый пауч — 85 г, kcal 62.9. name пиши как «felix sensations sauces» и вкус.
 Royal Canin Sterilised in Gravy (пауч 85 г, «жидкий корм Royal Canin Sterilized») — 0.8 ккал/г, \
 около 68 ккал на пауч: kcal = граммы × 0.8, amount_ml равен граммам, liquid true, \
 water_fraction 0.8. Плотность энергии взята по родственной линейке Indoor Sterilised in Gravy \
