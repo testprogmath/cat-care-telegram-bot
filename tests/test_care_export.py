@@ -144,6 +144,18 @@ def test_attempts_without_a_result_are_not_counted(chat):
     assert day.urinations_observed == 1 and day.stools_observed is None
 
 
+def test_visits_counted_in_one_message_are_all_kept(chat):
+    record(chat, event("toilet", at=None, description="пописал ночью (1 из 2)"),
+           event("toilet", at=None, description="пописал ночью (2 из 2)"), text="Ночью два раза пописал")
+    assert only().urinations_observed == 2
+
+
+def test_the_same_visit_reported_twice_counts_once(chat):
+    record(chat, event("toilet", at="12:00", description="пописал"))
+    record(chat, event("toilet", at="12:02", description="пописал"))
+    assert only().urinations_observed == 1
+
+
 def test_no_toilet_event_leaves_both_counts_unknown(chat):
     record(chat, event("state", description="спит"))
     day = only()

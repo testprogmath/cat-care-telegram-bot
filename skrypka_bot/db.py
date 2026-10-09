@@ -346,7 +346,9 @@ def _dedup_food(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, e
     return True
 
 
-def _dedup_toilet(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, event) -> bool:
+def _dedup_toilet(
+    conn: sqlite3.Connection, chat_id: int, message_id: int, occurred_at: datetime, event
+) -> bool:
     lo = (occurred_at - FOOD_DEDUP_WINDOW).isoformat()
     hi = (occurred_at + FOOD_DEDUP_WINDOW).isoformat()
     kind = toilet_kind(event.description)
@@ -354,8 +356,9 @@ def _dedup_toilet(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime,
         row
         for row in conn.execute(
             "SELECT id, description FROM events "
-            "WHERE chat_id = ? AND type = 'toilet' AND occurred_at BETWEEN ? AND ?",
-            (chat_id, lo, hi),
+            "WHERE chat_id = ? AND type = 'toilet' AND occurred_at BETWEEN ? AND ? "
+            "AND message_id IS NOT ?",
+            (chat_id, lo, hi, message_id),
         )
         if toilet_kind(row["description"]) == kind
     ]
@@ -533,7 +536,7 @@ def _insert_events(
         elif event.type == "water":
             _drop_water_estimates(conn, chat_id, occurred_at, text)
         elif event.type == "toilet":
-            if not _dedup_toilet(conn, chat_id, occurred_at, event):
+            if not _dedup_toilet(conn, chat_id, message_id, occurred_at, event):
                 continue
         elif event.type == "medication":
             if not _dedup_medication(conn, chat_id, occurred_at, event):
