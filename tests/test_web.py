@@ -98,6 +98,27 @@ def test_signed_in_but_not_in_the_chat_sees_no_animal(settings, members, today):
     assert "не состоите ни в одном чате" in page.text
 
 
+def test_a_member_of_one_animals_chat_cannot_open_the_other_animal(settings, monkeypatch, today, chat):
+    skripa_chat = -2
+    db.set_profile(skripa_chat, "skripa")
+    chats_of = {MEMBER: {chat, skripa_chat}, STRANGER: {skripa_chat}}
+
+    def answer(url, timeout):
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+        joined = int(query["chat_id"][0]) in chats_of[int(query["user_id"][0])]
+        return io.BytesIO(json.dumps({"ok": True, "result": {"status": "member" if joined else "left"}}).encode())
+
+    monkeypatch.setattr(web_auth.urllib.request, "urlopen", answer)
+    for path in ("/chipunya/week", "/chipunya/day/2026-10-06", "/chipunya/meds",
+                 "/chipunya/foods", "/chipunya/refusals", "/chipunya/week.png", "/chipunya/meds.png"):
+        assert client(STRANGER).get(path).status_code == 404, path
+    assert client(STRANGER).get("/", follow_redirects=False).headers["location"] == "/skripa/week"
+    page = client(STRANGER).get("/skripa/week")
+    assert page.status_code == 200
+    assert 'href="/chipunya/' not in page.text
+    assert 'href="/chipunya/week"' in client(MEMBER).get("/skripa/week").text
+
+
 def test_a_member_lands_on_the_week_with_the_day_figures(settings, members, today, chat):
     record(chat, 9, kcal=40.0, feeding="tube")
     record(chat, 10, kcal=12.0)
