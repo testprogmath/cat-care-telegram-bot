@@ -3,6 +3,7 @@ import os
 from functools import lru_cache
 from typing import Literal
 
+import openai
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
@@ -269,6 +270,14 @@ class ParsedMessage(BaseModel):
 class ParseFailed(Exception):
     """Модель не ответила: сообщение нужно разобрать повторно позже."""
 
+    def __init__(self, message: str, out_of_credit: bool = False):
+        super().__init__(message)
+        self.out_of_credit = out_of_credit
+
+
+class ParseRefused(Exception):
+    """Модель ответила, но без разбора: повтор не поможет, сообщение надо переписать."""
+
 
 class CondensedStates(BaseModel):
     lines: list[str]
@@ -329,11 +338,17 @@ async def parse_message(
             ],
             response_format=ParsedMessage,
         )
-    except Exception as exc:
+    except (openai.LengthFinishReasonError, openai.ContentFilterFinishReasonError) as exc:
+        logger.warning("Model gave no usable answer for %r: %s", text, exc)
+        raise ParseRefused(str(exc)) from exc
+    except openai.APIError as exc:
         logger.exception("Failed to parse message: %r", text)
-        raise ParseFailed(str(exc)) from exc
-    parsed = completion.choices[0].message.parsed
-    return parsed.events if parsed else []
+        raise ParseFailed(str(exc), out_of_credit=exc.code == "insufficient_quota") from exc
+    message = completion.choices[0].message
+    if message.parsed is None:
+        logger.warning("Model refused to parse %r: %s", text, message.refusal)
+        raise ParseRefused(message.refusal or "no structured answer")
+    return message.parsed.events
 
 
 async def condense_states(items: list[tuple[str, str, str]]) -> list[str] | None:

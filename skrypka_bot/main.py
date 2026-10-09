@@ -17,7 +17,7 @@ from telegram.ext import (
 )
 
 from . import charts, db, meds, profiles
-from .parser import ParseFailed, parse_message
+from .parser import ParseFailed, ParseRefused, parse_message
 from .profiles import Profile
 from .summary import (
     effective_water,
@@ -118,7 +118,18 @@ def _history(chat_id: int, sent_at: datetime) -> tuple[list[tuple[str, str]], bo
     return history, report_shown
 
 
-async def _warn_parse_broken(bot, chat_id: int, now: datetime) -> None:
+PARSE_BROKEN_CAUSES = {
+    "credit": "Скорее всего, закончились деньги на OpenAI.",
+    "unavailable": "OpenAI сейчас не отвечает.",
+    "bug": "Это ошибка в самом боте, её надо чинить.",
+}
+PARSE_REFUSED_NOTICE = (
+    "⚠️ Не смог разобрать это сообщение и ничего из него не записал. "
+    "Напишите, пожалуйста, то же самое другими словами."
+)
+
+
+async def _warn_parse_broken(bot, chat_id: int, now: datetime, cause: str) -> None:
     warned_at = _parse_warned_at.get(chat_id)
     if warned_at and now - warned_at < PARSE_WARNING_INTERVAL:
         return
@@ -128,7 +139,7 @@ async def _warn_parse_broken(bot, chat_id: int, now: datetime) -> None:
             chat_id,
             "⚠️ Не могу разобрать сообщения — записи сейчас не сохраняются. "
             "Я их запомнил и переразберу сам, как только разбор заработает. "
-            "Скорее всего, закончились деньги на OpenAI.",
+            + PARSE_BROKEN_CAUSES[cause],
         )
     except Exception:
         logger.exception("Failed to warn chat %s about parse failures", chat_id)
@@ -198,10 +209,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     history, report_shown = _history(chat.id, sent_at)
     try:
         events = await parse_message(text, history, reply_text, report_shown, profile)
-    except ParseFailed:
+    except ParseRefused:
+        db.save_message(chat.id, msg.message_id, sender, sent_at, text, [])
+        await context.bot.send_message(
+            chat.id, PARSE_REFUSED_NOTICE,
+            reply_parameters=ReplyParameters(msg.message_id, allow_sending_without_reply=True),
+        )
+        return
+    except ParseFailed as failure:
+        cause = "credit" if failure.out_of_credit else "unavailable"
+    except Exception:
+        logger.exception("Parsing message %s crashed", msg.message_id)
+        cause = "bug"
+    else:
+        cause = None
+    if cause is not None:
         db.save_message(chat.id, msg.message_id, sender, sent_at, text, [], parsed=False)
         logger.warning("Message %s stored unparsed, will retry", msg.message_id)
-        await _warn_parse_broken(context.bot, chat.id, datetime.now(TIMEZONE))
+        await _warn_parse_broken(context.bot, chat.id, datetime.now(TIMEZONE), cause)
         return
     db.save_message(chat.id, msg.message_id, sender, sent_at, text, events)
     if events:
@@ -223,8 +248,10 @@ async def retry_unparsed(context: ContextTypes.DEFAULT_TYPE) -> None:
         history, report_shown = _history(row["chat_id"], sent_at)
         try:
             events = await parse_message(row["text"], history, None, report_shown, profile)
-        except ParseFailed:
-            logger.warning("Reparsing still failing, leaving %d message(s) queued", len(pending))
+        except ParseRefused:
+            events = []
+        except Exception:
+            logger.exception("Reparsing still failing, leaving %d message(s) queued", len(pending))
             return
         db.store_reparsed(row["chat_id"], row["message_id"], sent_at, row["text"], events)
         logger.info("Reparsed message %s: %d event(s)", row["message_id"], len(events))
