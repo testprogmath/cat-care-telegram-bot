@@ -7,7 +7,6 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from .profiles import Profile
-from .profiles import get as get_profile
 
 logger = logging.getLogger(__name__)
 
@@ -296,12 +295,11 @@ def system_prompt(profile: Profile) -> str:
 
 async def parse_message(
     text: str,
-    context: list[tuple[str, str]] | None = None,
-    reply_to: str | None = None,
-    report_shown: bool = False,
-    profile: Profile | None = None,
+    context: list[tuple[str, str]] | None,
+    reply_to: str | None,
+    report_shown: bool,
+    profile: Profile,
 ) -> list[Event]:
-    profile = profile or get_profile(None)
     blocks = []
     if report_shown:
         blocks.append(

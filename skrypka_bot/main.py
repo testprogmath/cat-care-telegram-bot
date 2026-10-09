@@ -216,12 +216,13 @@ async def retry_unparsed(context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     logger.info("Retrying %d unparsed message(s)", len(pending))
     for row in pending:
+        profile = db.profile_for(row["chat_id"])
+        if profile is None:
+            continue
         sent_at = datetime.fromisoformat(row["sent_at"])
         history, report_shown = _history(row["chat_id"], sent_at)
         try:
-            events = await parse_message(
-                row["text"], history, None, report_shown, db.profile_for(row["chat_id"])
-            )
+            events = await parse_message(row["text"], history, None, report_shown, profile)
         except ParseFailed:
             logger.warning("Reparsing still failing, leaving %d message(s) queued", len(pending))
             return
