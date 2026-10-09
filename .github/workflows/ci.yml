@@ -45,6 +45,10 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
     env:
       OPENAI_API_KEY: dummy
     steps:
@@ -56,7 +60,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: pip install -e '.[dev]'
-      - run: pytest -q
+      - name: Run tests
+        run: pytest -q --cov=skrypka_bot --cov-report=xml
+      - if: matrix.python-version == '3.12'
+        uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
+        with:
+          version: v0.83.2
+          checksum: e8b0d48837ad56d35eec22a2f0f9e0bc7cbe0fc9ec4a8575bae7e4d52dd6f3d5
 
   build:
     runs-on: ubuntu-latest
