@@ -374,7 +374,7 @@ To roll back, deploy an earlier tag the same way.
 | `OPENAI_API_KEY` | — | |
 | `OPENAI_MODEL` | `gpt-5-mini` | model used for parsing |
 | `TIMEZONE` | `Europe/Berlin` | |
-| `DAY_START` | `11:00` | day boundary, and the time the daily summary is posted |
+| `DAY_START` | `00:00` | day boundary, and the time the daily summary is posted |
 | `DB_PATH` | `data/skrypka.db` | |
 | `SKRIPA_WATER_GOAL_ML` `SKRIPA_KCAL_GOAL` | `340` `310` | daily goals, first cat |
 | `CHIPUNYA_WATER_GOAL_ML` `CHIPUNYA_KCAL_GOAL` | `340` `295` | daily goals, second cat |
