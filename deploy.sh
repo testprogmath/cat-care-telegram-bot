@@ -14,7 +14,7 @@ REMOTE_DIR="${DEPLOY_DIR:-~/apps/skrypka-telegram-bot}"
 
 echo "==> Syncing files..."
 rsync -az --delete \
-  --exclude='.git' --exclude='.venv' --exclude='data/' \
+  --exclude='.git' --exclude='.venv' --exclude='data/' --exclude='.env' \
   --exclude='__pycache__' --exclude='*.pyc' --exclude='dist/' --exclude='.claude' \
   -e "ssh -i $KEY" \
   . "$HOST:$REMOTE_DIR"
