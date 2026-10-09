@@ -131,7 +131,7 @@ def init() -> None:
         chat_columns = {row["name"] for row in conn.execute("PRAGMA table_info(chats)")}
         if "profile" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN profile TEXT")
-            conn.execute("UPDATE chats SET profile = ?", (profiles.DEFAULT_KEY,))
+            conn.execute("UPDATE chats SET profile = ?", (profiles.SKRIPA.key,))
         if "paused_at" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN paused_at TEXT")
         if "auto_left" not in chat_columns:
@@ -163,7 +163,7 @@ def init() -> None:
             )
 
 
-def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile:
+def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile | None:
     with _connect() as conn:
         conn.execute(
             "INSERT INTO chats (chat_id, title, profile) VALUES (?, ?, ?) "
@@ -176,7 +176,7 @@ def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile:
     return profiles.get(row["profile"] if row else None)
 
 
-def profile_for(chat_id: int) -> profiles.Profile:
+def profile_for(chat_id: int) -> profiles.Profile | None:
     with _connect() as conn:
         row = conn.execute(
             "SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)
@@ -193,18 +193,21 @@ def set_profile(chat_id: int, key: str) -> None:
         )
 
 
+def _with_profiles(rows) -> list[tuple[int, profiles.Profile]]:
+    known = [(row["chat_id"], profiles.get(row["profile"])) for row in rows]
+    return [(chat_id, profile) for chat_id, profile in known if profile is not None]
+
+
 def all_chats() -> list[tuple[int, profiles.Profile]]:
     with _connect() as conn:
-        rows = list(conn.execute("SELECT chat_id, profile FROM chats"))
-    return [(row["chat_id"], profiles.get(row["profile"])) for row in rows]
+        return _with_profiles(conn.execute("SELECT chat_id, profile FROM chats"))
 
 
 def active_chats() -> list[tuple[int, profiles.Profile]]:
     with _connect() as conn:
-        rows = list(
+        return _with_profiles(
             conn.execute("SELECT chat_id, profile FROM chats WHERE paused_at IS NULL")
         )
-    return [(row["chat_id"], profiles.get(row["profile"])) for row in rows]
 
 
 def paused_since(chat_id: int) -> datetime | None:
@@ -499,7 +502,10 @@ def _subject_of(conn: sqlite3.Connection, chat_id: int) -> str:
     must not change what a stored event says about whose history it is.
     """
     row = conn.execute("SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
-    return profiles.get(row["profile"] if row else None).subject_id
+    profile = profiles.get(row["profile"] if row else None)
+    if profile is None:
+        raise ValueError(f"chat {chat_id} has no profile, its events belong to no animal")
+    return profile.subject_id
 
 
 def _insert_events(
