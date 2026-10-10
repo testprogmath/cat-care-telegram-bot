@@ -131,7 +131,7 @@ def init() -> None:
         chat_columns = {row["name"] for row in conn.execute("PRAGMA table_info(chats)")}
         if "profile" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN profile TEXT")
-            conn.execute("UPDATE chats SET profile = ?", (profiles.DEFAULT_KEY,))
+            conn.execute("UPDATE chats SET profile = ?", (profiles.SKRIPA.key,))
         if "paused_at" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN paused_at TEXT")
         if "auto_left" not in chat_columns:
@@ -163,7 +163,7 @@ def init() -> None:
             )
 
 
-def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile:
+def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile | None:
     with _connect() as conn:
         conn.execute(
             "INSERT INTO chats (chat_id, title, profile) VALUES (?, ?, ?) "
@@ -176,7 +176,7 @@ def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile:
     return profiles.get(row["profile"] if row else None)
 
 
-def profile_for(chat_id: int) -> profiles.Profile:
+def profile_for(chat_id: int) -> profiles.Profile | None:
     with _connect() as conn:
         row = conn.execute(
             "SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)
@@ -193,18 +193,21 @@ def set_profile(chat_id: int, key: str) -> None:
         )
 
 
+def _with_profiles(rows) -> list[tuple[int, profiles.Profile]]:
+    known = [(row["chat_id"], profiles.get(row["profile"])) for row in rows]
+    return [(chat_id, profile) for chat_id, profile in known if profile is not None]
+
+
 def all_chats() -> list[tuple[int, profiles.Profile]]:
     with _connect() as conn:
-        rows = list(conn.execute("SELECT chat_id, profile FROM chats"))
-    return [(row["chat_id"], profiles.get(row["profile"])) for row in rows]
+        return _with_profiles(conn.execute("SELECT chat_id, profile FROM chats"))
 
 
 def active_chats() -> list[tuple[int, profiles.Profile]]:
     with _connect() as conn:
-        rows = list(
+        return _with_profiles(
             conn.execute("SELECT chat_id, profile FROM chats WHERE paused_at IS NULL")
         )
-    return [(row["chat_id"], profiles.get(row["profile"])) for row in rows]
 
 
 def paused_since(chat_id: int) -> datetime | None:
@@ -310,6 +313,21 @@ def _backfill_amount_ml(event) -> None:
         event.amount_ml = float(match.group(1).replace(",", "."))
 
 
+def _replace_rows(conn: sqlite3.Connection, ids: list[int], replacement: str) -> None:
+    edited_at = datetime.now().astimezone()
+    for event_id in ids:
+        row = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+        _log_edit(conn, event_id, edited_at, "dedup", dict(row), {"replaced_by": replacement})
+    conn.execute(f"DELETE FROM events WHERE id IN ({','.join('?' * len(ids))})", ids)
+
+
+def _keeps_manual(rows: list[sqlite3.Row], kind: str, event) -> bool:
+    if any(row["message_id"] is None for row in rows):
+        logger.info("Keeping a manually added %s over: %r", kind, event.description)
+        return True
+    return False
+
+
 def _is_separate_portion(existing_ml, new_ml) -> bool:
     return existing_ml is not None and new_ml is not None and existing_ml != new_ml
 
@@ -326,7 +344,7 @@ def _dedup_food(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, e
     existing = [
         row
         for row in conn.execute(
-            "SELECT id, kcal, feeding, amount_ml, liquid, description FROM events "
+            "SELECT id, message_id, kcal, feeding, amount_ml, liquid, description FROM events "
             "WHERE chat_id = ? AND type = 'food' AND occurred_at BETWEEN ? AND ?",
             (chat_id, lo, hi),
         )
@@ -334,14 +352,14 @@ def _dedup_food(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, e
     ]
     if not existing:
         return True
+    if _keeps_manual(existing, "feeding", event):
+        return False
     best = max(_detail_score(row["kcal"], row["feeding"]) for row in existing)
     if _detail_score(event.kcal, event.feeding) <= best:
         logger.info("Skipping duplicate feeding: %r", event.description)
         return False
     ids = [row["id"] for row in existing]
-    conn.execute(
-        f"DELETE FROM events WHERE id IN ({','.join('?' * len(ids))})", ids
-    )
+    _replace_rows(conn, ids, event.description)
     logger.info("Replacing %d less detailed feeding(s) with: %r", len(ids), event.description)
     return True
 
@@ -355,7 +373,7 @@ def _dedup_toilet(
     same_kind = [
         row
         for row in conn.execute(
-            "SELECT id, description FROM events "
+            "SELECT id, message_id, description FROM events "
             "WHERE chat_id = ? AND type = 'toilet' AND occurred_at BETWEEN ? AND ? "
             "AND message_id IS NOT ?",
             (chat_id, lo, hi, message_id),
@@ -364,11 +382,13 @@ def _dedup_toilet(
     ]
     if not same_kind:
         return True
+    if _keeps_manual(same_kind, "toilet visit", event):
+        return False
     if len(event.description or "") <= max(len(row["description"] or "") for row in same_kind):
         logger.info("Skipping duplicate toilet: %r", event.description)
         return False
     ids = [row["id"] for row in same_kind]
-    conn.execute(f"DELETE FROM events WHERE id IN ({','.join('?' * len(ids))})", ids)
+    _replace_rows(conn, ids, event.description)
     return True
 
 
@@ -387,7 +407,7 @@ def _dedup_medication(
     same_drug = [
         row
         for row in conn.execute(
-            "SELECT id, name, dose, description FROM events "
+            "SELECT id, message_id, name, dose, description FROM events "
             "WHERE chat_id = ? AND type = 'medication' AND occurred_at BETWEEN ? AND ?",
             (chat_id, lo, hi),
         )
@@ -395,12 +415,14 @@ def _dedup_medication(
     ]
     if not same_drug:
         return True
+    if _keeps_manual(same_drug, "medication", event):
+        return False
     best = max(_med_detail(row["dose"], row["description"]) for row in same_drug)
     if _med_detail(event.dose, event.description) <= best:
         logger.info("Skipping duplicate medication: %r", event.description)
         return False
     ids = [row["id"] for row in same_drug]
-    conn.execute(f"DELETE FROM events WHERE id IN ({','.join('?' * len(ids))})", ids)
+    _replace_rows(conn, ids, event.description)
     logger.info("Replacing %d less detailed medication(s) with: %r", len(ids), event.description)
     return True
 
@@ -421,14 +443,15 @@ def _drop_water_estimates(
         for row in conn.execute(
             "SELECT e.id AS id, m.text AS source FROM events e "
             "LEFT JOIN messages m ON m.chat_id = e.chat_id AND m.message_id = e.message_id "
-            "WHERE e.chat_id = ? AND e.type = 'water' AND e.occurred_at BETWEEN ? AND ?",
+            "WHERE e.chat_id = ? AND e.type = 'water' AND e.occurred_at BETWEEN ? AND ? "
+            "AND e.message_id IS NOT NULL",
             (chat_id, lo, hi),
         )
         if not _states_ml(row["source"])
     ]
     if not stale:
         return
-    conn.execute(f"DELETE FROM events WHERE id IN ({','.join('?' * len(stale))})", stale)
+    _replace_rows(conn, stale, text)
     logger.info("Replacing %d estimated water event(s) with exact %r", len(stale), text[:60])
 
 
@@ -499,7 +522,10 @@ def _subject_of(conn: sqlite3.Connection, chat_id: int) -> str:
     must not change what a stored event says about whose history it is.
     """
     row = conn.execute("SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
-    return profiles.get(row["profile"] if row else None).subject_id
+    profile = profiles.get(row["profile"] if row else None)
+    if profile is None:
+        raise ValueError(f"chat {chat_id} has no profile, its events belong to no animal")
+    return profile.subject_id
 
 
 def _insert_events(
