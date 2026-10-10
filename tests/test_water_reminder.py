@@ -46,6 +46,12 @@ def test_the_last_reminder_of_the_day_does_not_name_a_deadline_that_has_come():
     )
 
 
-def test_skripa_gets_portions_of_at_most_25_ml_and_chipunya_none():
-    assert profiles.SKRIPA.water_portion_ml == 25.0
-    assert profiles.CHIPUNYA.water_portion_ml is None
+def test_without_a_tube_the_reminder_gives_no_portion_advice():
+    text = main.render_water_reminder(CAT, 100.0, datetime(2026, 10, 10, 16, 0))
+    assert CAT.tube is None
+    assert len(text.splitlines()) == 2
+
+
+def test_skripa_has_a_tube_taking_at_most_25_ml_of_water_at_once_and_chipunya_none():
+    assert profiles.SKRIPA.tube.water_portion_ml == 25.0
+    assert profiles.CHIPUNYA.tube is None

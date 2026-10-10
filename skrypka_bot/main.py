@@ -525,14 +525,14 @@ def render_water_reminder(profile: Profile, got: float, now: datetime) -> str | 
         f"(график: {goal:g} мл равномерно с {WATER_REMINDER_START_HOUR:02d}:00 "
         f"до {WATER_REMINDER_END_HOUR:02d}:00)."
     )
-    if profile.water_portion_ml:
+    if profile.tube:
         remaining = goal - got
-        portions = math.ceil(remaining / profile.water_portion_ml)
+        portions = math.ceil(remaining / profile.tube.water_portion_ml)
         by = f" до {WATER_REMINDER_END_HOUR:02d}:00" if now.hour < WATER_REMINDER_END_HOUR else ""
         text += (
             f"\nЧтобы добрать {remaining:g} мл{by}: примерно {portions} "
             f"{_plural(portions, 'раз', 'раза', 'раз')} по ~{remaining / portions:.0f} мл "
-            f"(не больше {profile.water_portion_ml:g} мл за раз)."
+            f"(не больше {profile.tube.water_portion_ml:g} мл за раз)."
         )
     return text
 

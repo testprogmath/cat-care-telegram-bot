@@ -18,7 +18,6 @@ WATER_DEDUP_WINDOW = timedelta(minutes=5)
 _AMOUNT_ML_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*мл", re.IGNORECASE)
 _AMOUNT_G_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:г|гр|грамм\w*)\b", re.IGNORECASE)
 
-TUBE_MAX_SINGLE_ML = float(os.environ.get("TUBE_MAX_SINGLE_ML", "100"))
 LIQUID_FOOD_WATER_FRACTION = float(os.environ.get("LIQUID_FOOD_WATER_FRACTION", "0.85"))
 _RECAP_RE = re.compile(
     r"если считать|суммарно|в сумме|за день|за сутки|минимум\s+\d+\s*мл|всего\b.{0,30}\bпоступил",
@@ -543,17 +542,12 @@ def unparsed_messages(limit: int = 20) -> list[sqlite3.Row]:
         )
 
 
-def _subject_of(conn: sqlite3.Connection, chat_id: int) -> str:
-    """The animal an event belongs to, named as external contracts name it.
-
-    Deliberately the profile's subject_id and not its key: renaming a profile internally
-    must not change what a stored event says about whose history it is.
-    """
+def _profile_of(conn: sqlite3.Connection, chat_id: int) -> profiles.Profile:
     row = conn.execute("SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
     profile = profiles.get(row["profile"] if row else None)
     if profile is None:
         raise ValueError(f"chat {chat_id} has no profile, its events belong to no animal")
-    return profile.subject_id
+    return profile
 
 
 def _insert_events(
@@ -565,7 +559,8 @@ def _insert_events(
     events: list,
 ) -> None:
     is_recap = bool(_RECAP_RE.search(text))
-    subject = _subject_of(conn, chat_id)
+    profile = _profile_of(conn, chat_id)
+    subject = profile.subject_id
     for event in events:
         if is_recap and event.type in ("water", "food"):
             logger.info("Skipping recap-derived %s event: %r", event.type, event.description)
@@ -575,13 +570,14 @@ def _insert_events(
             _backfill_amount_ml(event)
             if (
                 event.feeding == "tube"
+                and profile.tube
                 and event.amount_ml
-                and event.amount_ml > TUBE_MAX_SINGLE_ML
+                and event.amount_ml > profile.tube.max_feed_ml
             ):
                 logger.info(
                     "Skipping implausible tube feeding %g ml (>%g): %r",
                     event.amount_ml,
-                    TUBE_MAX_SINGLE_ML,
+                    profile.tube.max_feed_ml,
                     event.description,
                 )
                 continue
