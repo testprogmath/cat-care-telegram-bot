@@ -65,7 +65,7 @@ def food_water_ml(row: sqlite3.Row) -> float:
         return 0.0
     return (row["amount_ml"] or 0) * (row["water_fraction"] or LIQUID_FOOD_WATER_FRACTION)
 
-DAY_START = os.environ.get("DAY_START", "11:00")
+DAY_START = os.environ.get("DAY_START", "00:00")
 _DAY_START_HOUR, _DAY_START_MINUTE = (int(part) for part in DAY_START.split(":"))
 
 
