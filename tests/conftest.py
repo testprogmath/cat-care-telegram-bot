@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from skrypka_bot import db
+from skrypka_bot import db, profiles
 
 COLUMNS = (
     "type",
@@ -44,3 +44,13 @@ def chat(tmp_path, monkeypatch):
     db.init()
     db.upsert_chat(-1, "Чипуня")
     return -1
+
+
+def animal(key="murka", tube=None, **overrides) -> profiles.Profile:
+    """A profile that is no real cat, for tests of rules that must not depend on which cat."""
+    fields = dict(
+        key=key, subject_id=key, name="Мурка", name_en="Murka", title_markers=(key,), aliases=(key,),
+        self_label="сама", verb_received="получила", subject="Мурка", feeding_field="",
+        feeding_products="", toilet_notes="", water_goal_ml=340.0, kcal_goal=250.0, tube=tube,
+    )
+    return profiles.Profile(**{**fields, **overrides})

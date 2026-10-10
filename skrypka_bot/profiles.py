@@ -15,6 +15,12 @@ class Bands:
 
 
 @dataclass(frozen=True)
+class Tube:
+    water_portion_ml: float
+    max_feed_ml: float
+
+
+@dataclass(frozen=True)
 class Profile:
     """One animal: how to parse for it, what to aim for, and what to call it outside.
 
@@ -44,6 +50,7 @@ class Profile:
     kcal_goal: float
     kcal_bands: Bands | None = None
     water_bands: Bands | None = None
+    tube: Tube | None = None
 
     def pick(self, she: str, he: str) -> str:
         """The word that agrees with this animal: Скрипа is a she, Чипуня a he."""
@@ -164,6 +171,10 @@ SKRIPA = Profile(
         'что она подошла туда и легла.'
     ),
     water_goal_ml=_goal("skripa", "WATER_GOAL_ML", 340),
+    tube=Tube(
+        water_portion_ml=25.0,
+        max_feed_ml=float(os.environ.get("TUBE_MAX_SINGLE_ML") or 100),
+    ),
     kcal_goal=_goal("skripa", "KCAL_GOAL", 250),
     kcal_bands=Bands(
         unit="ккал",
