@@ -521,7 +521,7 @@ def render_water_reminder(profile: Profile, got: float, now: datetime) -> str | 
         f"из {goal:g} (осталось {goal - got:g}).\n"
         f"К {now:%H:%M} по графику должно быть ~{expected:.0f} мл, не хватает ~{expected - got:.0f} мл "
         f"(график: {goal:g} мл равномерно с {WATER_REMINDER_START_HOUR:02d}:00 "
-        f"до {WATER_REMINDER_END_HOUR:02d}:00). Пора дать ~15-20 мл."
+        f"до {WATER_REMINDER_END_HOUR:02d}:00)."
     )
 
 
