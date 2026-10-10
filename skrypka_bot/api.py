@@ -10,7 +10,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict
 
-from . import db
+from . import db, profiles
 from .parser import EventType
 
 MIN_TOKEN_LENGTH = 32
@@ -126,6 +126,18 @@ class Edit(BaseModel):
     after: dict | None
 
 
+class Chat(BaseModel):
+    chat_id: int
+    title: str | None
+    profile: str | None
+
+
+class ChatPatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    profile: str | None
+
+
 def _not_found(event_id: int) -> HTTPException:
     return HTTPException(status_code=404, detail=f"event {event_id} not found")
 
@@ -211,6 +223,26 @@ def event_edits(event_id: int) -> list[Edit]:
         )
         for row in db.edits_for_event(event_id)
     ]
+
+
+@app.get("/chats", response_model=list[Chat])
+def list_chats() -> list[Chat]:
+    return [Chat(**dict(row)) for row in db.chats()]
+
+
+@app.patch("/chats/{chat_id}", response_model=Chat)
+def patch_chat(chat_id: int, patch: ChatPatch) -> Chat:
+    if db.chat(chat_id) is None:
+        raise HTTPException(status_code=404, detail=f"chat {chat_id} not found")
+    if patch.profile is not None and profiles.get(patch.profile) is None:
+        raise HTTPException(status_code=422, detail=f"unknown profile {patch.profile}")
+    try:
+        db.set_profile(chat_id, patch.profile)
+    except db.ProfileTaken:
+        raise HTTPException(
+            status_code=409, detail=f"another chat keeps the diary of {patch.profile}"
+        ) from None
+    return Chat(**dict(db.chat(chat_id)))
 
 
 def main() -> None:

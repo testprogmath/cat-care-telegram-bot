@@ -261,10 +261,10 @@ def get(key: str | None) -> Profile | None:
     return PROFILES.get(key or "")
 
 
-def guess(title: str | None) -> str | None:
+def guess(title: str | None, taken: frozenset[str] = frozenset()) -> str | None:
     low = (title or "").lower()
     for profile in PROFILES.values():
-        if any(marker in low for marker in profile.title_markers):
+        if profile.key not in taken and any(marker in low for marker in profile.title_markers):
             return profile.key
     return None
 

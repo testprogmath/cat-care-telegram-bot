@@ -136,6 +136,10 @@ def init() -> None:
             conn.execute("ALTER TABLE chats ADD COLUMN paused_at TEXT")
         if "auto_left" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN auto_left INTEGER NOT NULL DEFAULT 1")
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_chats_profile ON chats (profile) "
+            "WHERE profile IS NOT NULL"
+        )
         message_columns = {row["name"] for row in conn.execute("PRAGMA table_info(messages)")}
         if "parsed" not in message_columns:
             conn.execute("ALTER TABLE messages ADD COLUMN parsed INTEGER")
@@ -163,12 +167,22 @@ def init() -> None:
             )
 
 
+class ProfileTaken(Exception):
+    """Another chat already keeps this animal's diary."""
+
+
 def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile | None:
     with _connect() as conn:
+        taken = frozenset(
+            row["profile"]
+            for row in conn.execute(
+                "SELECT profile FROM chats WHERE profile IS NOT NULL AND chat_id != ?", (chat_id,)
+            )
+        )
         conn.execute(
             "INSERT INTO chats (chat_id, title, profile) VALUES (?, ?, ?) "
             "ON CONFLICT (chat_id) DO UPDATE SET title = excluded.title",
-            (chat_id, title, profiles.guess(title)),
+            (chat_id, title, profiles.guess(title, taken)),
         )
         row = conn.execute(
             "SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)
@@ -184,13 +198,28 @@ def profile_for(chat_id: int) -> profiles.Profile | None:
     return profiles.get(row["profile"] if row else None)
 
 
-def set_profile(chat_id: int, key: str) -> None:
+def set_profile(chat_id: int, key: str | None) -> None:
+    try:
+        with _connect() as conn:
+            conn.execute(
+                "INSERT INTO chats (chat_id, profile) VALUES (?, ?) "
+                "ON CONFLICT (chat_id) DO UPDATE SET profile = excluded.profile",
+                (chat_id, key),
+            )
+    except sqlite3.IntegrityError as exc:
+        raise ProfileTaken(key) from exc
+
+
+def chats() -> list[sqlite3.Row]:
     with _connect() as conn:
-        conn.execute(
-            "INSERT INTO chats (chat_id, profile) VALUES (?, ?) "
-            "ON CONFLICT (chat_id) DO UPDATE SET profile = excluded.profile",
-            (chat_id, key),
-        )
+        return list(conn.execute("SELECT chat_id, title, profile FROM chats ORDER BY chat_id"))
+
+
+def chat(chat_id: int) -> sqlite3.Row | None:
+    with _connect() as conn:
+        return conn.execute(
+            "SELECT chat_id, title, profile FROM chats WHERE chat_id = ?", (chat_id,)
+        ).fetchone()
 
 
 def _with_profiles(rows) -> list[tuple[int, profiles.Profile]]:
