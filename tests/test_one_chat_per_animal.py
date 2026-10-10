@@ -68,6 +68,17 @@ def test_chats_without_an_animal_do_not_collide(chat):
     assert db.profile_for(-10) is None and db.profile_for(-11) is None
 
 
+def test_chats_from_before_profiles_existed_start_unassigned(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", tmp_path / "old.db")
+    with sqlite3.connect(db.DB_PATH) as conn:
+        conn.executescript(
+            "CREATE TABLE chats (chat_id INTEGER PRIMARY KEY, title TEXT);"
+            "INSERT INTO chats VALUES (-1, 'Чат один'), (-2, 'Чат два');"
+        )
+    db.init()
+    assert db.profile_for(-1) is None and db.profile_for(-2) is None
+
+
 def test_the_admin_api_moves_a_diary_by_freeing_the_old_chat_first(chat, admin):
     db.upsert_chat(OTHER, "Новый чат")
     assert admin.patch(f"/chats/{OTHER}", json={"profile": "chipunya"}).status_code == 409

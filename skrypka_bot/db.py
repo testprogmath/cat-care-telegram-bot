@@ -131,7 +131,6 @@ def init() -> None:
         chat_columns = {row["name"] for row in conn.execute("PRAGMA table_info(chats)")}
         if "profile" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN profile TEXT")
-            conn.execute("UPDATE chats SET profile = ?", (profiles.SKRIPA.key,))
         if "paused_at" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN paused_at TEXT")
         if "auto_left" not in chat_columns:
