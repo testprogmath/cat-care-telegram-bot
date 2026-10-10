@@ -44,6 +44,7 @@ class Profile:
     kcal_goal: float
     kcal_bands: Bands | None = None
     water_bands: Bands | None = None
+    water_portion_ml: float | None = None
 
     def pick(self, she: str, he: str) -> str:
         """The word that agrees with this animal: Скрипа is a she, Чипуня a he."""
@@ -164,6 +165,7 @@ SKRIPA = Profile(
         'что она подошла туда и легла.'
     ),
     water_goal_ml=_goal("skripa", "WATER_GOAL_ML", 340),
+    water_portion_ml=25.0,
     kcal_goal=_goal("skripa", "KCAL_GOAL", 250),
     kcal_bands=Bands(
         unit="ккал",

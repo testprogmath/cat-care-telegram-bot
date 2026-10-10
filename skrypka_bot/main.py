@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import math
 import os
 import re
 from datetime import date, datetime, time, timedelta
@@ -20,6 +21,7 @@ from . import charts, db, meds, profiles
 from .parser import ParseFailed, parse_message
 from .profiles import Profile
 from .summary import (
+    _plural,
     effective_water,
     render_progress,
     render_risk,
@@ -516,13 +518,23 @@ def render_water_reminder(profile: Profile, got: float, now: datetime) -> str | 
     expected = goal * day_pace(now)
     if got >= goal or got >= expected - WATER_PACE_BUFFER_ML:
         return None
-    return (
+    text = (
         f"💧 Напоминание: {profile.name} {profile.verb_received} {got:g} мл воды "
         f"из {goal:g} (осталось {goal - got:g}).\n"
         f"К {now:%H:%M} по графику должно быть ~{expected:.0f} мл, не хватает ~{expected - got:.0f} мл "
         f"(график: {goal:g} мл равномерно с {WATER_REMINDER_START_HOUR:02d}:00 "
         f"до {WATER_REMINDER_END_HOUR:02d}:00)."
     )
+    if profile.water_portion_ml:
+        remaining = goal - got
+        portions = math.ceil(remaining / profile.water_portion_ml)
+        by = f" до {WATER_REMINDER_END_HOUR:02d}:00" if now.hour < WATER_REMINDER_END_HOUR else ""
+        text += (
+            f"\nЧтобы добрать {remaining:g} мл{by}: примерно {portions} "
+            f"{_plural(portions, 'раз', 'раза', 'раз')} по ~{remaining / portions:.0f} мл "
+            f"(не больше {profile.water_portion_ml:g} мл за раз)."
+        )
+    return text
 
 
 async def water_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
