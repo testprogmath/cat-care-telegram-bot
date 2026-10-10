@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import logging
 import os
 import re
@@ -163,6 +164,17 @@ async def _track_hospital_stay(
         await _switch_pause(bot, chat_id, None, RESUME_NOTICE)
 
 
+def for_known_chat(command):
+    @functools.wraps(command)
+    async def run(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        chat = update.effective_chat
+        if chat is None or db.profile_for(chat.id) is None:
+            return
+        await command(update, context)
+
+    return run
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = update.effective_message
     chat = update.effective_chat
@@ -175,6 +187,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.info("Message %s already seen, skipping", msg.message_id)
         return
     profile = db.upsert_chat(chat.id, chat.title or chat.full_name)
+    if profile is None:
+        logger.info("Chat %s has no profile, ignoring message %s", chat.id, msg.message_id)
+        return
     sent_at = msg.date.astimezone(TIMEZONE)
     await _track_hospital_stay(context.bot, chat.id, profile, text, sent_at)
     sender = msg.from_user.full_name if msg.from_user else ""
@@ -201,12 +216,13 @@ async def retry_unparsed(context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     logger.info("Retrying %d unparsed message(s)", len(pending))
     for row in pending:
+        profile = db.profile_for(row["chat_id"])
+        if profile is None:
+            continue
         sent_at = datetime.fromisoformat(row["sent_at"])
         history, report_shown = _history(row["chat_id"], sent_at)
         try:
-            events = await parse_message(
-                row["text"], history, None, report_shown, db.profile_for(row["chat_id"])
-            )
+            events = await parse_message(row["text"], history, None, report_shown, profile)
         except ParseFailed:
             logger.warning("Reparsing still failing, leaving %d message(s) queued", len(pending))
             return
@@ -376,6 +392,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
     if not context.args:
         current = db.profile_for(chat.id)
+        if current is None:
+            return
         await context.bot.send_message(
             chat.id,
             f"В этом чате я веду дневник: {current.name}.\n"
@@ -525,15 +543,15 @@ def main() -> None:
         .post_init(post_init)
         .build()
     )
-    app.add_handler(CommandHandler("stats", stats_command))
-    app.add_handler(CommandHandler("left", left_command))
-    app.add_handler(CommandHandler("autoleft", autoleft_command))
-    app.add_handler(CommandHandler("risk", risk_command))
-    app.add_handler(CommandHandler("week", week_command))
-    app.add_handler(CommandHandler("meds", meds_command))
+    app.add_handler(CommandHandler("stats", for_known_chat(stats_command)))
+    app.add_handler(CommandHandler("left", for_known_chat(left_command)))
+    app.add_handler(CommandHandler("autoleft", for_known_chat(autoleft_command)))
+    app.add_handler(CommandHandler("risk", for_known_chat(risk_command)))
+    app.add_handler(CommandHandler("week", for_known_chat(week_command)))
+    app.add_handler(CommandHandler("meds", for_known_chat(meds_command)))
     app.add_handler(CommandHandler("profile", profile_command))
-    app.add_handler(CommandHandler("reminders", reminders_command))
-    app.add_handler(CommandHandler(["help", "start"], help_command))
+    app.add_handler(CommandHandler("reminders", for_known_chat(reminders_command)))
+    app.add_handler(CommandHandler(["help", "start"], for_known_chat(help_command)))
     app.add_handler(
         MessageHandler((filters.TEXT | filters.CAPTION) & ~filters.COMMAND, handle_message)
     )

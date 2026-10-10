@@ -255,19 +255,18 @@ CHIPUNYA = Profile(
 
 
 PROFILES = {profile.key: profile for profile in (SKRIPA, CHIPUNYA)}
-DEFAULT_KEY = SKRIPA.key
 
 
-def get(key: str | None) -> Profile:
-    return PROFILES.get(key or "", PROFILES[DEFAULT_KEY])
+def get(key: str | None) -> Profile | None:
+    return PROFILES.get(key or "")
 
 
-def guess(title: str | None) -> str:
+def guess(title: str | None) -> str | None:
     low = (title or "").lower()
     for profile in PROFILES.values():
         if any(marker in low for marker in profile.title_markers):
             return profile.key
-    return DEFAULT_KEY
+    return None
 
 
 def resolve(name: str) -> Profile | None:
