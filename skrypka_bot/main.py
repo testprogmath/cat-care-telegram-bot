@@ -511,22 +511,29 @@ def day_pace(now: datetime) -> float:
     return min(max(elapsed / span, 0.0), 1.0)
 
 
+def render_water_reminder(profile: Profile, got: float, now: datetime) -> str | None:
+    goal = profile.water_goal_ml
+    expected = goal * day_pace(now)
+    if got >= goal or got >= expected - WATER_PACE_BUFFER_ML:
+        return None
+    return (
+        f"💧 Напоминание: {profile.name} {profile.verb_received} {got:g} мл воды "
+        f"из {goal:g} (осталось {goal - got:g}).\n"
+        f"К {now:%H:%M} по графику должно быть ~{expected:.0f} мл, не хватает ~{expected - got:.0f} мл "
+        f"(график: {goal:g} мл равномерно с {WATER_REMINDER_START_HOUR:02d}:00 "
+        f"до {WATER_REMINDER_END_HOUR:02d}:00). Пора дать ~15-20 мл."
+    )
+
+
 async def water_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
     now = datetime.now(TIMEZONE)
     day = db.care_day(now)
-    pace = day_pace(now)
     for chat_id, profile in db.active_chats():
-        goal = profile.water_goal_ml
-        got = effective_water(db.events_for_day(chat_id, day))
-        if got >= goal or got >= goal * pace - WATER_PACE_BUFFER_ML:
+        text = render_water_reminder(profile, effective_water(db.events_for_day(chat_id, day)), now)
+        if text is None:
             continue
-        remaining = goal - got
         try:
-            await context.bot.send_message(
-                chat_id,
-                f"💧 Напоминание: {profile.name} {profile.verb_received} {got:g} мл воды "
-                f"из {goal:g} (осталось {remaining:g}). Пора дать ~15-20 мл.",
-            )
+            await context.bot.send_message(chat_id, text)
         except Exception:
             logger.exception("Failed to send water reminder to chat %s", chat_id)
 
