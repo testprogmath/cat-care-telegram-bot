@@ -406,7 +406,13 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             chat.id, f"Не знаю такого. Доступны: {profiles.names()}."
         )
         return
-    db.set_profile(chat.id, chosen.key)
+    try:
+        db.set_profile(chat.id, chosen.key)
+    except db.ProfileTaken:
+        await context.bot.send_message(
+            chat.id, f"Дневник {chosen.name} уже ведётся в другом чате, второй чат я не завожу."
+        )
+        return
     await context.bot.send_message(
         chat.id,
         f"Готово, теперь этот чат — дневник {chosen.name}. "
