@@ -19,18 +19,23 @@ TOTAL_LABEL_DAYS = 31
 TICKS_PER_CHART = 14
 
 
-def _label_stack(ax, lower, upper, lower_values, upper_values) -> None:
-    totals = [a + b for a, b in zip(lower_values, upper_values, strict=True)]
+def _stack(ax, x: list[int], segments: list[tuple[list[float], str, str]]) -> None:
+    bottom = [0.0] * len(x)
+    stacked = []
+    for values, label, color in segments:
+        stacked.append((ax.bar(x, values, bottom=bottom, label=label, color=color), values))
+        bottom = [b + v for b, v in zip(bottom, values, strict=True)]
+    totals = bottom
     if len(totals) <= SEGMENT_LABEL_DAYS:
         smallest = max(totals, default=0) * 0.06
-        for bars, values in ((lower, lower_values), (upper, upper_values)):
+        for bars, values in stacked:
             ax.bar_label(
                 bars, labels=[f"{v:.0f}" if v >= smallest and v > 0 else "" for v in values],
                 label_type="center", fontsize=8,
             )
     if len(totals) <= TOTAL_LABEL_DAYS:
         ax.bar_label(
-            upper, labels=[f"{t:.0f}" if t > 0 else "" for t in totals],
+            stacked[-1][0], labels=[f"{t:.0f}" if t > 0 else "" for t in totals],
             padding=2, fontsize=9 if len(totals) <= SEGMENT_LABEL_DAYS else 7, fontweight="bold",
         )
 
@@ -52,7 +57,8 @@ def render_days(chat_id: int, start: date, end_day: date, profile: Profile, titl
     days = [start + timedelta(days=i) for i in range((end_day - start).days + 1)]
     rows = db.events_in_days(chat_id, days[0], days[-1])
 
-    drink = {d: 0.0 for d in days}
+    drank = {d: 0.0 for d in days}
+    given = {d: 0.0 for d in days}
     liquid_water = {d: 0.0 for d in days}
     kcal_tube = {d: 0.0 for d in days}
     kcal_self = {d: 0.0 for d in days}
@@ -62,11 +68,11 @@ def render_days(chat_id: int, start: date, end_day: date, profile: Profile, titl
 
     for r in rows:
         d = date.fromisoformat(r["day"])
-        if d not in drink:
+        if d not in drank:
             continue
         t = r["type"]
         if t == "water":
-            drink[d] += r["water_ml"] or 0
+            (given if r["feeding"] == "tube" else drank)[d] += r["water_ml"] or 0
         elif t == "food":
             liquid_water[d] += db.food_water_ml(r)
             if r["feeding"] == "tube":
@@ -95,22 +101,21 @@ def render_days(chat_id: int, start: date, end_day: date, profile: Profile, titl
     )
 
     ax = axes[0]
-    dw = [drink[d] for d in days]
-    lw = [liquid_water[d] for d in days]
-    drink_bars = ax.bar(x, dw, label="water (drinking)", color="#4C9BE8")
-    food_bars = ax.bar(x, lw, bottom=dw, label="water from wet food", color="#9BD1A0")
-    _label_stack(ax, drink_bars, food_bars, dw, lw)
+    _stack(ax, x, [
+        ([drank[d] for d in days], "drank", "#4C9BE8"),
+        ([given[d] for d in days], "given (tube or syringe)", "#2B5F9E"),
+        ([liquid_water[d] for d in days], "from wet food", "#9BD1A0"),
+    ])
     ax.axhline(water_goal, ls="--", color="#E8635C", label=f"goal {water_goal:g} ml")
     ax.set_title("Water per day, ml")
     _day_axis(ax, x, labels)
-    ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
+    ax.legend(fontsize=8, loc="upper left", ncol=4, frameon=False)
 
     ax = axes[1]
-    kt = [kcal_tube[d] for d in days]
-    ks = [kcal_self[d] for d in days]
-    tube_bars = ax.bar(x, kt, label="tube", color="#7B6CE8")
-    self_bars = ax.bar(x, ks, bottom=kt, label="self-fed", color="#E8B54C")
-    _label_stack(ax, tube_bars, self_bars, kt, ks)
+    _stack(ax, x, [
+        ([kcal_tube[d] for d in days], "tube", "#7B6CE8"),
+        ([kcal_self[d] for d in days], "self-fed", "#E8B54C"),
+    ])
     ax.set_title("Calories per day, kcal")
     _day_axis(ax, x, labels)
     ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
@@ -153,7 +158,7 @@ def render_days(chat_id: int, start: date, end_day: date, profile: Profile, titl
         ax.text(0.5, 0.5, "no temperature readings", ha="center", va="center", transform=ax.transAxes)
         ax.set_yticks([])
 
-    axes[0].set_ylim(0, max(max(drink[d] + liquid_water[d] for d in days), water_goal) * 1.3)
+    axes[0].set_ylim(0, max(max(drank[d] + given[d] + liquid_water[d] for d in days), water_goal) * 1.3)
     axes[1].set_ylim(0, max(max(kcal_tube[d] + kcal_self[d] for d in days), 1) * 1.3)
     axes[2].set_ylim(0, max((max(urine[d], stool[d]) for d in days), default=0) * 1.3 + 1)
 
