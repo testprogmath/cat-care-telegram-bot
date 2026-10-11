@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import sqlite3
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -134,6 +135,8 @@ def init() -> None:
             conn.execute("ALTER TABLE chats ADD COLUMN paused_at TEXT")
         if "auto_left" not in chat_columns:
             conn.execute("ALTER TABLE chats ADD COLUMN auto_left INTEGER NOT NULL DEFAULT 1")
+        if "tube_out_at" not in chat_columns:
+            conn.execute("ALTER TABLE chats ADD COLUMN tube_out_at TEXT")
         conn.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_chats_profile ON chats (profile) "
             "WHERE profile IS NOT NULL"
@@ -165,6 +168,16 @@ def init() -> None:
             )
 
 
+_CHAT_ANIMAL = "SELECT chat_id, profile, tube_out_at FROM chats WHERE chat_id = ?"
+
+
+def _animal(row: sqlite3.Row | None) -> profiles.Profile | None:
+    profile = profiles.get(row["profile"]) if row else None
+    if profile is not None and profile.tube and row["tube_out_at"]:
+        return replace(profile, tube=None)
+    return profile
+
+
 class ProfileTaken(Exception):
     """Another chat already keeps this animal's diary."""
 
@@ -182,18 +195,13 @@ def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile | None:
             "ON CONFLICT (chat_id) DO UPDATE SET title = excluded.title",
             (chat_id, title, profiles.guess(title, taken)),
         )
-        row = conn.execute(
-            "SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)
-        ).fetchone()
-    return profiles.get(row["profile"] if row else None)
+        row = conn.execute(_CHAT_ANIMAL, (chat_id,)).fetchone()
+    return _animal(row)
 
 
 def profile_for(chat_id: int) -> profiles.Profile | None:
     with _connect() as conn:
-        row = conn.execute(
-            "SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)
-        ).fetchone()
-    return profiles.get(row["profile"] if row else None)
+        return _animal(conn.execute(_CHAT_ANIMAL, (chat_id,)).fetchone())
 
 
 def set_profile(chat_id: int, key: str | None) -> None:
@@ -221,19 +229,37 @@ def chat(chat_id: int) -> sqlite3.Row | None:
 
 
 def _with_profiles(rows) -> list[tuple[int, profiles.Profile]]:
-    known = [(row["chat_id"], profiles.get(row["profile"])) for row in rows]
+    known = [(row["chat_id"], _animal(row)) for row in rows]
     return [(chat_id, profile) for chat_id, profile in known if profile is not None]
 
 
 def all_chats() -> list[tuple[int, profiles.Profile]]:
     with _connect() as conn:
-        return _with_profiles(conn.execute("SELECT chat_id, profile FROM chats"))
+        return _with_profiles(conn.execute("SELECT chat_id, profile, tube_out_at FROM chats"))
 
 
 def active_chats() -> list[tuple[int, profiles.Profile]]:
     with _connect() as conn:
         return _with_profiles(
-            conn.execute("SELECT chat_id, profile FROM chats WHERE paused_at IS NULL")
+            conn.execute(
+                "SELECT chat_id, profile, tube_out_at FROM chats WHERE paused_at IS NULL"
+            )
+        )
+
+
+def tube_out_since(chat_id: int) -> datetime | None:
+    with _connect() as conn:
+        row = conn.execute("SELECT tube_out_at FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
+    if row is None or not row["tube_out_at"]:
+        return None
+    return datetime.fromisoformat(row["tube_out_at"])
+
+
+def set_tube_out(chat_id: int, at: datetime | None) -> None:
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE chats SET tube_out_at = ? WHERE chat_id = ?",
+            (at.isoformat() if at else None, chat_id),
         )
 
 
@@ -543,8 +569,7 @@ def unparsed_messages(limit: int = 20) -> list[sqlite3.Row]:
 
 
 def _profile_of(conn: sqlite3.Connection, chat_id: int) -> profiles.Profile:
-    row = conn.execute("SELECT profile FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
-    profile = profiles.get(row["profile"] if row else None)
+    profile = _animal(conn.execute(_CHAT_ANIMAL, (chat_id,)).fetchone())
     if profile is None:
         raise ValueError(f"chat {chat_id} has no profile, its events belong to no animal")
     return profile

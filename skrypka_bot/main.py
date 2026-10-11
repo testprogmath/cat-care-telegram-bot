@@ -70,7 +70,9 @@ def help_text(profile: Profile) -> str:
         "/meds all — лекарства за весь срок наблюдений, с графиком\n"
         "/meds 2026-09-01 2026-09-30 — лекарства за период, с графиком\n"
         "/profile — чей дневник ведётся в этом чате\n"
-        "/reminders — напоминания и автосводка: пауза или работа\n\n"
+        "/reminders — напоминания и автосводка: пауза или работа\n"
+        + ("/tube off — трубка выпала, /tube on — трубку поставили\n" if profiles.get(profile.key).tube else "")
+        + "\n"
         f"Каждый день в {db.DAY_START} я сам присылаю сводку за прошедшие сутки.\n"
         f"С 09:00 до 23:00 напоминаю дать воды, если {profile.name} отстаёт от "
         f"{profile.water_goal_ml:g} мл в день. Вода из влажного корма идёт в зачёт по влажности "
@@ -91,6 +93,7 @@ BOT_COMMANDS = [
     ("meds", "Лекарства: неделя, весь срок или период"),
     ("profile", "Чей дневник ведётся в этом чате"),
     ("reminders", "Напоминания и автосводка: пауза на время стационара"),
+    ("tube", "Зонд: стоит или выпал"),
     ("help", "Что я умею и как считаю"),
 ]
 
@@ -488,6 +491,38 @@ async def reminders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await context.bot.send_message(chat.id, text)
 
 
+async def tube_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat = update.effective_chat
+    if chat is None:
+        return
+    animal = db.profile_for(chat.id)
+    tube = profiles.get(animal.key).tube
+    if tube is None:
+        await context.bot.send_message(chat.id, f"{animal.name} без зонда, переключать нечего.")
+        return
+    arg = context.args[0].lower() if context.args else None
+    now = datetime.now(TIMEZONE)
+    if arg in ("off", "выкл"):
+        db.set_tube_out(chat.id, now)
+        text = (
+            f"Записал: трубки нет с {now:%d.%m %H:%M}. Напоминания о воде теперь без порций, "
+            "как у животного без зонда. Когда трубку поставят: /tube on"
+        )
+    elif arg in ("on", "вкл"):
+        db.set_tube_out(chat.id, None)
+        text = (
+            f"Записал: трубка стоит. Напоминания о воде снова делят остаток на порции "
+            f"не больше {tube.water_portion_ml:g} мл. Если выпадет: /tube off"
+        )
+    elif arg is not None:
+        text = "Формат: /tube, /tube off или /tube on"
+    elif (since := db.tube_out_since(chat.id)) is not None:
+        text = f"Трубки нет с {since:%d.%m %H:%M}. Когда поставят: /tube on"
+    else:
+        text = f"Трубка стоит, порции воды не больше {tube.water_portion_ml:g} мл. Если выпадет: /tube off"
+    await context.bot.send_message(chat.id, text)
+
+
 async def autoleft_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     if chat is None:
@@ -603,6 +638,7 @@ def main() -> None:
     app.add_handler(CommandHandler("meds", for_known_chat(meds_command)))
     app.add_handler(CommandHandler("profile", profile_command))
     app.add_handler(CommandHandler("reminders", for_known_chat(reminders_command)))
+    app.add_handler(CommandHandler("tube", for_known_chat(tube_command)))
     app.add_handler(CommandHandler(["help", "start"], for_known_chat(help_command)))
     app.add_handler(
         MessageHandler((filters.TEXT | filters.CAPTION) & ~filters.COMMAND, handle_message)
