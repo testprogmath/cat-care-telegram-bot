@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 from functools import lru_cache
 from typing import Literal
@@ -34,8 +35,8 @@ name — название в нижнем регистре в именитель
 есть арифметика с итогом (например "10 + 15 + 10 = 35 мл воды"), создай одно событие с итогом. \
 Если объём не указан числом, оцени по формулировке: "немного попила"/"чуть попила" — около 1 мл; \
 "долго пила"/"хорошо попила" — около 3 мл; промежуточные формулировки — между 1 и 3 мл. Если названа длительность питья в секундах, \
-считай объём как секунды × 0.45 мл, округляя до 0.5 мл: «попила секунд 5» → 2.5 мл, \
-«пила секунд 10» → 4.5 мл. Длительность важнее словесной оценки. feeding для воды — кто её \
+считай объём как секунды × {drinking_ml_per_second:g} мл, округляя до 0.5 мл: «попила секунд 10» → \
+{drunk_in_10_seconds:g} мл, «пила 40 секунд» → {drunk_in_40_seconds:g} мл. Длительность важнее словесной оценки. feeding для воды — кто её \
 дал: "self", если кошка пила сама (из миски, фонтанчика, "попила", "лакала", "пила водичку 30 \
 секунд"); "tube", если воду дали люди (через зонд, стому, шприцом, промывка зонда, "дала 10 мл \
 воды", "залила").
@@ -299,8 +300,15 @@ def client() -> AsyncOpenAI:
     return AsyncOpenAI()
 
 
+def drunk_ml(profile: Profile, seconds: float) -> float:
+    return math.floor(seconds * profile.drinking_ml_per_second * 2 + 0.5) / 2
+
+
 def system_prompt(profile: Profile) -> str:
     return SYSTEM_PROMPT_TEMPLATE.format(
+        drinking_ml_per_second=profile.drinking_ml_per_second,
+        drunk_in_10_seconds=drunk_ml(profile, 10),
+        drunk_in_40_seconds=drunk_ml(profile, 40),
         subject=profile.subject,
         feeding_field=profile.feeding_field,
         feeding_products=profile.feeding_products,
