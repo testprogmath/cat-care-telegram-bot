@@ -10,10 +10,10 @@ Legacy rows written without a UTC offset are read as wall-clock time in the conf
 care timezone, never in the timezone of whatever machine runs the export.
 
 Known debt, deliberately not addressed here: cat-care computes a care day in two
-places, this module and db.care_day, from configuration parsed at two different
-moments, and neither reads TIMEZONE. They agree today because both take the boundary
-from db._DAY_START_HOUR. They should eventually sit behind one timezone-aware
-primitive. See README, "Care day: known debt".
+places. db.care_day stamps the stored day from DAY_START without a zone; this module
+recomputes it from occurred_at in TIMEZONE. Both take the boundary from
+db._DAY_START_HOUR and db._DAY_START_MINUTE, so they agree. They should eventually sit
+behind one timezone-aware primitive. See docs/care-day-export.md.
 """
 from __future__ import annotations
 

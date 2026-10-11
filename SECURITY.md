@@ -19,8 +19,11 @@ follow in the same week. If it is not, you get the reasoning.
 
 Anyone running a copy should know where the sensitive parts are.
 
-- **`.env` holds the Telegram bot token and the OpenAI API key.** It is
-  gitignored. Keep it out of the image and out of the repository.
+- **`.env` holds every secret**: the Telegram bot token, the OpenAI key, the
+  admin API token, the web session secret and the OpenID client secret. It is
+  gitignored and deploys leave it in place. Keep it out of the image and out of
+  the repository. [Configuration](docs/configuration.md#secrets) says what each
+  one lets an attacker do.
 - **Every group message goes to the OpenAI API.** The bot reads all text in
   the chats it joins, because privacy mode must be off for it to work at all.
   Add it only to chats whose members know this.
@@ -35,6 +38,14 @@ Anyone running a copy should know where the sensitive parts are.
   shell.
 
 The bot itself accepts no inbound connections. It polls Telegram and writes to a
-local file. The admin API is the one listener: it binds to the host loopback
-only, requires a bearer token on every request, and records every change in
-`event_edits`. Reach it through an SSH tunnel. Do not publish its port.
+local file. Two other containers listen, both on the host loopback only:
+
+- **The admin API** requires a bearer token on every request and records every
+  change in `event_edits`. Reach it through an SSH tunnel. Do not publish its
+  port. See [the admin API](docs/admin-api.md).
+- **The web pages** are public through Caddy with HTTPS. They are read-only,
+  open the database read-only, and show an animal only to members of its chat,
+  checked with Telegram at most ten minutes ago. See [the web pages](docs/web.md).
+
+One chat keeps one animal's diary, and a chat without an animal stays silent, so
+adding the bot to another group does not open a diary to that group.
