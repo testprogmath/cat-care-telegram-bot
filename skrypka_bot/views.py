@@ -37,22 +37,22 @@ class DayRow:
         return self.kcal_self + self.kcal_tube
 
 
-def day_rows(chat_id: int, subject: str, start: date, end: date) -> list[DayRow]:
+def day_rows(subject: str, start: date, end: date) -> list[DayRow]:
     exported = {d.care_day: d for d in care_export.export(subject, start, end)}
-    events = db.events_in_days(chat_id, start, end)
+    events = db.events_in_days(subject, start, end)
     rows = []
     for offset in range((end - start).days + 1):
         day = start + timedelta(days=offset)
         that_day = [e for e in events if e["day"] == day.isoformat()]
         food = [e for e in that_day if e["type"] == "food"]
-        drank = [e for e in that_day if e["type"] == "water" and e["feeding"] == "self"]
-        given = [e for e in that_day if e["type"] == "water" and e["feeding"] == "tube"]
+        drank = [e for e in that_day if e["type"] == "water" and not db.is_given(e)]
+        given = [e for e in that_day if e["type"] == "water" and db.is_given(e)]
         record = exported[day]
         rows.append(DayRow(
             day=day,
             recorded=bool(that_day),
-            kcal_self=sum(e["kcal"] or 0 for e in food if e["feeding"] != "tube"),
-            kcal_tube=sum(e["kcal"] or 0 for e in food if e["feeding"] == "tube"),
+            kcal_self=sum(e["kcal"] or 0 for e in food if not db.is_given(e)),
+            kcal_tube=sum(e["kcal"] or 0 for e in food if db.is_given(e)),
             drinking_ml=record.water_drinking_ml,
             from_food_ml=record.water_from_food_ml,
             urinations=record.urinations_observed,
@@ -256,7 +256,7 @@ class WaterLine:
 
 def _kind(row: sqlite3.Row) -> str:
     if row["type"] == "food":
-        return "food_tube" if row["feeding"] == "tube" else "food_self"
+        return "food_tube" if db.is_given(row) else "food_self"
     return row["type"] if row["type"] in KINDS else "other"
 
 
@@ -283,7 +283,7 @@ def day_events(rows: list[sqlite3.Row], show: str | None,
         if kind == "water":
             water.count += 1
             water.ml += row["water_ml"] or 0
-            if row["feeding"] == "self":
+            if not db.is_given(row):
                 water.drank_count += 1
                 water.drank_ml += row["water_ml"] or 0
             continue
@@ -471,18 +471,18 @@ class WeightSummary:
     high: float
 
 
-def _weighings(chat_id: int, until: date) -> list[Weighing]:
+def _weighings(subject: str, until: date) -> list[Weighing]:
     with db._connect() as conn:
         rows = conn.execute(
-            "SELECT day, weight_kg FROM events WHERE chat_id = ? AND type = 'weight' AND weight_kg > 0 "
+            "SELECT day, weight_kg FROM events WHERE subject = ? AND type = 'weight' AND weight_kg > 0 "
             "AND day <= ? ORDER BY occurred_at",
-            (chat_id, until.isoformat()),
+            (subject, until.isoformat()),
         ).fetchall()
     return [Weighing(date.fromisoformat(r["day"]), r["weight_kg"]) for r in rows]
 
 
-def weight_summary(chat_id: int, start: date, end: date, today: date) -> WeightSummary | None:
-    weighings = _weighings(chat_id, end)
+def weight_summary(subject: str, start: date, end: date, today: date) -> WeightSummary | None:
+    weighings = _weighings(subject, end)
     if not weighings:
         return None
     last = weighings[-1]
@@ -632,14 +632,14 @@ def same_day_marks(marks: list[Mark]) -> list[Mark]:
     return [Mark(day, "; ".join(labels)) for day, labels in sorted(merged.items())]
 
 
-def compare_around(chat_id: int, subject: str, mark: Mark, today: date,
+def compare_around(subject: str, mark: Mark, today: date,
                    self_label: str = "сама") -> Comparison | None:
     before = (mark.day - timedelta(days=COMPARE_DAYS), mark.day - timedelta(days=1))
     after = (mark.day, min(mark.day + timedelta(days=COMPARE_DAYS - 1), today))
     if (after[1] - after[0]).days + 1 < COMPARE_MIN_AFTER:
         return None
-    rows_before = [r for r in day_rows(chat_id, subject, *before) if r.recorded]
-    rows_after = [r for r in day_rows(chat_id, subject, *after) if r.recorded]
+    rows_before = [r for r in day_rows(subject, *before) if r.recorded]
+    rows_after = [r for r in day_rows(subject, *after) if r.recorded]
     if not rows_before or not rows_after:
         return None
 
@@ -660,12 +660,12 @@ def compare_around(chat_id: int, subject: str, mark: Mark, today: date,
     return Comparison(mark=mark, before=before, after=after, lines=lines)
 
 
-def last_stool(chat_id: int, until: date) -> date | None:
+def last_stool(subject: str, until: date) -> date | None:
     with db._connect() as conn:
         rows = conn.execute(
-            "SELECT day, description FROM events WHERE chat_id = ? AND type = 'toilet' AND day <= ? "
+            "SELECT day, description FROM events WHERE subject = ? AND type = 'toilet' AND day <= ? "
             "ORDER BY occurred_at DESC",
-            (chat_id, until.isoformat()),
+            (subject, until.isoformat()),
         ).fetchall()
     return next((date.fromisoformat(r["day"]) for r in rows if db.toilet_kind(r["description"]) == "stool"), None)
 
@@ -682,8 +682,8 @@ class Breath:
         return bool(self.asleep) and self.rate > SLEEP_BREATHS_LIMIT
 
 
-def breathing(chat_id: int, start: date, end: date) -> list[Breath]:
-    rows = [r for r in db.events_in_days(chat_id, start, end) if r["type"] == "breathing" and r["breaths"]]
+def breathing(subject: str, start: date, end: date) -> list[Breath]:
+    rows = [r for r in db.events_in_days(subject, start, end) if r["type"] == "breathing" and r["breaths"]]
     return [Breath(date.fromisoformat(r["day"]), r["occurred_at"][11:16], r["breaths"],
                    None if r["asleep"] is None else bool(r["asleep"])) for r in reversed(rows)]
 
@@ -755,7 +755,7 @@ def day_clock(rows: list[sqlite3.Row], day: date, kcal_goal: float, water_goal: 
         h, kind, desc = hours(row), row["type"], row["description"] or ""
         clock = datetime.fromisoformat(row["occurred_at"]).strftime("%H:%M")
         if kind == "food":
-            tone = "tube" if row["feeding"] == "tube" else "self"
+            tone = "tube" if db.is_given(row) else "self"
             kcal = row["kcal"] or 0
             marks.append(ClockMark(x(h), lane_y["Еда"], "circle", tone, _size(kcal, 0.7),
                                    f"{clock} {desc}" + (f", {_fmt(round(kcal, 1))} ккал" if kcal else "")))
@@ -767,7 +767,7 @@ def day_clock(rows: list[sqlite3.Row], day: date, kcal_goal: float, water_goal: 
             marks.append(ClockMark(x(h), lane_y["Еда"], "ring", "refused", 2.6, f"{clock} отказ: {desc}"))
         elif kind == "water":
             ml = row["water_ml"] or 0
-            drank = row["feeding"] == "self"
+            drank = not db.is_given(row)
             marks.append(ClockMark(x(h), lane_y["Вода"], "circle" if drank else "ring", "drink",
                                    _size(ml, 0.55, high=6.0), f"{clock} {desc}"))
             if ml:

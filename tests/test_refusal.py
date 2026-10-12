@@ -27,7 +27,7 @@ def test_the_day_lists_what_he_would_not_eat(chat):
     recorded(chat, 9, "refusal", "royal canin urinary care", "отказался от Urinary Care")
     recorded(chat, 12, "refusal", None, "отказался от корма")
     recorded(chat, 13, "food", "felix sauce", "выпил весь пакетик соуса Felix", kcal=10.0)
-    events = db.events_for_day(chat, DAY)
+    events = db.events_for_day("chipunya", DAY)
 
     text = asyncio.run(summary.render_summary(DAY, events, profiles.CHIPUNYA, complete=False))
 

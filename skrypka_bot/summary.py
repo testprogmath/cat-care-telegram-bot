@@ -31,8 +31,7 @@ def _kcal_totals(food: list[sqlite3.Row]) -> tuple[float, dict[str, float], int,
                 unquantified += 1
             continue
         total += kcal
-        if e["feeding"] in by_feeding:
-            by_feeding[e["feeding"]] += kcal
+        by_feeding["tube" if db.is_given(e) else "self"] += kcal
     return total, by_feeding, unquantified, gravy
 
 
@@ -44,7 +43,7 @@ def uncounted_wet(events: list[sqlite3.Row]) -> int:
     return sum(
         1
         for e in events
-        if e["type"] == "food" and (e["liquid"] or e["feeding"] == "tube") and not e["amount_ml"]
+        if e["type"] == "food" and (e["liquid"] or db.is_given(e)) and not e["amount_ml"]
     )
 
 
@@ -175,10 +174,10 @@ def vomited(events: list[sqlite3.Row]) -> bool:
     )
 
 
-def _low_kcal_streak(chat_id: int, day: date, threshold: float) -> int:
+def _low_kcal_streak(subject: str, day: date, threshold: float) -> int:
     streak = 0
     for back in range(STREAK_LOOKBACK_DAYS):
-        events = db.events_for_day(chat_id, day - timedelta(days=back))
+        events = db.events_for_day(subject, day - timedelta(days=back))
         if not events or kcal_total(events) >= threshold:
             break
         streak += 1
@@ -237,7 +236,7 @@ def render_assessment(
 
     if kcal < kcal_bands.critical:
         streak = (
-            _low_kcal_streak(chat_id, day, kcal_bands.critical) if chat_id is not None else 1
+            _low_kcal_streak(profile.subject_id, day, kcal_bands.critical) if chat_id is not None else 1
         )
         if streak >= kcal_bands.streak_days:
             lines.append(
@@ -320,7 +319,7 @@ def render_risk(
     if vomited(events):
         lines.append(f"\n🔴 жидкость не удерживается (рвота) — {water_bands.critical_note}")
     if kcal / pace < kcal_bands.critical and chat_id is not None:
-        before = _low_kcal_streak(chat_id, db.care_day(now) - timedelta(days=1), kcal_bands.critical)
+        before = _low_kcal_streak(profile.subject_id, db.care_day(now) - timedelta(days=1), kcal_bands.critical)
         if before >= kcal_bands.streak_days - 1 and before > 0:
             lines.append(
                 f"\n🔴 меньше {kcal_bands.critical:g} ккал вчера, и сегодня по прогнозу тоже — "
@@ -375,8 +374,8 @@ async def render_summary(
         )
         if missed_wet:
             lines.append(_wet_note(missed_wet))
-        drank = [e for e in water if e["feeding"] == "self"]
-        given = [e for e in water if e["feeding"] == "tube"]
+        drank = [e for e in water if not db.is_given(e)]
+        given = [e for e in water if db.is_given(e)]
         if drank or given:
             parts = [f"{profile.pick('пила сама', 'пил сам')} {len(drank)} {_plural(len(drank), 'раз', 'раза', 'раз')}"
                      f" ({_num(sum(e['water_ml'] or 0 for e in drank))} мл)"]
@@ -385,7 +384,7 @@ async def render_summary(
             lines.append("  " + ", ".join(parts))
         for e in water:
             ml = f"{e['water_ml']:g} мл" if e["water_ml"] else e["description"]
-            source = {"self": f" ({profile.self_label})", "tube": " (дали)"}.get(e["feeding"], "")
+            source = " (дали)" if db.is_given(e) else f" ({profile.self_label})"
             lines.append(f"  {_time_of(e)} — {ml}{source}")
 
     if food:

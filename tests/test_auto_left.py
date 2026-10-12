@@ -54,7 +54,7 @@ def test_a_feeding_with_calories_is_answered_with_the_progress(chat, monkeypatch
     assert reply_to == 1
     now = datetime.now(main.TIMEZONE)
     expected = main.render_progress(
-        main.db.events_for_day(chat, main.db.care_day(now)), now, main.db.profile_for(chat)
+        main.db.events_for_day("chipunya", main.db.care_day(now)), now, main.db.profile_for(chat)
     )
     assert text.splitlines()[1:] == expected.splitlines()[1:]
     assert text.startswith("📈 Чипуня — итог на ")

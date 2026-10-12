@@ -68,9 +68,8 @@ One chat keeps one animal's diary. To move it:
 3. Set the new chat: `PATCH /chats/<new id>` with `{"profile": "<key>"}`.
 
 The old chat goes silent after step 2. Rows already stored keep their chat and their
-subject; the bot does not move them. The CareDay export reads by subject, so it keeps the
-whole history. The bot's summaries and most figures on the site read by chat, so they show
-only what the new chat recorded.
+subject; the bot does not move them. The bot, the site and the CareDay export read the
+diary by animal, so the new chat shows the whole history, old chat included.
 
 ## Token
 

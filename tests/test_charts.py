@@ -23,7 +23,7 @@ def test_week_bars_carry_their_values(chat, monkeypatch):
         return original(ax, container, **kwargs)
 
     monkeypatch.setattr(charts.plt.Axes, "bar_label", record)
-    png = charts.render_week(chat, date(2026, 10, 6), profiles.CHIPUNYA)
+    png = charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
 
     assert png.startswith(b"\x89PNG")
     assert ["", "", "", "", "", "", "40"] in labels
@@ -46,7 +46,7 @@ def test_water_drunk_and_water_given_are_separate_parts_of_the_bar(chat, monkeyp
         return original(ax, x, height, *args, label=label, **kwargs)
 
     monkeypatch.setattr(charts.plt.Axes, "bar", record)
-    charts.render_week(chat, date(2026, 10, 6), profiles.CHIPUNYA)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
 
     water_bars = dict(bars[:3])
     assert water_bars["drank"][-1] == 30.0

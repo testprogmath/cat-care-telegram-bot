@@ -25,7 +25,7 @@ def test_the_new_fields_are_stored_and_summarised(chat):
     record(chat, 2, 9, type="breathing", breaths_per_min=32.0, asleep=True, description="дыхание во сне 32")
     record(chat, 3, 10, type="water", water_ml=13.5, feeding="self", description="пил 30 секунд")
     record(chat, 4, 11, type="water", water_ml=10.0, feeding="tube", description="промывка")
-    events = db.events_for_day(chat, DAY)
+    events = db.events_for_day("chipunya", DAY)
     assert [(e["type"], e["weight_kg"], e["breaths"], e["asleep"]) for e in events[:2]] == [
         ("weight", 6.8, None, None), ("breathing", None, 32.0, 1),
     ]
@@ -35,7 +35,7 @@ def test_the_new_fields_are_stored_and_summarised(chat):
     assert "  10:00 — 13.5 мл (сам)" in lines and "  11:00 — 10 мл (дали)" in lines
     assert "  08:00 — 6.8 кг" in lines
     assert "  09:00 — 32 в минуту во сне — выше 30 во сне" in lines
-    assert db.last_weight(chat) == (DAY, 6.8)
+    assert db.last_weight("chipunya") == (DAY, 6.8)
 
 
 def test_the_weighing_reminder_waits_a_week():

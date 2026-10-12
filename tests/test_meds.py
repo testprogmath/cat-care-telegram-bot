@@ -129,6 +129,6 @@ def test_the_chart_is_a_png(chat):
     given(chat, date(2026, 10, 1), 8, "бупренорфин", "0.06 мг (0.2 мл)")
     given(chat, date(2026, 10, 1), 20, "бупренорфин", "0.06 мг (0.2 мл)")
     given(chat, date(2026, 10, 2), 20, "миратаз")
-    rows = db.medications_in_days(chat, date(2026, 9, 1), TODAY)
+    rows = db.medications_in_days("chipunya", date(2026, 9, 1), TODAY)
     png = charts.render_meds(rows, date(2026, 9, 1), TODAY, db.profile_for(chat))
     assert png.startswith(b"\x89PNG")

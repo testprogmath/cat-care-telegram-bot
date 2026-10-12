@@ -46,16 +46,16 @@ def _day_axis(ax, x: list[int], labels: list[str]) -> None:
     ax.set_xticklabels(labels[::step], rotation=45 if step > 1 else 0, ha="right" if step > 1 else "center")
 
 
-def render_week(chat_id: int, end_day: date, profile: Profile) -> bytes:
+def render_week(end_day: date, profile: Profile) -> bytes:
     start = end_day - timedelta(days=WEEK_DAYS - 1)
-    return render_days(chat_id, start, end_day, profile,
+    return render_days(start, end_day, profile,
                        f"{profile.name_en}: week to {end_day.strftime('%d.%m.%Y')}")
 
 
-def render_days(chat_id: int, start: date, end_day: date, profile: Profile, title: str = "") -> bytes:
+def render_days(start: date, end_day: date, profile: Profile, title: str = "") -> bytes:
     water_goal = profile.water_goal_ml
     days = [start + timedelta(days=i) for i in range((end_day - start).days + 1)]
-    rows = db.events_in_days(chat_id, days[0], days[-1])
+    rows = db.events_in_days(profile.subject_id, days[0], days[-1])
 
     drank = {d: 0.0 for d in days}
     given = {d: 0.0 for d in days}
@@ -72,10 +72,10 @@ def render_days(chat_id: int, start: date, end_day: date, profile: Profile, titl
             continue
         t = r["type"]
         if t == "water":
-            (given if r["feeding"] == "tube" else drank)[d] += r["water_ml"] or 0
+            (given if db.is_given(r) else drank)[d] += r["water_ml"] or 0
         elif t == "food":
             liquid_water[d] += db.food_water_ml(r)
-            if r["feeding"] == "tube":
+            if db.is_given(r):
                 kcal_tube[d] += r["kcal"] or 0
             else:
                 kcal_self[d] += r["kcal"] or 0
