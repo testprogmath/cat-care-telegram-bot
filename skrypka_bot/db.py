@@ -644,72 +644,72 @@ def _insert_events(
         )
 
 
-def events_for_day(chat_id: int, day: date) -> list[sqlite3.Row]:
+def events_for_day(subject: str, day: date) -> list[sqlite3.Row]:
     with _connect() as conn:
         return list(
             conn.execute(
-                "SELECT * FROM events WHERE chat_id = ? AND day = ? ORDER BY occurred_at",
-                (chat_id, day.isoformat()),
+                "SELECT * FROM events WHERE subject = ? AND day = ? ORDER BY occurred_at",
+                (subject, day.isoformat()),
             )
         )
 
 
-def events_in_days(chat_id: int, day_from: date, day_to: date) -> list[sqlite3.Row]:
+def events_in_days(subject: str, day_from: date, day_to: date) -> list[sqlite3.Row]:
     with _connect() as conn:
         return list(
             conn.execute(
-                "SELECT * FROM events WHERE chat_id = ? AND day BETWEEN ? AND ? ORDER BY occurred_at",
-                (chat_id, day_from.isoformat(), day_to.isoformat()),
+                "SELECT * FROM events WHERE subject = ? AND day BETWEEN ? AND ? ORDER BY occurred_at",
+                (subject, day_from.isoformat(), day_to.isoformat()),
             )
         )
 
 
-def medications_in_days(chat_id: int, day_from: date, day_to: date) -> list[sqlite3.Row]:
+def medications_in_days(subject: str, day_from: date, day_to: date) -> list[sqlite3.Row]:
     with _connect() as conn:
         return list(
             conn.execute(
-                "SELECT * FROM events WHERE chat_id = ? AND type = 'medication' "
+                "SELECT * FROM events WHERE subject = ? AND type = 'medication' "
                 "AND day BETWEEN ? AND ? ORDER BY occurred_at",
-                (chat_id, day_from.isoformat(), day_to.isoformat()),
+                (subject, day_from.isoformat(), day_to.isoformat()),
             )
         )
 
 
-def last_weight(chat_id: int) -> tuple[date, float] | None:
+def last_weight(subject: str) -> tuple[date, float] | None:
     with _connect() as conn:
         row = conn.execute(
-            "SELECT day, weight_kg FROM events WHERE chat_id = ? AND type = 'weight' AND weight_kg > 0 "
+            "SELECT day, weight_kg FROM events WHERE subject = ? AND type = 'weight' AND weight_kg > 0 "
             "ORDER BY occurred_at DESC LIMIT 1",
-            (chat_id,),
+            (subject,),
         ).fetchone()
     return None if row is None else (date.fromisoformat(row["day"]), row["weight_kg"])
 
 
-def first_event_day(chat_id: int) -> date | None:
+def first_event_day(subject: str) -> date | None:
     with _connect() as conn:
-        (day,) = conn.execute("SELECT min(day) FROM events WHERE chat_id = ?", (chat_id,)).fetchone()
+        (day,) = conn.execute("SELECT min(day) FROM events WHERE subject = ?", (subject,)).fetchone()
     return None if day is None else date.fromisoformat(day)
 
 
-def events_with_messages(chat_id: int, day_from: date, day_to: date) -> list[sqlite3.Row]:
+def events_with_messages(subject: str, day_from: date, day_to: date) -> list[sqlite3.Row]:
     with _connect() as conn:
         return list(
             conn.execute(
                 "SELECT e.*, m.text AS message_text FROM events e LEFT JOIN messages m "
                 "ON m.chat_id = e.chat_id AND m.message_id = e.message_id "
-                "WHERE e.chat_id = ? AND e.day BETWEEN ? AND ? ORDER BY e.occurred_at, e.id",
-                (chat_id, day_from.isoformat(), day_to.isoformat()),
+                "WHERE e.subject = ? AND e.day BETWEEN ? AND ? ORDER BY e.occurred_at, e.id",
+                (subject, day_from.isoformat(), day_to.isoformat()),
             )
         )
 
 
-def events_in_range(chat_id: int, start: datetime, end: datetime) -> list[sqlite3.Row]:
+def events_in_range(subject: str, start: datetime, end: datetime) -> list[sqlite3.Row]:
     lo_day = care_day(start)
     hi_day = end.date()
     with _connect() as conn:
         rows = conn.execute(
-            "SELECT * FROM events WHERE chat_id = ? AND day BETWEEN ? AND ? ORDER BY occurred_at",
-            (chat_id, lo_day.isoformat(), hi_day.isoformat()),
+            "SELECT * FROM events WHERE subject = ? AND day BETWEEN ? AND ? ORDER BY occurred_at",
+            (subject, lo_day.isoformat(), hi_day.isoformat()),
         )
         return [r for r in rows if start <= datetime.fromisoformat(r["occurred_at"]) < end]
 

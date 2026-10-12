@@ -114,10 +114,10 @@ def page(request: Request, template: str, person: Viewer, current: Animal | None
     )
 
 
-def period(day_from: date | None, day_to: date | None, chat_id: int, everything: bool) -> tuple[date, date]:
+def period(day_from: date | None, day_to: date | None, subject: str, everything: bool) -> tuple[date, date]:
     end = day_to or today()
     if everything:
-        return db.first_event_day(chat_id) or end, end
+        return db.first_event_day(subject) or end, end
     start = day_from or end - timedelta(days=DEFAULT_PERIOD_DAYS - 1)
     if start > end:
         raise HTTPException(status_code=422, detail="the period starts after it ends")
@@ -184,11 +184,11 @@ def days_period(current: Animal, day_from: date | None, day_to: date | None, eve
                 end: date | None) -> tuple[date, date]:
     if everything:
         last = today()
-        return db.first_event_day(current.chat_id) or last, last
+        return db.first_event_day(current.subject) or last, last
     if day_from is None and day_to is None:
         last = end or today()
         return last - timedelta(days=WEEK_DAYS - 1), last
-    return period(day_from, day_to, current.chat_id, False)
+    return period(day_from, day_to, current.subject, False)
 
 
 @app.get("/{subject}/week", response_class=HTMLResponse)
@@ -199,20 +199,20 @@ def week(request: Request, person: Annotated[Viewer, Depends(viewer)],
          all: bool = False, end: date | None = None):
     start, last = days_period(current, day_from, day_to, all, end)
     span = timedelta(days=(last - start).days + 1)
-    trend_rows = views.day_rows(current.chat_id, current.subject, start - timedelta(days=views.TREND_WINDOW - 1), last)
+    trend_rows = views.day_rows(current.subject, start - timedelta(days=views.TREND_WINDOW - 1), last)
     rows = [r for r in trend_rows if r.day >= start]
     mean = views.averages(rows)
     profile = current.profile
-    marks = views.treatment_marks(db.medications_in_days(current.chat_id, date(2000, 1, 1), last))
-    stool = views.last_stool(current.chat_id, today())
+    marks = views.treatment_marks(db.medications_in_days(current.subject, date(2000, 1, 1), last))
+    stool = views.last_stool(current.subject, today())
     return page(request, "week.html", person, current, start=start, end=last, rows=rows, mean=mean,
                 kcal_share=mean and views.Share.of(mean.kcal_tube, mean.kcal_self, profile.kcal_goal),
                 water_share=mean and views.Share3.of(
                     (mean.drank_ml, max(mean.drinking_ml - mean.drank_ml, 0), mean.from_food_ml),
                     profile.water_goal_ml),
-                weight=views.weight_summary(current.chat_id, start, last, today()),
+                weight=views.weight_summary(current.subject, start, last, today()),
                 trend=views.appetite_trend(trend_rows, start, last, profile.kcal_goal, marks),
-                breaths=views.breathing(current.chat_id, start, last),
+                breaths=views.breathing(current.subject, start, last),
                 breath_limit=views.SLEEP_BREATHS_LIMIT,
                 stool=stool, stool_ago=stool and (today() - stool).days, stool_warn=views.STOOL_WARN_DAYS,
                 stool_days=sum(1 for r in rows if r.stools), recorded_days=sum(1 for r in rows if r.recorded),
@@ -228,21 +228,21 @@ def week_chart(current: Annotated[Animal, Depends(animal)],
                day_to: Annotated[date | None, Query(alias="to")] = None,
                all: bool = False, end: date | None = None) -> Response:
     start, last = days_period(current, day_from, day_to, all, end)
-    return Response(charts.render_days(current.chat_id, start, last, current.profile),
+    return Response(charts.render_days(start, last, current.profile),
                     media_type="image/png")
 
 
 @app.get("/{subject}/day/{day}", response_class=HTMLResponse)
 def day_page(request: Request, day: date, person: Annotated[Viewer, Depends(viewer)],
              current: Annotated[Animal, Depends(animal)], show: str | None = None):
-    rows = db.events_with_messages(current.chat_id, day, day)
+    rows = db.events_with_messages(current.subject, day, day)
     events, water = views.day_events(rows, show, current.profile.self_label)
     clock = views.day_clock(rows, day, current.profile.kcal_goal, current.profile.water_goal_ml,
                             datetime.now(timezone()))
     legend = views.clock_legend(clock, current.profile.self_label,
                                 current.profile.pick("пила сама", "пил сам")) if clock else []
     return page(request, "day.html", person, current, day=day, events=events, water=water, clock=clock, legend=legend,
-                totals=views.day_rows(current.chat_id, current.subject, day, day)[0], show=show, filters=views.FILTERS,
+                totals=views.day_rows(current.subject, day, day)[0], show=show, filters=views.FILTERS,
                 previous=day - timedelta(days=1), following=day + timedelta(days=1))
 
 
@@ -251,10 +251,10 @@ def meds_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
               current: Annotated[Animal, Depends(animal)],
               day_from: Annotated[date | None, Query(alias="from")] = None,
               day_to: Annotated[date | None, Query(alias="to")] = None, all: bool = False):
-    start, end = period(day_from, day_to, current.chat_id, all)
-    ongoing, finished = views.courses(db.medications_in_days(current.chat_id, start, end), start, end)
-    marks = views.treatment_marks(db.medications_in_days(current.chat_id, date(2000, 1, 1), end))
-    comparisons = [c for c in (views.compare_around(current.chat_id, current.subject, m, today(),
+    start, end = period(day_from, day_to, current.subject, all)
+    ongoing, finished = views.courses(db.medications_in_days(current.subject, start, end), start, end)
+    marks = views.treatment_marks(db.medications_in_days(current.subject, date(2000, 1, 1), end))
+    comparisons = [c for c in (views.compare_around(current.subject, m, today(),
                                                     current.profile.self_label)
                                for m in views.same_day_marks(marks) if start <= m.day <= end) if c][-4:]
     return page(request, "meds.html", person, current, start=start, end=end, ongoing=ongoing,
@@ -265,8 +265,8 @@ def meds_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
 def meds_chart(current: Annotated[Animal, Depends(animal)],
                day_from: Annotated[date | None, Query(alias="from")] = None,
                day_to: Annotated[date | None, Query(alias="to")] = None, all: bool = False) -> Response:
-    start, end = period(day_from, day_to, current.chat_id, all)
-    rows = db.medications_in_days(current.chat_id, start, end)
+    start, end = period(day_from, day_to, current.subject, all)
+    rows = db.medications_in_days(current.subject, start, end)
     if not rows:
         raise HTTPException(status_code=404)
     return Response(charts.render_meds(rows, start, end, current.profile), media_type="image/png")
@@ -277,8 +277,8 @@ def foods_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
                current: Annotated[Animal, Depends(animal)],
                day_from: Annotated[date | None, Query(alias="from")] = None,
                day_to: Annotated[date | None, Query(alias="to")] = None, all: bool = False):
-    start, end = period(day_from, day_to, current.chat_id, all)
-    lines, tube = foods.report(db.events_in_days(current.chat_id, start, end))
+    start, end = period(day_from, day_to, current.subject, all)
+    lines, tube = foods.report(db.events_in_days(current.subject, start, end))
     return page(request, "foods.html", person, current, start=start, end=end,
                 groups=views.food_groups(lines, end), tube=tube)
 
@@ -288,8 +288,8 @@ def refusals_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
                   current: Annotated[Animal, Depends(animal)],
                   day_from: Annotated[date | None, Query(alias="from")] = None,
                   day_to: Annotated[date | None, Query(alias="to")] = None, all: bool = False):
-    start, end = period(day_from, day_to, current.chat_id, all)
-    top, days = views.refusal_summary(db.events_with_messages(current.chat_id, start, end))
+    start, end = period(day_from, day_to, current.subject, all)
+    top, days = views.refusal_summary(db.events_with_messages(current.subject, start, end))
     total = sum(len(d.items) for d in days)
     return page(request, "refusals.html", person, current, start=start, end=end, top=top, days=days,
                 total=total, unnamed=sum(1 for d in days for i in d.items if foods.UNNAMED in i.tags))

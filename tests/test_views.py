@@ -24,7 +24,7 @@ def test_a_course_given_lately_is_current_with_its_dose_since_and_gaps(chat):
     for day, dose in [(1, "6 мг"), (2, "6 мг"), (4, "4 мг"), (5, "4 мг")]:
         record(chat, date(2026, 10, day), 20, name="ондансетрон", dose=dose)
     record(chat, date(2026, 9, 2), 20, name="марбоцил", dose="15 мг")
-    rows = db.medications_in_days(chat, date(2026, 9, 1), date(2026, 10, 5))
+    rows = db.medications_in_days("chipunya", date(2026, 9, 1), date(2026, 10, 5))
     current, finished = views.courses(rows, date(2026, 9, 1), date(2026, 10, 5))
     [course] = current
     assert (course.label, course.dose, course.since) == ("ондансетрон", "4 мг", date(2026, 10, 4))
@@ -50,7 +50,7 @@ def test_foods_split_into_eating_stopped_and_never():
 def test_refusals_without_a_named_food_count_as_unknown(chat):
     record(chat, date(2026, 10, 5), 9, type="refusal", description="не стала есть")
     record(chat, date(2026, 10, 5), 10, type="refusal", name="сухарики, снек", description="от сухариков и снэка")
-    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
     top, days = views.refusal_summary(rows)
     assert dict(top) == {foods.UNNAMED: 1, foods.UNNAMED_DRY: 1, foods.UNNAMED_SNACK: 1}
     assert [item.tags for item in days[0].items] == [[foods.UNNAMED_DRY, foods.UNNAMED_SNACK], [foods.UNNAMED]]
@@ -62,7 +62,7 @@ def test_the_day_groups_water_and_filters_by_kind(chat):
     record(chat, date(2026, 10, 5), 11, type="food", feeding="tube", name="royal canin recovery liquid",
            kcal=23.0, amount_ml=23.0)
     record(chat, date(2026, 10, 5), 20, name="серения", dose="6мг")
-    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
     events, water = views.day_events(rows, None)
     assert [(e.kind, e.title, e.amount) for e in events] == [
         ("еда · зонд", "RC Recovery Liquid, 23 мл", "23 ккал"),
@@ -87,7 +87,7 @@ def test_the_day_clock_places_each_event_on_its_hour(chat):
     record(chat, date(2026, 10, 5), 12, type="toilet", description="покакала")
     record(chat, date(2026, 10, 5), 18, type="toilet", description="пыталась пописать, не получилось")
     record(chat, date(2026, 10, 5), 20, name="серения", dose="6 мг")
-    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
     clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, 9, tzinfo=BERLIN))
     assert clock.kcal_pct == 50.0 and round(clock.water_pct, 1) == 11.8
     assert [(m.x, m.shape, m.tone) for m in clock.marks] == [
@@ -100,14 +100,14 @@ def test_the_day_clock_places_each_event_on_its_hour(chat):
 
 def test_today_stops_the_lines_at_now(chat):
     record(chat, date(2026, 10, 5), 6, type="food", feeding="self", kcal=25.0, description="поела")
-    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
     clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 5, 12, tzinfo=BERLIN))
     assert clock.kcal_line.split()[-1] == f"137.0,{clock.y(10)}"
 
 
 def test_a_day_with_only_notes_has_no_clock(chat):
     record(chat, date(2026, 10, 5), 9, type="state", description="спит")
-    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
     assert views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN)) is None
 
 
@@ -115,7 +115,7 @@ def test_the_legend_lists_only_the_marks_the_day_has(chat):
     record(chat, date(2026, 10, 5), 6, type="food", feeding="tube", kcal=50.0, description="зонд")
     record(chat, date(2026, 10, 5), 7, type="water", feeding="tube", water_ml=15.0, description="промыли зонд")
     record(chat, date(2026, 10, 5), 12, type="toilet", description="пописала")
-    rows = db.events_with_messages(chat, date(2026, 10, 5), date(2026, 10, 5))
+    rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
     clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN))
     legend = views.clock_legend(clock, "сама", "пила сама")
     assert [(name, [(i.shape, i.tone, i.label) for i in items]) for name, items in legend] == [

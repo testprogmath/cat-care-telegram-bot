@@ -88,4 +88,4 @@ def test_naming_the_animal_starts_the_diary(chat, parser):
                                      SimpleNamespace(bot=bot, args=["скрипа"])))
     asyncio.run(main.handle_message(update(CLINIC, 2), SimpleNamespace(bot=bot)))
     assert parser == ["съела 5 г сухариков"]
-    assert [row["subject"] for row in db.events_for_day(CLINIC, db.care_day(datetime.now(BERLIN)))] == ["skripa"]
+    assert [row["subject"] for row in db.events_for_day("skripa", db.care_day(datetime.now(BERLIN)))] == ["skripa"]

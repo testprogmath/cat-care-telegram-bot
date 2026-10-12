@@ -37,9 +37,9 @@ class DayRow:
         return self.kcal_self + self.kcal_tube
 
 
-def day_rows(chat_id: int, subject: str, start: date, end: date) -> list[DayRow]:
+def day_rows(subject: str, start: date, end: date) -> list[DayRow]:
     exported = {d.care_day: d for d in care_export.export(subject, start, end)}
-    events = db.events_in_days(chat_id, start, end)
+    events = db.events_in_days(subject, start, end)
     rows = []
     for offset in range((end - start).days + 1):
         day = start + timedelta(days=offset)
@@ -471,18 +471,18 @@ class WeightSummary:
     high: float
 
 
-def _weighings(chat_id: int, until: date) -> list[Weighing]:
+def _weighings(subject: str, until: date) -> list[Weighing]:
     with db._connect() as conn:
         rows = conn.execute(
-            "SELECT day, weight_kg FROM events WHERE chat_id = ? AND type = 'weight' AND weight_kg > 0 "
+            "SELECT day, weight_kg FROM events WHERE subject = ? AND type = 'weight' AND weight_kg > 0 "
             "AND day <= ? ORDER BY occurred_at",
-            (chat_id, until.isoformat()),
+            (subject, until.isoformat()),
         ).fetchall()
     return [Weighing(date.fromisoformat(r["day"]), r["weight_kg"]) for r in rows]
 
 
-def weight_summary(chat_id: int, start: date, end: date, today: date) -> WeightSummary | None:
-    weighings = _weighings(chat_id, end)
+def weight_summary(subject: str, start: date, end: date, today: date) -> WeightSummary | None:
+    weighings = _weighings(subject, end)
     if not weighings:
         return None
     last = weighings[-1]
@@ -632,14 +632,14 @@ def same_day_marks(marks: list[Mark]) -> list[Mark]:
     return [Mark(day, "; ".join(labels)) for day, labels in sorted(merged.items())]
 
 
-def compare_around(chat_id: int, subject: str, mark: Mark, today: date,
+def compare_around(subject: str, mark: Mark, today: date,
                    self_label: str = "сама") -> Comparison | None:
     before = (mark.day - timedelta(days=COMPARE_DAYS), mark.day - timedelta(days=1))
     after = (mark.day, min(mark.day + timedelta(days=COMPARE_DAYS - 1), today))
     if (after[1] - after[0]).days + 1 < COMPARE_MIN_AFTER:
         return None
-    rows_before = [r for r in day_rows(chat_id, subject, *before) if r.recorded]
-    rows_after = [r for r in day_rows(chat_id, subject, *after) if r.recorded]
+    rows_before = [r for r in day_rows(subject, *before) if r.recorded]
+    rows_after = [r for r in day_rows(subject, *after) if r.recorded]
     if not rows_before or not rows_after:
         return None
 
@@ -660,12 +660,12 @@ def compare_around(chat_id: int, subject: str, mark: Mark, today: date,
     return Comparison(mark=mark, before=before, after=after, lines=lines)
 
 
-def last_stool(chat_id: int, until: date) -> date | None:
+def last_stool(subject: str, until: date) -> date | None:
     with db._connect() as conn:
         rows = conn.execute(
-            "SELECT day, description FROM events WHERE chat_id = ? AND type = 'toilet' AND day <= ? "
+            "SELECT day, description FROM events WHERE subject = ? AND type = 'toilet' AND day <= ? "
             "ORDER BY occurred_at DESC",
-            (chat_id, until.isoformat()),
+            (subject, until.isoformat()),
         ).fetchall()
     return next((date.fromisoformat(r["day"]) for r in rows if db.toilet_kind(r["description"]) == "stool"), None)
 
@@ -682,8 +682,8 @@ class Breath:
         return bool(self.asleep) and self.rate > SLEEP_BREATHS_LIMIT
 
 
-def breathing(chat_id: int, start: date, end: date) -> list[Breath]:
-    rows = [r for r in db.events_in_days(chat_id, start, end) if r["type"] == "breathing" and r["breaths"]]
+def breathing(subject: str, start: date, end: date) -> list[Breath]:
+    rows = [r for r in db.events_in_days(subject, start, end) if r["type"] == "breathing" and r["breaths"]]
     return [Breath(date.fromisoformat(r["day"]), r["occurred_at"][11:16], r["breaths"],
                    None if r["asleep"] is None else bool(r["asleep"])) for r in reversed(rows)]
 

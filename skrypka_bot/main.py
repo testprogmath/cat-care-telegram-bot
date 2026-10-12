@@ -291,12 +291,12 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if arg is None:
         day = db.care_day(now)
         text = await render_summary(
-            day, db.events_for_day(chat.id, day), profile, chat_id=chat.id, complete=False
+            day, db.events_for_day(profile.subject_id, day), profile, chat_id=chat.id, complete=False
         )
     elif (day := _parse_date(arg)) is not None:
         text = await render_summary(
             day,
-            db.events_for_day(chat.id, day),
+            db.events_for_day(profile.subject_id, day),
             profile,
             chat_id=chat.id,
             complete=day < db.care_day(now),
@@ -307,7 +307,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         if start > now:
             start -= timedelta(days=1)
         end = start + timedelta(days=1)
-        events = db.events_in_range(chat.id, start, end)
+        events = db.events_in_range(profile.subject_id, start, end)
         header = f"📊 {profile.name} — сводка с {start.strftime('%d.%m.%Y %H:%M')}"
         day = start.date()
         text = await render_summary(
@@ -327,7 +327,7 @@ async def _send_progress(bot, chat_id: int, reply_to: int | None = None) -> None
     now = datetime.now(TIMEZONE)
     day = db.care_day(now)
     profile = db.profile_for(chat_id)
-    text = with_site_link(render_progress(db.events_for_day(chat_id, day), now, profile), profile, day)
+    text = with_site_link(render_progress(db.events_for_day(profile.subject_id, day), now, profile), profile, day)
     reply = ReplyParameters(reply_to, allow_sending_without_reply=True) if reply_to else None
     sent = await bot.send_message(chat_id, text, reply_parameters=reply, link_preview_options=NO_PREVIEW)
     db.note_bot_report(chat_id, sent.message_id, sent.date.astimezone(TIMEZONE), SUMMARY_MARKER)
@@ -346,10 +346,11 @@ async def risk_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     now = datetime.now(TIMEZONE)
     day = db.care_day(now)
+    profile = db.profile_for(chat.id)
     text = render_risk(
-        db.events_for_day(chat.id, day),
+        db.events_for_day(profile.subject_id, day),
         now,
-        db.profile_for(chat.id),
+        profile,
         day_pace(now),
         chat_id=chat.id,
     )
@@ -366,14 +367,14 @@ async def week_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         parsed = _parse_date(context.args[0])
         if parsed is not None:
             end_day = parsed
-    png = await asyncio.to_thread(charts.render_week, chat.id, end_day, db.profile_for(chat.id))
+    png = await asyncio.to_thread(charts.render_week, end_day, db.profile_for(chat.id))
     sent = await context.bot.send_photo(chat.id, photo=BytesIO(png))
     db.note_bot_report(chat.id, sent.message_id, sent.date.astimezone(TIMEZONE), WEEK_MARKER)
 
 
 def meds_period(chat_id: int, args: list[str], today: date) -> tuple[date, date] | None:
     if args == ["all"]:
-        return db.first_event_day(chat_id) or today, today
+        return db.first_event_day(db.profile_for(chat_id).subject_id) or today, today
     if len(args) == 2:
         start, end = _parse_date(args[0]), _parse_date(args[1])
         if start is not None and end is not None and start <= end:
@@ -385,12 +386,12 @@ def render_meds(chat_id: int, args: list[str], today: date) -> str | None:
     profile = db.profile_for(chat_id)
     if not args:
         start = today - timedelta(days=6)
-        return meds.render_week(db.medications_in_days(chat_id, start, today), today, profile)
+        return meds.render_week(db.medications_in_days(profile.subject_id, start, today), today, profile)
     period = meds_period(chat_id, args, today)
     if period is None:
         return None
     start, end = period
-    return meds.render_period(db.medications_in_days(chat_id, start, end), start, end, profile)
+    return meds.render_period(db.medications_in_days(profile.subject_id, start, end), start, end, profile)
 
 
 async def meds_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -410,10 +411,11 @@ async def meds_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     period = meds_period(chat.id, args, today)
     if period is None:
         return
-    rows = db.medications_in_days(chat.id, *period)
+    profile = db.profile_for(chat.id)
+    rows = db.medications_in_days(profile.subject_id, *period)
     if not rows:
         return
-    png = await asyncio.to_thread(charts.render_meds, rows, *period, db.profile_for(chat.id))
+    png = await asyncio.to_thread(charts.render_meds, rows, *period, profile)
     sent = await context.bot.send_photo(chat.id, photo=BytesIO(png))
     db.note_bot_report(chat.id, sent.message_id, sent.date.astimezone(TIMEZONE), MEDS_MARKER)
 
@@ -554,11 +556,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def daily_summary(context: ContextTypes.DEFAULT_TYPE) -> None:
     day = db.care_day(datetime.now(TIMEZONE)) - timedelta(days=1)
     for chat_id, profile in db.active_chats():
-        events = db.events_for_day(chat_id, day)
+        events = db.events_for_day(profile.subject_id, day)
         if not events:
             continue
         text = await render_summary(day, events, profile, chat_id=chat_id)
-        reminder = weighing_reminder(db.last_weight(chat_id), day + timedelta(days=1))
+        reminder = weighing_reminder(db.last_weight(profile.subject_id), day + timedelta(days=1))
         if reminder:
             text = f"{text}\n\n{reminder}"
         try:
@@ -603,7 +605,7 @@ async def water_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
     now = datetime.now(TIMEZONE)
     day = db.care_day(now)
     for chat_id, profile in db.active_chats():
-        text = render_water_reminder(profile, effective_water(db.events_for_day(chat_id, day)), now)
+        text = render_water_reminder(profile, effective_water(db.events_for_day(profile.subject_id, day)), now)
         if text is None:
             continue
         try:
