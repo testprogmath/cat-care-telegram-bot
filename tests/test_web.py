@@ -346,3 +346,20 @@ def test_food_names_collapse_to_one_product(text, liquid, expected):
 
 def test_a_description_that_names_nothing_is_an_unnamed_food():
     assert foods.product("немного поела (сама)", False, named=False) == foods.UNNAMED
+
+
+def water_detail(page: str) -> str:
+    card = page.split('<span class="dot water"></span>вода</span>')[-1]
+    return card.split('<span class="detail">')[1].split("</span>")[0]
+
+
+def test_the_days_water_says_given_only_when_someone_gave_water(settings, members, today, chat):
+    record(chat, 9, type="water", feeding="self", water_ml=20.0, description="пил")
+    record(chat, 10, type="water", feeding="self", water_ml=10.0, description="пил")
+    record(chat, 11, kcal=20.0, amount_ml=40.0, liquid=True, water_fraction=0.85, description="съел паштет")
+    page = client(MEMBER).get("/chipunya/day/2026-10-06").text
+    assert water_detail(page) == "пил сам 2 раз, 30 мл · из корма 34 мл"
+
+    record(chat, 12, type="water", feeding="tube", water_ml=15.0, description="дала шприцем")
+    page = client(MEMBER).get("/chipunya/day/2026-10-06").text
+    assert water_detail(page) == "пил сам 2 раз, 30 мл · дали 1 раз, 15 мл · из корма 34 мл"
