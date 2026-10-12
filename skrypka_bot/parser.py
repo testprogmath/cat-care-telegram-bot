@@ -310,7 +310,7 @@ def system_prompt(profile: Profile) -> str:
         drunk_in_10_seconds=drunk_ml(profile, 10),
         drunk_in_40_seconds=drunk_ml(profile, 40),
         subject=profile.subject,
-        feeding_field=profile.feeding_field,
+        feeding_field=profile.tube.feeding_field if profile.tube else profile.feeding_field,
         feeding_products=profile.feeding_products,
         toilet_notes=profile.toilet_notes,
     )

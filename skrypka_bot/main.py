@@ -40,6 +40,20 @@ HOME_RE = re.compile(
     r"\b(домой|забрал\w*|выписал\w*|ontslag\w*|naar huis)\b", re.IGNORECASE
 )
 
+_TUBE = r"(?:зонд\w*|трубк\w*)"
+_CAME_OUT = r"(?:вытащ\w*|выдерн\w*|выдрал\w*|выпал\w*|вылез\w*|вышл\w*|выскоч\w*)"
+TUBE_OUT_RE = re.compile(
+    rf"\b{_CAME_OUT}\W+(?:\w+\W+)?{_TUBE}|\b{_TUBE}\W+(?:\w+\W+)?{_CAME_OUT}", re.IGNORECASE
+)
+TUBE_IN_RE = re.compile(
+    rf"\bпостав\w*\W+(?:\w+\W+)?{_TUBE}|\b{_TUBE}\W+(?:\w+\W+)?постав\w*", re.IGNORECASE
+)
+TUBE_OUT_HINT = (
+    "Похоже, трубка вышла. Если так, напишите /tube off: напоминания о воде станут без порций, "
+    "а то, что дали, я буду записывать как «дали», а не «зонд»."
+)
+TUBE_IN_HINT = "Похоже, трубку поставили. Если так, напишите /tube on."
+
 RETRY_INTERVAL = timedelta(minutes=15)
 PARSE_WARNING_INTERVAL = timedelta(hours=2)
 _parse_warned_at: dict[int, datetime] = {}
@@ -192,6 +206,19 @@ def for_known_chat(command):
     return run
 
 
+async def _suggest_tube_switch(bot, chat_id: int, message_id: int, profile: Profile, text: str) -> None:
+    if profiles.get(profile.key).tube is None:
+        return
+    out = db.tube_out_since(chat_id) is not None
+    hint = TUBE_IN_HINT if out and TUBE_IN_RE.search(text) else None
+    if not out and TUBE_OUT_RE.search(text):
+        hint = TUBE_OUT_HINT
+    if hint:
+        await bot.send_message(
+            chat_id, hint, reply_parameters=ReplyParameters(message_id, allow_sending_without_reply=True)
+        )
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = update.effective_message
     chat = update.effective_chat
@@ -212,6 +239,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     sent_at = msg.date.astimezone(TIMEZONE)
     await _track_hospital_stay(context.bot, chat.id, profile, text, sent_at)
+    await _suggest_tube_switch(context.bot, chat.id, msg.message_id, profile, text)
     sender = msg.from_user.full_name if msg.from_user else ""
     replied_to = msg.reply_to_message
     reply_text = (replied_to.text or replied_to.caption) if replied_to else None
