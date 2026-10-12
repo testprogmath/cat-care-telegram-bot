@@ -44,3 +44,12 @@ def test_the_last_reminder_of_the_day_does_not_name_a_deadline_that_has_come():
     assert main.render_water_reminder(WITH_TUBE, 300.0, datetime(2026, 10, 10, 23, 0)).splitlines()[-1] == (
         "Чтобы добрать 40 мл: примерно 2 раза по ~20 мл (не больше 25 мл за раз)."
     )
+
+
+def test_amounts_from_wet_food_are_rounded_like_everywhere_else():
+    assert main.render_water_reminder(WITH_TUBE, 101.382, datetime(2026, 10, 10, 17, 0)) == (
+        "💧 Напоминание: Мурка получила 101.4 мл воды из 340 (осталось 238.6).\n"
+        "К 17:00 по графику должно быть ~194 мл, не хватает ~93 мл "
+        "(график: 340 мл равномерно с 09:00 до 23:00).\n"
+        "Чтобы добрать 238.6 мл до 23:00: примерно 10 раз по ~24 мл (не больше 25 мл за раз)."
+    )
