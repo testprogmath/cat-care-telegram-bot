@@ -200,7 +200,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not text:
         return
     if db.message_seen(chat.id, msg.message_id):
-        logger.info("Message %s already seen, skipping", msg.message_id)
+        if update.edited_message is not None:
+            await _reparse_edited(context.bot, chat.id, msg, text)
+        else:
+            logger.info("Message %s already seen, skipping", msg.message_id)
         return
     profile = db.upsert_chat(chat.id, chat.title or chat.full_name)
     if profile is None:
@@ -238,6 +241,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.info("Saved %d event(s) from message %s", len(events), msg.message_id)
     if db.auto_left(chat.id) and db.message_added_kcal(chat.id, msg.message_id):
         await _send_progress(context.bot, chat.id, reply_to=msg.message_id)
+
+
+async def _reparse_edited(bot, chat_id: int, msg, text: str) -> None:
+    profile = db.profile_for(chat_id)
+    if profile is None:
+        return
+    sent_at = msg.date.astimezone(TIMEZONE)
+    replied_to = msg.reply_to_message
+    reply_text = (replied_to.text or replied_to.caption) if replied_to else None
+    history, report_shown = _history(chat_id, sent_at)
+    try:
+        events = await parse_message(text, history, reply_text, report_shown, profile)
+    except Exception:
+        logger.exception("Edited message %s could not be parsed, keeping its old events", msg.message_id)
+        return
+    db.replace_message_events(chat_id, msg.message_id, text, events, datetime.now(TIMEZONE))
+    logger.info("Reparsed edited message %s: %d event(s)", msg.message_id, len(events))
+    if db.auto_left(chat_id) and db.message_added_kcal(chat_id, msg.message_id):
+        await _send_progress(bot, chat_id, reply_to=msg.message_id)
 
 
 async def retry_unparsed(context: ContextTypes.DEFAULT_TYPE) -> None:

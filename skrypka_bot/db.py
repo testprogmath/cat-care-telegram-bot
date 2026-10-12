@@ -557,6 +557,26 @@ def store_reparsed(
         )
 
 
+def replace_message_events(
+    chat_id: int, message_id: int, text: str, events: list, edited_at: datetime
+) -> None:
+    with _connect() as conn:
+        sent_at = datetime.fromisoformat(conn.execute(
+            "SELECT sent_at FROM messages WHERE chat_id = ? AND message_id = ?", (chat_id, message_id)
+        ).fetchone()["sent_at"])
+        old = conn.execute(
+            "SELECT * FROM events WHERE chat_id = ? AND message_id = ?", (chat_id, message_id)
+        ).fetchall()
+        for row in old:
+            _log_edit(conn, row["id"], edited_at, "reparse", dict(row), {"message_text": text})
+        conn.execute("DELETE FROM events WHERE chat_id = ? AND message_id = ?", (chat_id, message_id))
+        conn.execute(
+            "UPDATE messages SET text = ?, parsed = 1 WHERE chat_id = ? AND message_id = ?",
+            (text, chat_id, message_id),
+        )
+        _insert_events(conn, chat_id, message_id, sent_at, text, events)
+
+
 def unparsed_messages(limit: int = 20) -> list[sqlite3.Row]:
     with _connect() as conn:
         return list(
