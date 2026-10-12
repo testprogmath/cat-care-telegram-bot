@@ -72,10 +72,10 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
             continue
         t = r["type"]
         if t == "water":
-            (given if r["feeding"] == "tube" else drank)[d] += r["water_ml"] or 0
+            (given if db.is_given(r) else drank)[d] += r["water_ml"] or 0
         elif t == "food":
             liquid_water[d] += db.food_water_ml(r)
-            if r["feeding"] == "tube":
+            if db.is_given(r):
                 kcal_tube[d] += r["kcal"] or 0
             else:
                 kcal_self[d] += r["kcal"] or 0

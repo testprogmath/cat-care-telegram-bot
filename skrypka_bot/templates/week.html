@@ -33,7 +33,7 @@
       <rect x="{{ water_share.starts[1] }}" width="{{ water_share.widths[1] }}" height="10" class="drink"></rect>
       <rect x="{{ water_share.starts[2] }}" width="{{ water_share.widths[2] }}" height="10" class="foodwater"></rect>
     </svg>
-    <p class="legend"><span class="key drank"></span>{{ current.profile.pick('пила сама', 'пил сам') }} {{ ('%.1f' % mean.drank_times).replace('.', ',') }} раза · {{ '%.0f' % mean.drank_ml }} мл {% if mean.drinking_ml - mean.drank_ml >= 0.5 %}<span class="key drink"></span>дали {{ '%.0f' % (mean.drinking_ml - mean.drank_ml) }} {% endif %}<span class="key foodwater"></span>из корма {{ '%.0f' % mean.from_food_ml }}</p>
+    <p class="legend"><span class="key drank"></span>{{ current.profile.pick('пила сама', 'пил сам') }} {{ ('%.1f' % mean.drank_times).replace('.', ',') }} раза · {{ '%.0f' % mean.drank_ml }} мл {% if mean.given_ml >= 0.5 %}<span class="key drink"></span>дали {{ '%.0f' % mean.given_ml }} {% endif %}<span class="key foodwater"></span>из корма {{ '%.0f' % mean.from_food_ml }}</p>
   </div>
   <div class="trio">
     <p><span class="mid num">{{ ('%.1f' % mean.urinations).replace('.', ',') }}</span><span class="muted">моча</span></p>

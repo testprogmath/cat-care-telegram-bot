@@ -57,8 +57,13 @@ def toilet_kind(description: str) -> str:
     return "stool" if is_stool(description) else "urine"
 
 
+def is_given(row: sqlite3.Row) -> bool:
+    """People gave it, through the tube or by syringe; anything else the animal took itself."""
+    return row["feeding"] == "tube"
+
+
 def is_liquid_food(row: sqlite3.Row) -> bool:
-    return row["type"] == "food" and bool(row["feeding"] == "tube" or row["liquid"])
+    return row["type"] == "food" and bool(is_given(row) or row["liquid"])
 
 
 def food_water_ml(row: sqlite3.Row) -> float:
@@ -397,7 +402,7 @@ def _is_separate_portion(existing_ml, new_ml) -> bool:
 
 
 def _same_form(row: sqlite3.Row, event) -> bool:
-    return bool(row["liquid"] or row["feeding"] == "tube") == bool(
+    return bool(row["liquid"] or is_given(row)) == bool(
         event.liquid or event.feeding == "tube"
     )
 

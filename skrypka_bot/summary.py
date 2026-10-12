@@ -31,8 +31,7 @@ def _kcal_totals(food: list[sqlite3.Row]) -> tuple[float, dict[str, float], int,
                 unquantified += 1
             continue
         total += kcal
-        if e["feeding"] in by_feeding:
-            by_feeding[e["feeding"]] += kcal
+        by_feeding["tube" if db.is_given(e) else "self"] += kcal
     return total, by_feeding, unquantified, gravy
 
 
@@ -44,7 +43,7 @@ def uncounted_wet(events: list[sqlite3.Row]) -> int:
     return sum(
         1
         for e in events
-        if e["type"] == "food" and (e["liquid"] or e["feeding"] == "tube") and not e["amount_ml"]
+        if e["type"] == "food" and (e["liquid"] or db.is_given(e)) and not e["amount_ml"]
     )
 
 
@@ -375,8 +374,8 @@ async def render_summary(
         )
         if missed_wet:
             lines.append(_wet_note(missed_wet))
-        drank = [e for e in water if e["feeding"] == "self"]
-        given = [e for e in water if e["feeding"] == "tube"]
+        drank = [e for e in water if not db.is_given(e)]
+        given = [e for e in water if db.is_given(e)]
         if drank or given:
             parts = [f"{profile.pick('пила сама', 'пил сам')} {len(drank)} {_plural(len(drank), 'раз', 'раза', 'раз')}"
                      f" ({_num(sum(e['water_ml'] or 0 for e in drank))} мл)"]
@@ -385,7 +384,7 @@ async def render_summary(
             lines.append("  " + ", ".join(parts))
         for e in water:
             ml = f"{e['water_ml']:g} мл" if e["water_ml"] else e["description"]
-            source = {"self": f" ({profile.self_label})", "tube": " (дали)"}.get(e["feeding"], "")
+            source = " (дали)" if db.is_given(e) else f" ({profile.self_label})"
             lines.append(f"  {_time_of(e)} — {ml}{source}")
 
     if food:

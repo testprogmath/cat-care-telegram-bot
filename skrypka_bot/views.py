@@ -45,14 +45,14 @@ def day_rows(subject: str, start: date, end: date) -> list[DayRow]:
         day = start + timedelta(days=offset)
         that_day = [e for e in events if e["day"] == day.isoformat()]
         food = [e for e in that_day if e["type"] == "food"]
-        drank = [e for e in that_day if e["type"] == "water" and e["feeding"] == "self"]
-        given = [e for e in that_day if e["type"] == "water" and e["feeding"] == "tube"]
+        drank = [e for e in that_day if e["type"] == "water" and not db.is_given(e)]
+        given = [e for e in that_day if e["type"] == "water" and db.is_given(e)]
         record = exported[day]
         rows.append(DayRow(
             day=day,
             recorded=bool(that_day),
-            kcal_self=sum(e["kcal"] or 0 for e in food if e["feeding"] != "tube"),
-            kcal_tube=sum(e["kcal"] or 0 for e in food if e["feeding"] == "tube"),
+            kcal_self=sum(e["kcal"] or 0 for e in food if not db.is_given(e)),
+            kcal_tube=sum(e["kcal"] or 0 for e in food if db.is_given(e)),
             drinking_ml=record.water_drinking_ml,
             from_food_ml=record.water_from_food_ml,
             urinations=record.urinations_observed,
@@ -256,7 +256,7 @@ class WaterLine:
 
 def _kind(row: sqlite3.Row) -> str:
     if row["type"] == "food":
-        return "food_tube" if row["feeding"] == "tube" else "food_self"
+        return "food_tube" if db.is_given(row) else "food_self"
     return row["type"] if row["type"] in KINDS else "other"
 
 
@@ -283,7 +283,7 @@ def day_events(rows: list[sqlite3.Row], show: str | None,
         if kind == "water":
             water.count += 1
             water.ml += row["water_ml"] or 0
-            if row["feeding"] == "self":
+            if not db.is_given(row):
                 water.drank_count += 1
                 water.drank_ml += row["water_ml"] or 0
             continue
@@ -755,7 +755,7 @@ def day_clock(rows: list[sqlite3.Row], day: date, kcal_goal: float, water_goal: 
         h, kind, desc = hours(row), row["type"], row["description"] or ""
         clock = datetime.fromisoformat(row["occurred_at"]).strftime("%H:%M")
         if kind == "food":
-            tone = "tube" if row["feeding"] == "tube" else "self"
+            tone = "tube" if db.is_given(row) else "self"
             kcal = row["kcal"] or 0
             marks.append(ClockMark(x(h), lane_y["Еда"], "circle", tone, _size(kcal, 0.7),
                                    f"{clock} {desc}" + (f", {_fmt(round(kcal, 1))} ккал" if kcal else "")))
@@ -767,7 +767,7 @@ def day_clock(rows: list[sqlite3.Row], day: date, kcal_goal: float, water_goal: 
             marks.append(ClockMark(x(h), lane_y["Еда"], "ring", "refused", 2.6, f"{clock} отказ: {desc}"))
         elif kind == "water":
             ml = row["water_ml"] or 0
-            drank = row["feeding"] == "self"
+            drank = not db.is_given(row)
             marks.append(ClockMark(x(h), lane_y["Вода"], "circle" if drank else "ring", "drink",
                                    _size(ml, 0.55, high=6.0), f"{clock} {desc}"))
             if ml:

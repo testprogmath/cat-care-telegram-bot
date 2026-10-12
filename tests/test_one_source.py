@@ -34,3 +34,17 @@ def test_a_diary_moved_to_another_chat_keeps_one_set_of_figures(chat):
     assert summary.effective_water(bot) == site.drinking_ml == export.water_drinking_ml == 30.0
     assert site.drank_ml == 30.0 and site.drank_times == 2
     assert profiles.get(db.profile_for(NEW_CHAT).key).subject_id == "chipunya"
+
+
+def test_a_row_that_does_not_say_who_fed_counts_as_taken_alone_everywhere(chat):
+    db.save_message(chat, 1, "owner", datetime(2026, 10, 6, 9, 0, tzinfo=BERLIN), "записи", [
+        event("food", kcal=30.0, feeding=None), event("food", kcal=10.0, feeding="tube"),
+        event("water", water_ml=20.0, feeding=None), event("water", water_ml=5.0, feeding="tube"),
+    ])
+    rows = db.events_for_day("chipunya", DAY)
+    _, by_feeding, _, _ = summary._kcal_totals([e for e in rows if e["type"] == "food"])
+    [site] = views.day_rows("chipunya", DAY, DAY)
+
+    assert by_feeding == {"tube": 10.0, "self": 30.0}
+    assert (site.kcal_tube, site.kcal_self) == (10.0, 30.0)
+    assert (site.drank_ml, site.given_ml) == (20.0, 5.0)
