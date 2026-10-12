@@ -51,6 +51,7 @@ class Profile:
     kcal_bands: Bands | None = None
     water_bands: Bands | None = None
     tube: Tube | None = None
+    drinking_ml_per_second: float = 0.45
 
     def pick(self, she: str, he: str) -> str:
         """The word that agrees with this animal: Скрипа is a she, Чипуня a he."""
@@ -171,6 +172,7 @@ SKRIPA = Profile(
         'что она подошла туда и легла.'
     ),
     water_goal_ml=_goal("skripa", "WATER_GOAL_ML", 340),
+    drinking_ml_per_second=0.275,
     tube=Tube(
         water_portion_ml=25.0,
         max_feed_ml=float(os.environ.get("TUBE_MAX_SINGLE_ML") or 100),
