@@ -47,7 +47,7 @@ def settings() -> web_auth.Settings:
 
 
 def timezone() -> ZoneInfo:
-    return ZoneInfo(os.environ.get("TIMEZONE", "Europe/Berlin"))
+    return db.timezone()
 
 
 def today() -> date:

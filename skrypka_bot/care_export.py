@@ -9,11 +9,8 @@ asserted absent, or null.
 Legacy rows written without a UTC offset are read as wall-clock time in the configured
 care timezone, never in the timezone of whatever machine runs the export.
 
-Known debt, deliberately not addressed here: cat-care computes a care day in two
-places. db.care_day stamps the stored day from DAY_START without a zone; this module
-recomputes it from occurred_at in TIMEZONE. Both take the boundary from
-db._DAY_START_HOUR and db._DAY_START_MINUTE, so they agree. They should eventually sit
-behind one timezone-aware primitive. See docs/care-day-export.md.
+The care day itself is db.care_day, the same function that stamps the stored day.
+This module recomputes it from occurred_at rather than trusting the stored column.
 """
 from __future__ import annotations
 
@@ -37,13 +34,7 @@ HASH_EXCLUDED = ("exported_at", "content_hash", "debug_event_refs")
 
 
 def timezone() -> ZoneInfo:
-    """The zone the care-day boundary is applied in.
-
-    db.care_day() applies DAY_START to whatever datetime it is handed and never reads
-    TIMEZONE itself, so the zone is implicit in the running bot. The export cannot
-    afford that: it may run anywhere, and the container's own clock is UTC.
-    """
-    return ZoneInfo(os.environ.get("TIMEZONE", "Europe/Berlin"))
+    return db.timezone()
 
 
 def source_instance() -> str:
@@ -194,14 +185,7 @@ def occurred_local(row: sqlite3.Row, tz: ZoneInfo) -> datetime:
 
 
 def care_day_of(row: sqlite3.Row, tz: ZoneInfo) -> date:
-    """Which care day an event falls in.
-
-    The shift is done on wall-clock time rather than on the instant, so a day keeps
-    starting at DAY_START local across a daylight-saving change.
-    """
-    hour, minute = _boundary()
-    local = occurred_local(row, tz)
-    return (local.replace(tzinfo=None) - timedelta(hours=hour, minutes=minute)).date()
+    return db.care_day(occurred_local(row, tz))
 
 
 def window_of(day: date, tz: ZoneInfo) -> tuple[datetime, datetime]:

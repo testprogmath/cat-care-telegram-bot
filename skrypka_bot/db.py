@@ -6,6 +6,7 @@ import sqlite3
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from . import profiles
 
@@ -69,8 +70,18 @@ DAY_START = os.environ.get("DAY_START", "00:00")
 _DAY_START_HOUR, _DAY_START_MINUTE = (int(part) for part in DAY_START.split(":"))
 
 
-def care_day(dt: datetime) -> date:
-    return (dt - timedelta(hours=_DAY_START_HOUR, minutes=_DAY_START_MINUTE)).date()
+def timezone() -> ZoneInfo:
+    return ZoneInfo(os.environ.get("TIMEZONE", "Europe/Berlin"))
+
+
+def care_day(moment: datetime) -> date:
+    """The care day a moment falls in, on the wall clock of TIMEZONE.
+
+    A moment without an offset is read as that wall clock. Shifting wall-clock time rather
+    than the instant keeps a day starting at DAY_START across a daylight-saving change.
+    """
+    local = moment.astimezone(timezone()).replace(tzinfo=None) if moment.tzinfo else moment
+    return (local - timedelta(hours=_DAY_START_HOUR, minutes=_DAY_START_MINUTE)).date()
 
 
 def care_day_start(day: date, tz) -> datetime:

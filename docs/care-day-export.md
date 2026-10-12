@@ -48,16 +48,15 @@ Database row ids are not part of the contract. `--debug` adds `debug_event_refs`
 looking things up by hand; de-duplication and reparsing recreate those rows freely, so
 nothing downstream may depend on them.
 
-## The care day boundary: known debt
+## The care day boundary
 
-The boundary is computed in two places. When an event is stored, `db.care_day` stamps the
-`day` column from its time and `DAY_START`, hour and minute, read once at import. The
-exporter ignores that column and recomputes the care day from `occurred_at`, in the zone
-named by `TIMEZONE`, on wall-clock time so the boundary holds across a daylight-saving
-change. Rows written before times carried an offset are read as wall-clock time in that
-zone.
+One function, `db.care_day`, decides which care day a moment falls in: it reads the moment
+on the wall clock of `TIMEZONE` and shifts it by `DAY_START`, so the boundary holds across a
+daylight-saving change. A moment without an offset, as in a few early rows, is read as that
+wall clock. The same function stamps the `day` column when an event is stored, and the
+exporter applies it again to `occurred_at` rather than trusting the column. On 12 October
+2026 at 09:13 all 3893 stored events gave the same day both ways.
 
-The two agree: on 10 October 2026 at 22:56 all 3769 stored events gave the same day both
-ways. The site reads some figures by the stored day and some through the exporter, so a
-change to `DAY_START` would split them until old rows are restamped. They should become
-one timezone-aware function.
+A change to `DAY_START` moves the boundary for new events only. Stored `day` values keep
+the old boundary until they are restamped, and the bot and the site group by that column,
+so restamp them in the same deploy.
