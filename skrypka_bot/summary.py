@@ -2,15 +2,12 @@ import re
 import sqlite3
 from datetime import date, datetime, timedelta
 
-from . import db
+from . import classify, db
 from .parser import condense_states
 from .profiles import Bands, Profile
 
 CONDENSE_THRESHOLD = 6
 STREAK_LOOKBACK_DAYS = 3
-
-_VOMIT_RE = re.compile(r"\bвырвало\b|\bрвот\w*|\bстошнил\w*|\bсрыгну\w*", re.IGNORECASE)
-_NO_VOMIT_RE = re.compile(r"без рвоты|не вырвало|не стошнил\w*|рвоты (?:не было|нет)", re.IGNORECASE)
 
 
 def _feeding_labels(profile: Profile) -> dict[str, str]:
@@ -168,7 +165,7 @@ def kcal_total(events: list[sqlite3.Row]) -> float:
 
 def vomited(events: list[sqlite3.Row]) -> bool:
     return any(
-        _VOMIT_RE.search(e["description"] or "") and not _NO_VOMIT_RE.search(e["description"] or "")
+        classify.reports_vomiting(e["description"])
         for e in events
         if e["type"] in ("state", "other")
     )

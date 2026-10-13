@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import foods, profiles
+from . import classify, foods, profiles
 
 logger = logging.getLogger(__name__)
 
@@ -21,40 +21,6 @@ _AMOUNT_ML_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*мл", re.IGNORECASE)
 _AMOUNT_G_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:г|гр|грамм\w*)\b", re.IGNORECASE)
 
 LIQUID_FOOD_WATER_FRACTION = float(os.environ.get("LIQUID_FOOD_WATER_FRACTION", "0.85"))
-_RECAP_RE = re.compile(
-    r"если считать|суммарно|в сумме|за день|за сутки|минимум\s+\d+\s*мл|всего\b.{0,30}\bпоступил",
-    re.IGNORECASE,
-)
-_STOOL_RE = re.compile(
-    r"покак|\bкака(?:л|ет|ть|ю)|какаш|дефекац|стул|диаре|диарре|понос|\bкал\b", re.IGNORECASE
-)
-
-
-_NO_RESULT_RE = re.compile(
-    r"не получил|ничего не|не сделал|безуспеш|ни с чем|без результат|не смогл|не смог\b"
-    r"|\bне (?:какал|какает|писал|писает)",
-    re.IGNORECASE,
-)
-_ATTEMPT_RE = re.compile(r"пыта|попыт|пробует|пробовал|тужит|тужил|покопал", re.IGNORECASE)
-_DONE_RE = re.compile(r"пописал|покакал|помочил|наделал|какашк|сходил\S* в (?:туалет|лоток|горшок)", re.IGNORECASE)
-
-
-def is_stool(description: str) -> bool:
-    return bool(_STOOL_RE.search(description or ""))
-
-
-def is_failed_toilet(description: str) -> bool:
-    """An attempt that produced nothing, or a note that the cat has not gone."""
-    text = description or ""
-    if _NO_RESULT_RE.search(text):
-        return True
-    return bool(_ATTEMPT_RE.search(text)) and not _DONE_RE.search(text)
-
-
-def toilet_kind(description: str) -> str:
-    if is_failed_toilet(description):
-        return "failed"
-    return "stool" if is_stool(description) else "urine"
 
 
 def is_given(row: sqlite3.Row) -> bool:
@@ -438,7 +404,7 @@ def _dedup_toilet(
 ) -> bool:
     lo = (occurred_at - FOOD_DEDUP_WINDOW).isoformat()
     hi = (occurred_at + FOOD_DEDUP_WINDOW).isoformat()
-    kind = toilet_kind(event.description)
+    kind = classify.toilet_kind(event.description)
     same_kind = [
         row
         for row in conn.execute(
@@ -447,7 +413,7 @@ def _dedup_toilet(
             "AND message_id IS NOT ?",
             (chat_id, lo, hi, message_id),
         )
-        if toilet_kind(row["description"]) == kind
+        if classify.toilet_kind(row["description"]) == kind
     ]
     if not same_kind:
         return True
@@ -619,7 +585,7 @@ def _insert_events(
     text: str,
     events: list,
 ) -> None:
-    is_recap = bool(_RECAP_RE.search(text))
+    is_recap = classify.is_recap(text)
     profile = _profile_of(conn, chat_id)
     subject = profile.subject_id
     for event in events:

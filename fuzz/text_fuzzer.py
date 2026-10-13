@@ -5,14 +5,16 @@ import sys
 import atheris
 
 with atheris.instrument_imports():
-    from skrypka_bot import db, foods, meds
+    from skrypka_bot import classify, foods, meds
 
 
 def test_one_input(data: bytes) -> None:
     fdp = atheris.FuzzedDataProvider(data)
     text = fdp.ConsumeUnicodeNoSurrogates(512)
-    db.toilet_kind(text)
-    db.is_failed_toilet(text)
+    classify.toilet_kind(text)
+    classify.is_failed_toilet(text)
+    classify.is_recap(text)
+    classify.reports_vomiting(text)
     foods.product(text, fdp.PickValueInList([True, False, None]))
     dose = meds.normalise_dose(text)
     meds.dose_amount(dose or text)

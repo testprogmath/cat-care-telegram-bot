@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict
 
-from . import db, summary
+from . import classify, db, summary
 
 SCHEMA_VERSION = "care-day/1"
 SOURCE = "cat-care"
@@ -264,7 +264,7 @@ def _toilet(rows: list[sqlite3.Row]) -> tuple[int | None, int | None]:
     on a day full of other toilet records. cat-care has no way to express "the owner
     watched all day and there was none", so no asserted-absence field exists here.
     """
-    kinds = [db.toilet_kind(r["description"]) for r in rows if r["type"] == "toilet"]
+    kinds = [classify.toilet_kind(r["description"]) for r in rows if r["type"] == "toilet"]
     stools = kinds.count("stool")
     urinations = kinds.count("urine")
     return (urinations or None), (stools or None)
@@ -278,9 +278,9 @@ def _vomiting(rows: list[sqlite3.Row], tz: ZoneInfo) -> tuple[list[VomitingEpiso
     episodes, asserted_absent = [], False
     for row in _narrative(rows):
         text = row["description"] or ""
-        if summary._NO_VOMIT_RE.search(text):
+        if classify.denies_vomiting(text):
             asserted_absent = True
-        elif summary._VOMIT_RE.search(text):
+        elif classify.reports_vomiting(text):
             episodes.append(VomitingEpisode(at=occurred_local(row, tz), note=text or None))
     return episodes, asserted_absent
 

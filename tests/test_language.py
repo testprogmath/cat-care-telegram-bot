@@ -2,7 +2,7 @@
 
 import pytest
 
-from skrypka_bot import db, summary
+from skrypka_bot import classify, summary
 
 
 def test_struggled_free_is_not_vomiting(row):
@@ -33,12 +33,12 @@ def test_nausea_is_not_vomiting(row, description):
      "какает в лоток"],
 )
 def test_stool_is_recognised(description):
-    assert db.is_stool(description)
+    assert classify.is_stool(description)
 
 
 @pytest.mark.parametrize("description", ["пописала", "сходила на жёлтый коврик", "какао", ""])
 def test_other_toilet_wording_is_not_stool(description):
-    assert not db.is_stool(description)
+    assert not classify.is_stool(description)
 
 
 @pytest.mark.parametrize(
@@ -50,7 +50,7 @@ def test_other_toilet_wording_is_not_stool(description):
 )
 def test_daily_recaps_are_recognised(text):
     """A message that sums the day up must not be counted as intake again."""
-    assert db._RECAP_RE.search(text)
+    assert classify.is_recap(text)
 
 
 @pytest.mark.parametrize(
@@ -66,7 +66,7 @@ def test_daily_recaps_are_recognised(text):
     ],
 )
 def test_attempts_without_a_result_are_failed(description):
-    assert db.toilet_kind(description) == "failed"
+    assert classify.toilet_kind(description) == "failed"
 
 
 @pytest.mark.parametrize(
@@ -80,4 +80,4 @@ def test_attempts_without_a_result_are_failed(description):
     ],
 )
 def test_a_visit_with_a_result_counts(description, kind):
-    assert db.toilet_kind(description) == kind
+    assert classify.toilet_kind(description) == kind

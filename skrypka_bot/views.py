@@ -6,7 +6,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from . import care_export, db, foods, meds
+from . import care_export, classify, db, foods, meds
 
 RECENT_DAYS = 7
 CURRENT_COURSE_DAYS = 2
@@ -294,7 +294,7 @@ def day_events(rows: list[sqlite3.Row], show: str | None,
         tags: list[str] = []
         if kind == "toilet":
             label = {"stool": "туалет · стул", "failed": "туалет · без результата"}.get(
-                db.toilet_kind(row["description"]), label)
+                classify.toilet_kind(row["description"]), label)
         title = row["description"] or ""
         detail = ""
         if kind in ("food_self", "food_tube"):
@@ -667,7 +667,7 @@ def last_stool(subject: str, until: date) -> date | None:
             "ORDER BY occurred_at DESC",
             (subject, until.isoformat()),
         ).fetchall()
-    return next((date.fromisoformat(r["day"]) for r in rows if db.toilet_kind(r["description"]) == "stool"), None)
+    return next((date.fromisoformat(r["day"]) for r in rows if classify.toilet_kind(r["description"]) == "stool"), None)
 
 
 @dataclass
@@ -774,7 +774,7 @@ def day_clock(rows: list[sqlite3.Row], day: date, kcal_goal: float, water_goal: 
                 water_steps.append((h, ml))
         elif kind == "toilet":
             shape, tone = {"stool": ("square", "stool"), "urine": ("circle", "toilet"),
-                           "failed": ("ring", "toilet")}[db.toilet_kind(desc)]
+                           "failed": ("ring", "toilet")}[classify.toilet_kind(desc)]
             marks.append(ClockMark(x(h), lane_y["Туалет"], shape, tone, 3.0, f"{clock} {desc}"))
         else:
             label = " ".join(part for part in (row["name"] or desc, row["dose"]) if part)
