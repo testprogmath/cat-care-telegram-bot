@@ -17,7 +17,7 @@ from telegram.ext import (
     filters,
 )
 
-from . import charts, db, meds, profiles
+from . import charts, db, ingest, meds, profiles
 from .parser import ParseFailed, ParseRefused, parse_message
 from .profiles import Profile
 from .summary import (
@@ -247,7 +247,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         events = await parse_message(text, history, reply_text, report_shown, profile)
     except ParseRefused:
-        db.save_message(chat.id, msg.message_id, sender, sent_at, text, [])
+        ingest.save_message(chat.id, msg.message_id, sender, sent_at, text, [])
         await context.bot.send_message(
             chat.id, PARSE_REFUSED_NOTICE,
             reply_parameters=ReplyParameters(msg.message_id, allow_sending_without_reply=True),
@@ -261,11 +261,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     else:
         cause = None
     if cause is not None:
-        db.save_message(chat.id, msg.message_id, sender, sent_at, text, [], parsed=False)
+        ingest.save_message(chat.id, msg.message_id, sender, sent_at, text, [], parsed=False)
         logger.warning("Message %s stored unparsed, will retry", msg.message_id)
         await _warn_parse_broken(context.bot, chat.id, datetime.now(TIMEZONE), cause)
         return
-    db.save_message(chat.id, msg.message_id, sender, sent_at, text, events)
+    ingest.save_message(chat.id, msg.message_id, sender, sent_at, text, events)
     if events:
         logger.info("Saved %d event(s) from message %s", len(events), msg.message_id)
     if db.auto_left(chat.id) and db.message_added_kcal(chat.id, msg.message_id):
@@ -285,7 +285,7 @@ async def _reparse_edited(bot, chat_id: int, msg, text: str) -> None:
     except Exception:
         logger.exception("Edited message %s could not be parsed, keeping its old events", msg.message_id)
         return
-    db.replace_message_events(chat_id, msg.message_id, text, events, datetime.now(TIMEZONE))
+    ingest.replace_message_events(chat_id, msg.message_id, text, events, datetime.now(TIMEZONE))
     logger.info("Reparsed edited message %s: %d event(s)", msg.message_id, len(events))
     if db.auto_left(chat_id) and db.message_added_kcal(chat_id, msg.message_id):
         await _send_progress(bot, chat_id, reply_to=msg.message_id)
@@ -309,7 +309,7 @@ async def retry_unparsed(context: ContextTypes.DEFAULT_TYPE) -> None:
         except Exception:
             logger.exception("Reparsing still failing, leaving %d message(s) queued", len(pending))
             return
-        db.store_reparsed(row["chat_id"], row["message_id"], sent_at, row["text"], events)
+        ingest.store_reparsed(row["chat_id"], row["message_id"], sent_at, row["text"], events)
         logger.info("Reparsed message %s: %d event(s)", row["message_id"], len(events))
     _parse_warned_at.clear()
 

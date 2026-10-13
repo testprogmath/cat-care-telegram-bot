@@ -4,7 +4,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import care_export, db, profiles, summary, views
+from skrypka_bot import care_export, db, ingest, profiles, summary, views
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAY = date(2026, 10, 6)
@@ -18,11 +18,11 @@ def event(type, **fields):
 
 
 def test_a_diary_moved_to_another_chat_keeps_one_set_of_figures(chat):
-    db.save_message(chat, 1, "owner", datetime(2026, 10, 6, 9, 0, tzinfo=BERLIN), "старый чат",
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 9, 0, tzinfo=BERLIN), "старый чат",
                     [event("food", kcal=40.0), event("water", water_ml=20.0)])
     db.set_profile(chat, None)
     db.set_profile(NEW_CHAT, "chipunya")
-    db.save_message(NEW_CHAT, 2, "owner", datetime(2026, 10, 6, 15, 0, tzinfo=BERLIN), "новый чат",
+    ingest.save_message(NEW_CHAT, 2, "owner", datetime(2026, 10, 6, 15, 0, tzinfo=BERLIN), "новый чат",
                     [event("food", kcal=12.0), event("water", water_ml=10.0)])
 
     bot = db.events_for_day("chipunya", DAY)
@@ -37,7 +37,7 @@ def test_a_diary_moved_to_another_chat_keeps_one_set_of_figures(chat):
 
 
 def test_a_row_that_does_not_say_who_fed_counts_as_taken_alone_everywhere(chat):
-    db.save_message(chat, 1, "owner", datetime(2026, 10, 6, 9, 0, tzinfo=BERLIN), "записи", [
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 9, 0, tzinfo=BERLIN), "записи", [
         event("food", kcal=30.0, feeding=None), event("food", kcal=10.0, feeding="tube"),
         event("water", water_ml=20.0, feeding=None), event("water", water_ml=5.0, feeding="tube"),
     ])

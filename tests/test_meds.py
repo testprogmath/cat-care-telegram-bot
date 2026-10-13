@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import charts, db, main, meds
+from skrypka_bot import charts, db, ingest, main, meds
 
 BERLIN = ZoneInfo("Europe/Berlin")
 TODAY = date(2026, 10, 4)
@@ -21,7 +21,7 @@ def given(chat_id, day, hour, name, dose=None):
         description=f"дала {name}",
     )
     sent_at = datetime(day.year, day.month, day.day, hour, 0, tzinfo=BERLIN)
-    db.save_message(chat_id, next(_message_ids), "owner", sent_at, "запись", [event])
+    ingest.save_message(chat_id, next(_message_ids), "owner", sent_at, "запись", [event])
 
 
 @pytest.mark.parametrize(

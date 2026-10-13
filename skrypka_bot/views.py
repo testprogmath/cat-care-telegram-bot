@@ -472,7 +472,7 @@ class WeightSummary:
 
 
 def _weighings(subject: str, until: date) -> list[Weighing]:
-    with db._connect() as conn:
+    with db.connect() as conn:
         rows = conn.execute(
             "SELECT day, weight_kg FROM events WHERE subject = ? AND type = 'weight' AND weight_kg > 0 "
             "AND day <= ? ORDER BY occurred_at",
@@ -661,7 +661,7 @@ def compare_around(subject: str, mark: Mark, today: date,
 
 
 def last_stool(subject: str, until: date) -> date | None:
-    with db._connect() as conn:
+    with db.connect() as conn:
         rows = conn.execute(
             "SELECT day, description FROM events WHERE subject = ? AND type = 'toilet' AND day <= ? "
             "ORDER BY occurred_at DESC",

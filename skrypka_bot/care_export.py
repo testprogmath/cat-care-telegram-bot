@@ -344,7 +344,7 @@ def export(subject: str, since: date, until: date, now: datetime | None = None,
            debug: bool = False) -> list[CareDay]:
     tz = timezone()
     now = now or datetime.now(tz)
-    with db._connect() as conn:
+    with db.connect() as conn:
         assert_subjects_present(conn, since, until)
         rows = _rows(conn, subject, since, until)
     buckets: dict[date, list[sqlite3.Row]] = {}

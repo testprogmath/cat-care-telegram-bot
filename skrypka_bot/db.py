@@ -1,24 +1,17 @@
 import json
 import logging
 import os
-import re
 import sqlite3
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import classify, foods, profiles
+from . import profiles
 
 logger = logging.getLogger(__name__)
 
 DB_PATH = Path(os.environ.get("DB_PATH", "data/skrypka.db"))
-FOOD_DEDUP_WINDOW = timedelta(minutes=5)
-MEDICATION_DEDUP_WINDOW = timedelta(minutes=10)
-LATE_REPORT_DAYS = 31
-WATER_DEDUP_WINDOW = timedelta(minutes=5)
-_AMOUNT_ML_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*мл", re.IGNORECASE)
-_AMOUNT_G_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:г|гр|грамм\w*)\b", re.IGNORECASE)
 
 LIQUID_FOOD_WATER_FRACTION = float(os.environ.get("LIQUID_FOOD_WATER_FRACTION", "0.85"))
 
@@ -59,7 +52,7 @@ def care_day_start(day: date, tz) -> datetime:
     return datetime(day.year, day.month, day.day, _DAY_START_HOUR, _DAY_START_MINUTE, tzinfo=tz)
 
 
-def _connect() -> sqlite3.Connection:
+def connect() -> sqlite3.Connection:
     if os.environ.get("DB_READ_ONLY"):
         conn = sqlite3.connect(DB_PATH.resolve().as_uri() + "?mode=ro", uri=True)
     else:
@@ -70,7 +63,7 @@ def _connect() -> sqlite3.Connection:
 
 
 def init() -> None:
-    with _connect() as conn:
+    with connect() as conn:
         conn.executescript(
             """
             CREATE TABLE IF NOT EXISTS chats (
@@ -165,7 +158,7 @@ class ProfileTaken(Exception):
 
 
 def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile | None:
-    with _connect() as conn:
+    with connect() as conn:
         taken = frozenset(
             row["profile"]
             for row in conn.execute(
@@ -181,14 +174,18 @@ def upsert_chat(chat_id: int, title: str | None) -> profiles.Profile | None:
     return _animal(row)
 
 
+def animal_in(conn: sqlite3.Connection, chat_id: int) -> profiles.Profile | None:
+    return _animal(conn.execute(_CHAT_ANIMAL, (chat_id,)).fetchone())
+
+
 def profile_for(chat_id: int) -> profiles.Profile | None:
-    with _connect() as conn:
-        return _animal(conn.execute(_CHAT_ANIMAL, (chat_id,)).fetchone())
+    with connect() as conn:
+        return animal_in(conn, chat_id)
 
 
 def set_profile(chat_id: int, key: str | None) -> None:
     try:
-        with _connect() as conn:
+        with connect() as conn:
             conn.execute(
                 "INSERT INTO chats (chat_id, profile) VALUES (?, ?) "
                 "ON CONFLICT (chat_id) DO UPDATE SET profile = excluded.profile",
@@ -199,12 +196,12 @@ def set_profile(chat_id: int, key: str | None) -> None:
 
 
 def chats() -> list[sqlite3.Row]:
-    with _connect() as conn:
+    with connect() as conn:
         return list(conn.execute("SELECT chat_id, title, profile FROM chats ORDER BY chat_id"))
 
 
 def chat(chat_id: int) -> sqlite3.Row | None:
-    with _connect() as conn:
+    with connect() as conn:
         return conn.execute(
             "SELECT chat_id, title, profile FROM chats WHERE chat_id = ?", (chat_id,)
         ).fetchone()
@@ -216,12 +213,12 @@ def _with_profiles(rows) -> list[tuple[int, profiles.Profile]]:
 
 
 def all_chats() -> list[tuple[int, profiles.Profile]]:
-    with _connect() as conn:
+    with connect() as conn:
         return _with_profiles(conn.execute("SELECT chat_id, profile, tube_out_at FROM chats"))
 
 
 def active_chats() -> list[tuple[int, profiles.Profile]]:
-    with _connect() as conn:
+    with connect() as conn:
         return _with_profiles(
             conn.execute(
                 "SELECT chat_id, profile, tube_out_at FROM chats WHERE paused_at IS NULL"
@@ -230,7 +227,7 @@ def active_chats() -> list[tuple[int, profiles.Profile]]:
 
 
 def tube_out_since(chat_id: int) -> datetime | None:
-    with _connect() as conn:
+    with connect() as conn:
         row = conn.execute("SELECT tube_out_at FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
     if row is None or not row["tube_out_at"]:
         return None
@@ -238,7 +235,7 @@ def tube_out_since(chat_id: int) -> datetime | None:
 
 
 def set_tube_out(chat_id: int, at: datetime | None) -> None:
-    with _connect() as conn:
+    with connect() as conn:
         conn.execute(
             "UPDATE chats SET tube_out_at = ? WHERE chat_id = ?",
             (at.isoformat() if at else None, chat_id),
@@ -246,7 +243,7 @@ def set_tube_out(chat_id: int, at: datetime | None) -> None:
 
 
 def paused_since(chat_id: int) -> datetime | None:
-    with _connect() as conn:
+    with connect() as conn:
         row = conn.execute(
             "SELECT paused_at FROM chats WHERE chat_id = ?", (chat_id,)
         ).fetchone()
@@ -256,7 +253,7 @@ def paused_since(chat_id: int) -> datetime | None:
 
 
 def set_paused(chat_id: int, at: datetime | None) -> None:
-    with _connect() as conn:
+    with connect() as conn:
         conn.execute(
             "INSERT INTO chats (chat_id, paused_at) VALUES (?, ?) "
             "ON CONFLICT (chat_id) DO UPDATE SET paused_at = excluded.paused_at",
@@ -265,13 +262,13 @@ def set_paused(chat_id: int, at: datetime | None) -> None:
 
 
 def auto_left(chat_id: int) -> bool:
-    with _connect() as conn:
+    with connect() as conn:
         row = conn.execute("SELECT auto_left FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
     return row is None or bool(row["auto_left"])
 
 
 def set_auto_left(chat_id: int, on: bool) -> None:
-    with _connect() as conn:
+    with connect() as conn:
         conn.execute(
             "INSERT INTO chats (chat_id, auto_left) VALUES (?, ?) "
             "ON CONFLICT (chat_id) DO UPDATE SET auto_left = excluded.auto_left",
@@ -283,7 +280,7 @@ def recent_messages(
     chat_id: int, before: datetime, window: timedelta, limit: int = 6
 ) -> list[tuple[str, str]]:
     since = (before - window).isoformat()
-    with _connect() as conn:
+    with connect() as conn:
         rows = conn.execute(
             "SELECT sent_at, text FROM messages "
             "WHERE chat_id = ? AND sent_at < ? AND sent_at >= ? ORDER BY sent_at DESC LIMIT ?",
@@ -293,7 +290,7 @@ def recent_messages(
 
 
 def message_seen(chat_id: int, message_id: int) -> bool:
-    with _connect() as conn:
+    with connect() as conn:
         row = conn.execute(
             "SELECT 1 FROM messages WHERE chat_id = ? AND message_id = ?",
             (chat_id, message_id),
@@ -301,197 +298,8 @@ def message_seen(chat_id: int, message_id: int) -> bool:
         return row is not None
 
 
-def _event_day(sent_at: datetime, event) -> date | None:
-    named = getattr(event, "date", None)
-    if named:
-        try:
-            day, month = (int(part) for part in named.split(".")[:2])
-            stated = date(sent_at.year, month, day)
-            if stated > sent_at.date():
-                stated = date(sent_at.year - 1, month, day)
-        except ValueError:
-            return None
-        return stated if (sent_at.date() - stated).days <= LATE_REPORT_DAYS else None
-    days_ago = getattr(event, "days_ago", None)
-    if isinstance(days_ago, int) and 0 < days_ago <= 7:
-        return sent_at.date() - timedelta(days=days_ago)
-    return None
-
-
-def _event_time(sent_at: datetime, event) -> datetime:
-    day = _event_day(sent_at, event)
-    base = sent_at if day is None else sent_at.replace(year=day.year, month=day.month, day=day.day)
-    mentioned = getattr(event, "time", None)
-    if not mentioned:
-        return base
-    try:
-        hour, minute = (int(part) for part in mentioned.split(":"))
-        occurred = base.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    except ValueError:
-        return base
-    if day is None and occurred > sent_at + timedelta(minutes=5):
-        occurred -= timedelta(days=1)
-    return occurred
-
-
-def _detail_score(kcal, feeding) -> int:
-    return (2 if kcal else 0) + (1 if feeding else 0)
-
-
-def _backfill_amount_ml(event) -> None:
-    if event.amount_ml is not None or not event.description:
-        return
-    match = _AMOUNT_ML_RE.search(event.description)
-    if match is None and (event.liquid or event.feeding == "tube"):
-        match = _AMOUNT_G_RE.search(event.description)
-    if match:
-        event.amount_ml = float(match.group(1).replace(",", "."))
-
-
-def _replace_rows(conn: sqlite3.Connection, ids: list[int], replacement: str) -> None:
-    edited_at = datetime.now().astimezone()
-    for event_id in ids:
-        row = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
-        _log_edit(conn, event_id, edited_at, "dedup", dict(row), {"replaced_by": replacement})
-    conn.execute(f"DELETE FROM events WHERE id IN ({','.join('?' * len(ids))})", ids)
-
-
-def _keeps_manual(rows: list[sqlite3.Row], kind: str, event) -> bool:
-    if any(row["message_id"] is None for row in rows):
-        logger.info("Keeping a manually added %s over: %r", kind, event.description)
-        return True
-    return False
-
-
-def _is_separate_portion(existing_ml, new_ml) -> bool:
-    return existing_ml is not None and new_ml is not None and existing_ml != new_ml
-
-
-def _same_form(row: sqlite3.Row, event) -> bool:
-    return bool(row["liquid"] or is_given(row)) == bool(
-        event.liquid or event.feeding == "tube"
-    )
-
-
-def _dedup_food(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, event) -> bool:
-    lo = (occurred_at - FOOD_DEDUP_WINDOW).isoformat()
-    hi = (occurred_at + FOOD_DEDUP_WINDOW).isoformat()
-    existing = [
-        row
-        for row in conn.execute(
-            "SELECT id, message_id, kcal, feeding, amount_ml, liquid, description FROM events "
-            "WHERE chat_id = ? AND type = 'food' AND occurred_at BETWEEN ? AND ?",
-            (chat_id, lo, hi),
-        )
-        if _same_form(row, event) and not _is_separate_portion(row["amount_ml"], event.amount_ml)
-    ]
-    if not existing:
-        return True
-    if _keeps_manual(existing, "feeding", event):
-        return False
-    best = max(_detail_score(row["kcal"], row["feeding"]) for row in existing)
-    if _detail_score(event.kcal, event.feeding) <= best:
-        logger.info("Skipping duplicate feeding: %r", event.description)
-        return False
-    ids = [row["id"] for row in existing]
-    _replace_rows(conn, ids, event.description)
-    logger.info("Replacing %d less detailed feeding(s) with: %r", len(ids), event.description)
-    return True
-
-
-def _dedup_toilet(
-    conn: sqlite3.Connection, chat_id: int, message_id: int, occurred_at: datetime, event
-) -> bool:
-    lo = (occurred_at - FOOD_DEDUP_WINDOW).isoformat()
-    hi = (occurred_at + FOOD_DEDUP_WINDOW).isoformat()
-    kind = classify.toilet_kind(event.description)
-    same_kind = [
-        row
-        for row in conn.execute(
-            "SELECT id, message_id, description FROM events "
-            "WHERE chat_id = ? AND type = 'toilet' AND occurred_at BETWEEN ? AND ? "
-            "AND message_id IS NOT ?",
-            (chat_id, lo, hi, message_id),
-        )
-        if classify.toilet_kind(row["description"]) == kind
-    ]
-    if not same_kind:
-        return True
-    if _keeps_manual(same_kind, "toilet visit", event):
-        return False
-    if len(event.description or "") <= max(len(row["description"] or "") for row in same_kind):
-        logger.info("Skipping duplicate toilet: %r", event.description)
-        return False
-    ids = [row["id"] for row in same_kind]
-    _replace_rows(conn, ids, event.description)
-    return True
-
-
-def _med_detail(dose, description) -> tuple[int, int]:
-    return (1 if dose else 0, len(description or ""))
-
-
-def _dedup_medication(
-    conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, event
-) -> bool:
-    name = (event.name or "").strip().lower()
-    if not name:
-        return True
-    lo = (occurred_at - MEDICATION_DEDUP_WINDOW).isoformat()
-    hi = (occurred_at + MEDICATION_DEDUP_WINDOW).isoformat()
-    same_drug = [
-        row
-        for row in conn.execute(
-            "SELECT id, message_id, name, dose, description FROM events "
-            "WHERE chat_id = ? AND type = 'medication' AND occurred_at BETWEEN ? AND ?",
-            (chat_id, lo, hi),
-        )
-        if (row["name"] or "").strip().lower() == name
-    ]
-    if not same_drug:
-        return True
-    if _keeps_manual(same_drug, "medication", event):
-        return False
-    best = max(_med_detail(row["dose"], row["description"]) for row in same_drug)
-    if _med_detail(event.dose, event.description) <= best:
-        logger.info("Skipping duplicate medication: %r", event.description)
-        return False
-    ids = [row["id"] for row in same_drug]
-    _replace_rows(conn, ids, event.description)
-    logger.info("Replacing %d less detailed medication(s) with: %r", len(ids), event.description)
-    return True
-
-
-def _states_ml(text: str | None) -> bool:
-    return bool(_AMOUNT_ML_RE.search(text or ""))
-
-
-def _drop_water_estimates(
-    conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, text: str
-) -> None:
-    if not _states_ml(text):
-        return
-    lo = (occurred_at - WATER_DEDUP_WINDOW).isoformat()
-    hi = (occurred_at + WATER_DEDUP_WINDOW).isoformat()
-    stale = [
-        row["id"]
-        for row in conn.execute(
-            "SELECT e.id AS id, m.text AS source FROM events e "
-            "LEFT JOIN messages m ON m.chat_id = e.chat_id AND m.message_id = e.message_id "
-            "WHERE e.chat_id = ? AND e.type = 'water' AND e.occurred_at BETWEEN ? AND ? "
-            "AND e.message_id IS NOT NULL",
-            (chat_id, lo, hi),
-        )
-        if not _states_ml(row["source"])
-    ]
-    if not stale:
-        return
-    _replace_rows(conn, stale, text)
-    logger.info("Replacing %d estimated water event(s) with exact %r", len(stale), text[:60])
-
-
 def note_bot_report(chat_id: int, message_id: int, sent_at: datetime, marker: str) -> None:
-    with _connect() as conn:
+    with connect() as conn:
         conn.execute(
             "INSERT OR IGNORE INTO messages (chat_id, message_id, sender, sent_at, text) "
             "VALUES (?, ?, ?, ?, ?)",
@@ -499,68 +307,16 @@ def note_bot_report(chat_id: int, message_id: int, sent_at: datetime, marker: st
         )
 
 
-def save_message(
-    chat_id: int,
-    message_id: int,
-    sender: str,
-    sent_at: datetime,
-    text: str,
-    events: list,
-    parsed: bool = True,
-) -> None:
-    with _connect() as conn:
-        cursor = conn.execute(
-            "INSERT OR IGNORE INTO messages (chat_id, message_id, sender, sent_at, text, parsed) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (chat_id, message_id, sender, sent_at.isoformat(), text, 1 if parsed else 0),
-        )
-        if cursor.rowcount == 0:
-            logger.info("Message %s already processed, skipping events", message_id)
-            return
-        _insert_events(conn, chat_id, message_id, sent_at, text, events)
-
-
 def message_added_kcal(chat_id: int, message_id: int) -> bool:
-    with _connect() as conn:
+    with connect() as conn:
         return conn.execute(
             "SELECT 1 FROM events WHERE chat_id = ? AND message_id = ? AND type = 'food' AND kcal > 0",
             (chat_id, message_id),
         ).fetchone() is not None
 
 
-def store_reparsed(
-    chat_id: int, message_id: int, sent_at: datetime, text: str, events: list
-) -> None:
-    with _connect() as conn:
-        _insert_events(conn, chat_id, message_id, sent_at, text, events)
-        conn.execute(
-            "UPDATE messages SET parsed = 1 WHERE chat_id = ? AND message_id = ?",
-            (chat_id, message_id),
-        )
-
-
-def replace_message_events(
-    chat_id: int, message_id: int, text: str, events: list, edited_at: datetime
-) -> None:
-    with _connect() as conn:
-        sent_at = datetime.fromisoformat(conn.execute(
-            "SELECT sent_at FROM messages WHERE chat_id = ? AND message_id = ?", (chat_id, message_id)
-        ).fetchone()["sent_at"])
-        old = conn.execute(
-            "SELECT * FROM events WHERE chat_id = ? AND message_id = ?", (chat_id, message_id)
-        ).fetchall()
-        for row in old:
-            _log_edit(conn, row["id"], edited_at, "reparse", dict(row), {"message_text": text})
-        conn.execute("DELETE FROM events WHERE chat_id = ? AND message_id = ?", (chat_id, message_id))
-        conn.execute(
-            "UPDATE messages SET text = ?, parsed = 1 WHERE chat_id = ? AND message_id = ?",
-            (text, chat_id, message_id),
-        )
-        _insert_events(conn, chat_id, message_id, sent_at, text, events)
-
-
 def unparsed_messages(limit: int = 20) -> list[sqlite3.Row]:
-    with _connect() as conn:
+    with connect() as conn:
         return list(
             conn.execute(
                 "SELECT chat_id, message_id, sent_at, text FROM messages "
@@ -570,85 +326,8 @@ def unparsed_messages(limit: int = 20) -> list[sqlite3.Row]:
         )
 
 
-def _profile_of(conn: sqlite3.Connection, chat_id: int) -> profiles.Profile:
-    profile = _animal(conn.execute(_CHAT_ANIMAL, (chat_id,)).fetchone())
-    if profile is None:
-        raise ValueError(f"chat {chat_id} has no profile, its events belong to no animal")
-    return profile
-
-
-def _insert_events(
-    conn: sqlite3.Connection,
-    chat_id: int,
-    message_id: int,
-    sent_at: datetime,
-    text: str,
-    events: list,
-) -> None:
-    is_recap = classify.is_recap(text)
-    profile = _profile_of(conn, chat_id)
-    subject = profile.subject_id
-    for event in events:
-        if is_recap and event.type in ("water", "food"):
-            logger.info("Skipping recap-derived %s event: %r", event.type, event.description)
-            continue
-        occurred_at = _event_time(sent_at, event)
-        if event.type == "food":
-            _backfill_amount_ml(event)
-            foods.fill_gravy(event)
-            if (
-                event.feeding == "tube"
-                and profile.tube
-                and event.amount_ml
-                and event.amount_ml > profile.tube.max_feed_ml
-            ):
-                logger.info(
-                    "Skipping implausible tube feeding %g ml (>%g): %r",
-                    event.amount_ml,
-                    profile.tube.max_feed_ml,
-                    event.description,
-                )
-                continue
-            if not _dedup_food(conn, chat_id, occurred_at, event):
-                continue
-        elif event.type == "water":
-            _drop_water_estimates(conn, chat_id, occurred_at, text)
-        elif event.type == "toilet":
-            if not _dedup_toilet(conn, chat_id, message_id, occurred_at, event):
-                continue
-        elif event.type == "medication":
-            if not _dedup_medication(conn, chat_id, occurred_at, event):
-                continue
-        conn.execute(
-            "INSERT INTO events "
-            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, weight_kg, breaths, asleep, description) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                chat_id,
-                subject,
-                message_id,
-                occurred_at.isoformat(),
-                care_day(occurred_at).isoformat(),
-                event.type,
-                event.name,
-                event.dose,
-                event.water_ml,
-                event.kcal,
-                event.feeding,
-                event.amount_ml,
-                event.temp_c,
-                1 if event.liquid else None,
-                event.water_fraction,
-                getattr(event, "weight_kg", None),
-                getattr(event, "breaths_per_min", None),
-                {True: 1, False: 0}.get(getattr(event, "asleep", None)),
-                event.description,
-            ),
-        )
-
-
 def events_for_day(subject: str, day: date) -> list[sqlite3.Row]:
-    with _connect() as conn:
+    with connect() as conn:
         return list(
             conn.execute(
                 "SELECT * FROM events WHERE subject = ? AND day = ? ORDER BY occurred_at",
@@ -658,7 +337,7 @@ def events_for_day(subject: str, day: date) -> list[sqlite3.Row]:
 
 
 def events_in_days(subject: str, day_from: date, day_to: date) -> list[sqlite3.Row]:
-    with _connect() as conn:
+    with connect() as conn:
         return list(
             conn.execute(
                 "SELECT * FROM events WHERE subject = ? AND day BETWEEN ? AND ? ORDER BY occurred_at",
@@ -668,7 +347,7 @@ def events_in_days(subject: str, day_from: date, day_to: date) -> list[sqlite3.R
 
 
 def medications_in_days(subject: str, day_from: date, day_to: date) -> list[sqlite3.Row]:
-    with _connect() as conn:
+    with connect() as conn:
         return list(
             conn.execute(
                 "SELECT * FROM events WHERE subject = ? AND type = 'medication' "
@@ -679,7 +358,7 @@ def medications_in_days(subject: str, day_from: date, day_to: date) -> list[sqli
 
 
 def last_weight(subject: str) -> tuple[date, float] | None:
-    with _connect() as conn:
+    with connect() as conn:
         row = conn.execute(
             "SELECT day, weight_kg FROM events WHERE subject = ? AND type = 'weight' AND weight_kg > 0 "
             "ORDER BY occurred_at DESC LIMIT 1",
@@ -689,13 +368,13 @@ def last_weight(subject: str) -> tuple[date, float] | None:
 
 
 def first_event_day(subject: str) -> date | None:
-    with _connect() as conn:
+    with connect() as conn:
         (day,) = conn.execute("SELECT min(day) FROM events WHERE subject = ?", (subject,)).fetchone()
     return None if day is None else date.fromisoformat(day)
 
 
 def events_with_messages(subject: str, day_from: date, day_to: date) -> list[sqlite3.Row]:
-    with _connect() as conn:
+    with connect() as conn:
         return list(
             conn.execute(
                 "SELECT e.*, m.text AS message_text FROM events e LEFT JOIN messages m "
@@ -709,7 +388,7 @@ def events_with_messages(subject: str, day_from: date, day_to: date) -> list[sql
 def events_in_range(subject: str, start: datetime, end: datetime) -> list[sqlite3.Row]:
     lo_day = care_day(start)
     hi_day = end.date()
-    with _connect() as conn:
+    with connect() as conn:
         rows = conn.execute(
             "SELECT * FROM events WHERE subject = ? AND day BETWEEN ? AND ? ORDER BY occurred_at",
             (subject, lo_day.isoformat(), hi_day.isoformat()),
@@ -746,7 +425,7 @@ def _event_with_source(conn: sqlite3.Connection, event_id: int) -> sqlite3.Row |
     return conn.execute(_EVENT_WITH_SOURCE, (event_id,)).fetchone()
 
 
-def _log_edit(
+def log_edit(
     conn: sqlite3.Connection,
     event_id: int,
     edited_at: datetime,
@@ -768,7 +447,7 @@ def _log_edit(
 
 
 def event_by_id(event_id: int) -> sqlite3.Row | None:
-    with _connect() as conn:
+    with connect() as conn:
         return _event_with_source(conn, event_id)
 
 
@@ -781,7 +460,7 @@ def list_events(
     if event_type is not None:
         filters.append(("type = ?", event_type))
     where = " AND ".join(clause for clause, _ in filters)
-    with _connect() as conn:
+    with connect() as conn:
         return list(
             conn.execute(
                 f"SELECT * FROM events WHERE {where} ORDER BY occurred_at, id",
@@ -796,7 +475,7 @@ def update_event(
     unknown = set(changes) - set(EDITABLE_COLUMNS)
     if unknown:
         raise ValueError(f"not editable: {', '.join(sorted(unknown))}")
-    with _connect() as conn:
+    with connect() as conn:
         current = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
         if current is None:
             return None
@@ -808,7 +487,7 @@ def update_event(
                 [*changed.values(), event_id],
             )
             before = {column: current[column] for column in changed}
-            _log_edit(conn, event_id, edited_at, "update", before, changed)
+            log_edit(conn, event_id, edited_at, "update", before, changed)
         return _event_with_source(conn, event_id)
 
 
@@ -822,28 +501,28 @@ def create_event(chat_id: int, subject: str, fields: dict[str, object], edited_a
         raise ValueError(f"not editable: {', '.join(sorted(unknown))}")
     values = {"chat_id": chat_id, "subject": subject, **fields}
     columns = ", ".join(values)
-    with _connect() as conn:
+    with connect() as conn:
         cursor = conn.execute(
             f"INSERT INTO events ({columns}) VALUES ({', '.join('?' * len(values))})",
             list(values.values()),
         )
-        _log_edit(conn, cursor.lastrowid, edited_at, "create", {}, values)
+        log_edit(conn, cursor.lastrowid, edited_at, "create", {}, values)
         return _event_with_source(conn, cursor.lastrowid)
 
 
 def delete_event(event_id: int, edited_at: datetime) -> sqlite3.Row | None:
-    with _connect() as conn:
+    with connect() as conn:
         row = _event_with_source(conn, event_id)
         if row is None:
             return None
         conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
         stored = {key: row[key] for key in row.keys() if key != "message_text"}  # noqa: SIM118 sqlite3.Row `in` checks values, not keys
-        _log_edit(conn, event_id, edited_at, "delete", stored, None)
+        log_edit(conn, event_id, edited_at, "delete", stored, None)
         return row
 
 
 def edits_for_event(event_id: int) -> list[sqlite3.Row]:
-    with _connect() as conn:
+    with connect() as conn:
         return list(
             conn.execute(
                 "SELECT * FROM event_edits WHERE event_id = ? ORDER BY id DESC",

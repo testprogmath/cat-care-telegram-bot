@@ -5,7 +5,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import db, foods, views
+from skrypka_bot import db, foods, ingest, views
 
 BERLIN = ZoneInfo("Europe/Berlin")
 _ids = itertools.count(1)
@@ -17,7 +17,7 @@ def record(chat_id, day, hour, **fields):
                  description="запись")
     event.update(fields)
     sent = datetime(day.year, day.month, day.day, hour, 0, tzinfo=BERLIN)
-    db.save_message(chat_id, next(_ids), "owner", sent, "сообщение", [SimpleNamespace(**event)])
+    ingest.save_message(chat_id, next(_ids), "owner", sent, "сообщение", [SimpleNamespace(**event)])
 
 
 def test_a_course_given_lately_is_current_with_its_dose_since_and_gaps(chat):

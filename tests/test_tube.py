@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from conftest import animal
 
-from skrypka_bot import db, profiles
+from skrypka_bot import db, ingest, profiles
 from skrypka_bot.profiles import Tube
 
 BERLIN = ZoneInfo("Europe/Berlin")
@@ -28,7 +28,7 @@ def tube_feed(chat_id, message_id, ml):
     event = SimpleNamespace(type="food", name=None, dose=None, water_ml=None, kcal=ml, feeding="tube",
                             amount_ml=ml, temp_c=None, liquid=True, water_fraction=None, time=None,
                             description=f"дала {ml:g} мл через зонд")
-    db.save_message(chat_id, message_id, "owner", datetime(2026, 10, 6, 12, message_id, tzinfo=BERLIN),
+    ingest.save_message(chat_id, message_id, "owner", datetime(2026, 10, 6, 12, message_id, tzinfo=BERLIN),
                     event.description, [event])
 
 

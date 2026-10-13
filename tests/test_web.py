@@ -16,7 +16,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
 
-from skrypka_bot import db, foods, web, web_auth
+from skrypka_bot import db, foods, ingest, web, web_auth
 
 BERLIN = ZoneInfo("Europe/Berlin")
 SECRET = b"s" * 40
@@ -66,7 +66,7 @@ def record(chat_id, hour, day=date(2026, 10, 6), text=None, **fields):
     event.update(fields)
     sent = datetime(day.year, day.month, day.day, hour, 0, tzinfo=BERLIN)
     record.n = getattr(record, "n", 0) + 1
-    db.save_message(chat_id, record.n, "owner", sent, text or f"сообщение {record.n}",
+    ingest.save_message(chat_id, record.n, "owner", sent, text or f"сообщение {record.n}",
                     [SimpleNamespace(**event)])
 
 
@@ -223,7 +223,7 @@ def test_pages_carry_a_strict_content_security_policy(settings):
 
 def test_the_read_only_connection_cannot_write(chat, monkeypatch):
     monkeypatch.setenv("DB_READ_ONLY", "1")
-    with pytest.raises(sqlite3.OperationalError), db._connect() as conn:
+    with pytest.raises(sqlite3.OperationalError), db.connect() as conn:
         conn.execute("DELETE FROM events")
     assert db.all_chats()
 

@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import db
+from skrypka_bot import db, ingest
 
 BERLIN = ZoneInfo("Europe/Berlin")
 
@@ -19,7 +19,7 @@ def food(name, grams, kcal=None, water_fraction=0.786):
 
 
 def stored(chat, *events):
-    db.save_message(chat, 1, "owner", datetime(2026, 10, 13, 12, 0, tzinfo=BERLIN), "подливка", list(events))
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 13, 12, 0, tzinfo=BERLIN), "подливка", list(events))
     with sqlite3.connect(db.DB_PATH) as conn:
         return [tuple(r) for r in conn.execute("SELECT kcal, water_fraction FROM events ORDER BY id")]
 
