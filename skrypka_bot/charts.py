@@ -10,7 +10,7 @@ import matplotlib.dates as mdates  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.ticker import MaxNLocator  # noqa: E402
 
-from . import db, meds  # noqa: E402
+from . import classify, db, figures, meds  # noqa: E402
 from .profiles import Profile  # noqa: E402
 
 WEEK_DAYS = 7
@@ -72,15 +72,15 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
             continue
         t = r["type"]
         if t == "water":
-            (given if db.is_given(r) else drank)[d] += r["water_ml"] or 0
+            (given if figures.is_given(r) else drank)[d] += r["water_ml"] or 0
         elif t == "food":
-            liquid_water[d] += db.food_water_ml(r)
-            if db.is_given(r):
+            liquid_water[d] += figures.food_water_ml(r)
+            if figures.is_given(r):
                 kcal_tube[d] += r["kcal"] or 0
             else:
                 kcal_self[d] += r["kcal"] or 0
         elif t == "toilet":
-            kind = db.toilet_kind(r["description"])
+            kind = classify.toilet_kind(r["description"])
             if kind == "stool":
                 stool[d] += 1
             elif kind == "urine":

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from skrypka_bot import db, profiles
+from skrypka_bot import db, ingest, profiles
 
 
 @pytest.fixture
@@ -33,24 +33,24 @@ def subjects(chat_id=None):
 
 def test_new_event_records_its_subject(fresh_db):
     db.upsert_chat(-1, "Чипуня")
-    db.save_message(-1, 1, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г сухариков", [food()])
+    ingest.save_message(-1, 1, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г сухариков", [food()])
     assert subjects() == ["chipunya"]
 
 
 def test_two_chats_keep_separate_subjects(fresh_db):
     db.upsert_chat(-1, "Чипуня")
     db.upsert_chat(-2, "Скрипа")
-    db.save_message(-1, 1, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
-    db.save_message(-2, 2, "owner", datetime(2026, 9, 25, 12, 0), "съела 5 г", [food("съела 5 г")])
+    ingest.save_message(-1, 1, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
+    ingest.save_message(-2, 2, "owner", datetime(2026, 9, 25, 12, 0), "съела 5 г", [food("съела 5 г")])
     assert subjects(-1) == ["chipunya"] and subjects(-2) == ["skripa"]
 
 
 def test_a_later_profile_change_does_not_rewrite_past_events(fresh_db):
     """The point of storing the subject: history keeps the animal it was recorded for."""
     db.upsert_chat(-1, "Чипуня")
-    db.save_message(-1, 1, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
+    ingest.save_message(-1, 1, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
     db.set_profile(-1, "skripa")
-    db.save_message(-1, 2, "owner", datetime(2026, 9, 25, 13, 0), "съела 6 г", [food("съела 6 г")])
+    ingest.save_message(-1, 2, "owner", datetime(2026, 9, 25, 13, 0), "съела 6 г", [food("съела 6 г")])
     assert subjects(-1) == ["chipunya", "skripa"]
 
 
@@ -81,7 +81,7 @@ def test_migration_backfills_existing_rows(tmp_path, monkeypatch):
 def test_migration_runs_once_and_leaves_later_rows_alone(fresh_db):
     """init() runs on every start; a second run must not restamp anything."""
     db.upsert_chat(-1, "Чипуня")
-    db.save_message(-1, 1, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
+    ingest.save_message(-1, 1, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
     db.set_profile(-1, "skripa")
     db.init()
     assert subjects(-1) == ["chipunya"]
@@ -106,7 +106,7 @@ def test_renaming_a_profile_key_does_not_change_stored_identity(fresh_db, monkey
     db.upsert_chat(-1, "Чипуня")
     with sqlite3.connect(db.DB_PATH) as conn:
         conn.execute("UPDATE chats SET profile = 'cat_two' WHERE chat_id = -1")
-    db.save_message(-1, 99, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
+    ingest.save_message(-1, 99, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
     assert subjects(-1) == ["chipunya"]
 
 
@@ -115,5 +115,5 @@ def test_subject_id_is_what_gets_stored_not_the_key(fresh_db, monkeypatch):
     diverged = replace(profiles.CHIPUNYA, subject_id="chipunya-2019")
     monkeypatch.setattr(profiles, "PROFILES", {**profiles.PROFILES, "chipunya": diverged})
     db.upsert_chat(-1, "Чипуня")
-    db.save_message(-1, 98, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
+    ingest.save_message(-1, 98, "owner", datetime(2026, 9, 25, 12, 0), "съел 5 г", [food()])
     assert subjects(-1) == ["chipunya-2019"]

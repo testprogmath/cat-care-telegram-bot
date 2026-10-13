@@ -2,15 +2,12 @@ import re
 import sqlite3
 from datetime import date, datetime, timedelta
 
-from . import db
+from . import classify, db, figures, fmt
 from .parser import condense_states
 from .profiles import Bands, Profile
 
 CONDENSE_THRESHOLD = 6
 STREAK_LOOKBACK_DAYS = 3
-
-_VOMIT_RE = re.compile(r"\bвырвало\b|\bрвот\w*|\bстошнил\w*|\bсрыгну\w*", re.IGNORECASE)
-_NO_VOMIT_RE = re.compile(r"без рвоты|не вырвало|не стошнил\w*|рвоты (?:не было|нет)", re.IGNORECASE)
 
 
 def _feeding_labels(profile: Profile) -> dict[str, str]:
@@ -31,20 +28,12 @@ def _kcal_totals(food: list[sqlite3.Row]) -> tuple[float, dict[str, float], int,
                 unquantified += 1
             continue
         total += kcal
-        by_feeding["tube" if db.is_given(e) else "self"] += kcal
+        by_feeding["tube" if figures.is_given(e) else "self"] += kcal
     return total, by_feeding, unquantified, gravy
 
 
 def _kcal_split(by_feeding: dict[str, float], labels: dict[str, str]) -> str:
-    return ", ".join(f"{labels[key]} ~{_num(value)}" for key, value in by_feeding.items() if value)
-
-
-def uncounted_wet(events: list[sqlite3.Row]) -> int:
-    return sum(
-        1
-        for e in events
-        if e["type"] == "food" and (e["liquid"] or db.is_given(e)) and not e["amount_ml"]
-    )
+    return ", ".join(f"{labels[key]} ~{fmt.num(value)}" for key, value in by_feeding.items() if value)
 
 
 def _wet_note(count: int) -> str:
@@ -52,15 +41,6 @@ def _wet_note(count: int) -> str:
         f"  ещё {count} {_plural_episodes(count)} влажного корма без количества — "
         "в зачёт воды не пошли"
     )
-
-
-def water_from_food(events: list[sqlite3.Row]) -> float:
-    return sum(db.food_water_ml(e) for e in events)
-
-
-def effective_water(events: list[sqlite3.Row]) -> float:
-    drink = sum(e["water_ml"] or 0 for e in events if e["type"] == "water")
-    return drink + water_from_food(events)
 
 
 def _time_of(row: sqlite3.Row) -> str:
@@ -88,29 +68,15 @@ def weighing_reminder(last: tuple[date, float] | None, today: date) -> str | Non
     if ago < WEIGHING_INTERVAL_DAYS:
         return None
     return (f"⚖️ Последнее взвешивание {day.strftime('%d.%m')}, {kg:g} кг — "
-            f"{ago} {_plural(ago, 'день', 'дня', 'дней')} назад. Пора взвесить.")
-
-
-def _plural(n: int, one: str, few: str, many: str) -> str:
-    if n % 100 in (11, 12, 13, 14):
-        return many
-    if n % 10 == 1:
-        return one
-    if n % 10 in (2, 3, 4):
-        return few
-    return many
+            f"{ago} {fmt.plural(ago, 'день', 'дня', 'дней')} назад. Пора взвесить.")
 
 
 def _plural_episodes(n: int) -> str:
-    return _plural(n, "эпизод", "эпизода", "эпизодов")
-
-
-def _num(value: float) -> str:
-    return f"{round(value, 1):g}"
+    return fmt.plural(n, "эпизод", "эпизода", "эпизодов")
 
 
 def _remaining(left: float) -> str:
-    return f"осталось {_num(left)}" if left > 0 else "цель достигнута"
+    return f"осталось {fmt.num(left)}" if left > 0 else "цель достигнута"
 
 
 def _uncounted_note(count: int) -> str:
@@ -122,7 +88,7 @@ def _uncounted_note(count: int) -> str:
 def _gravy_note(count: int) -> str:
     if not count:
         return ""
-    return f"плюс {count} {_plural(count, 'подливка', 'подливки', 'подливок')} без калорий, вода зачтена"
+    return f"плюс {count} {fmt.plural(count, 'подливка', 'подливки', 'подливок')} без калорий, вода зачтена"
 
 
 def _kcal_details(
@@ -141,19 +107,19 @@ def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) 
     kcal_goal = profile.kcal_goal
     food = [e for e in events if e["type"] == "food"]
     drink = sum(e["water_ml"] or 0 for e in events if e["type"] == "water")
-    water = effective_water(events)
+    water = figures.effective_water(events)
     total_kcal, kcal_by_feeding, unquantified, gravy = _kcal_totals(food)
 
     lines = [
         header,
-        f"\n💧 Вода: {_num(water)} из {water_goal:g} мл — {_remaining(water_goal - water)}",
-        f"  питьё {_num(drink)} + из корма {_num(water - drink)}",
+        f"\n💧 Вода: {fmt.num(water)} из {water_goal:g} мл — {_remaining(water_goal - water)}",
+        f"  питьё {fmt.num(drink)} + из корма {fmt.num(water - drink)}",
     ]
-    missed_wet = uncounted_wet(events)
+    missed_wet = figures.uncounted_wet(events)
     if missed_wet:
         lines.append(_wet_note(missed_wet))
     lines += [
-        f"\n🍗 Калории: ~{_num(total_kcal)} из {kcal_goal:g} — "
+        f"\n🍗 Калории: ~{fmt.num(total_kcal)} из {kcal_goal:g} — "
         f"{_remaining(kcal_goal - total_kcal)}",
     ]
     details = _kcal_details(kcal_by_feeding, unquantified, gravy, _feeding_labels(profile))
@@ -162,13 +128,9 @@ def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) 
     return "\n".join(lines)
 
 
-def kcal_total(events: list[sqlite3.Row]) -> float:
-    return sum(e["kcal"] or 0 for e in events if e["type"] == "food")
-
-
 def vomited(events: list[sqlite3.Row]) -> bool:
     return any(
-        _VOMIT_RE.search(e["description"] or "") and not _NO_VOMIT_RE.search(e["description"] or "")
+        classify.reports_vomiting(e["description"])
         for e in events
         if e["type"] in ("state", "other")
     )
@@ -178,7 +140,7 @@ def _low_kcal_streak(subject: str, day: date, threshold: float) -> int:
     streak = 0
     for back in range(STREAK_LOOKBACK_DAYS):
         events = db.events_for_day(subject, day - timedelta(days=back))
-        if not events or kcal_total(events) >= threshold:
+        if not events or figures.kcal_total(events) >= threshold:
             break
         streak += 1
     return streak
@@ -201,7 +163,7 @@ def _band_line(icon: str, label: str, bands: Bands, value: float, verdict: str =
         if bands.target_low == bands.target_high
         else f"{bands.target_low:g}–{bands.target_high:g}"
     )
-    return f"  {icon} {label}: {_num(value)} {bands.unit} из {target}{tail}"
+    return f"  {icon} {label}: {fmt.num(value)} {bands.unit} из {target}{tail}"
 
 
 def _plural_days(n: int) -> str:
@@ -220,8 +182,8 @@ def render_assessment(
     if kcal_bands is None or water_bands is None:
         return []
 
-    kcal = kcal_total(events)
-    water = effective_water(events)
+    kcal = figures.kcal_total(events)
+    water = figures.effective_water(events)
     if not complete:
         return [
             "\n⚖️ Сутки ещё идут:",
@@ -253,7 +215,7 @@ def render_assessment(
 
 
 def _need(value: float, threshold: float, unit: str, label: str) -> str:
-    return f"{_num(threshold - value)} {unit} до {label} {threshold:g}"
+    return f"{fmt.num(threshold - value)} {unit} до {label} {threshold:g}"
 
 
 def _catch_up(bands: Bands, value: float, forecast: float) -> str:
@@ -271,8 +233,8 @@ def _risk_metric(
 ) -> list[str]:
     forecast = value / pace
     lines = [
-        f"\n{icon} {label}: {_num(value)} {bands.unit} сейчас, по темпу к концу суток "
-        f"≈ {_num(forecast)} {bands.unit} — {_verdict(bands, forecast)}"
+        f"\n{icon} {label}: {fmt.num(value)} {bands.unit} сейчас, по темпу к концу суток "
+        f"≈ {fmt.num(forecast)} {bands.unit} — {_verdict(bands, forecast)}"
     ]
     catch_up = _catch_up(bands, value, forecast)
     if catch_up:
@@ -290,21 +252,21 @@ def render_risk(
     header = f"🚨 {profile.name} — прогноз на {now.strftime('%H:%M')} (сутки с {db.DAY_START})"
     kcal_bands = profile.kcal_bands
     water_bands = profile.water_bands
-    kcal = kcal_total(events)
-    water = effective_water(events)
+    kcal = figures.kcal_total(events)
+    water = figures.effective_water(events)
 
     if kcal_bands is None or water_bands is None:
         return (
             f"{header}\n"
-            f"\n🍗 Калории: ~{_num(kcal)} из {profile.kcal_goal:g}"
-            f"\n💧 Жидкость: {_num(water)} из {profile.water_goal_ml:g} мл"
+            f"\n🍗 Калории: ~{fmt.num(kcal)} из {profile.kcal_goal:g}"
+            f"\n💧 Жидкость: {fmt.num(water)} из {profile.water_goal_ml:g} мл"
             "\n\nПороги тревоги для этого профиля не заданы, прогноз по ним не считаю."
         )
 
     lines = [header]
     if pace <= 0:
         lines.append(
-            f"\n🍗 Еда: {_num(kcal)} ккал\n💧 Жидкость: {_num(water)} мл"
+            f"\n🍗 Еда: {fmt.num(kcal)} ккал\n💧 Жидкость: {fmt.num(water)} мл"
             "\n\nТемп считается с 09:00, для прогноза ещё рано."
         )
         return "\n".join(lines)
@@ -364,27 +326,27 @@ async def render_summary(
             lines.append(f"  {_time_of(e)} — {name}{dose}")
 
     drink = sum(e["water_ml"] or 0 for e in water)
-    food_water = water_from_food(events)
-    missed_wet = uncounted_wet(events)
+    food_water = figures.water_from_food(events)
+    missed_wet = figures.uncounted_wet(events)
     if water or food_water or missed_wet:
         total = drink + food_water
         lines.append(
-            f"\n💧 Вода: {_num(total)} мл из {water_goal:g} "
-            f"(питьё {_num(drink)} + из корма {_num(food_water)})"
+            f"\n💧 Вода: {fmt.num(total)} мл из {water_goal:g} "
+            f"(питьё {fmt.num(drink)} + из корма {fmt.num(food_water)})"
         )
         if missed_wet:
             lines.append(_wet_note(missed_wet))
-        drank = [e for e in water if not db.is_given(e)]
-        given = [e for e in water if db.is_given(e)]
+        drank = [e for e in water if not figures.is_given(e)]
+        given = [e for e in water if figures.is_given(e)]
         if drank or given:
-            parts = [f"{profile.pick('пила сама', 'пил сам')} {len(drank)} {_plural(len(drank), 'раз', 'раза', 'раз')}"
-                     f" ({_num(sum(e['water_ml'] or 0 for e in drank))} мл)"]
+            parts = [f"{profile.pick('пила сама', 'пил сам')} {len(drank)} {fmt.plural(len(drank), 'раз', 'раза', 'раз')}"
+                     f" ({fmt.num(sum(e['water_ml'] or 0 for e in drank))} мл)"]
             if given:
-                parts.append(f"дали {_num(sum(e['water_ml'] or 0 for e in given))} мл")
+                parts.append(f"дали {fmt.num(sum(e['water_ml'] or 0 for e in given))} мл")
             lines.append("  " + ", ".join(parts))
         for e in water:
             ml = f"{e['water_ml']:g} мл" if e["water_ml"] else e["description"]
-            source = " (дали)" if db.is_given(e) else f" ({profile.self_label})"
+            source = " (дали)" if figures.is_given(e) else f" ({profile.self_label})"
             lines.append(f"  {_time_of(e)} — {ml}{source}")
 
     if food:
@@ -398,7 +360,7 @@ async def render_summary(
         total_kcal, kcal_by_feeding, unquantified, gravy = _kcal_totals(food)
         if total_kcal:
             lines.append(
-                f"  Итого: ~{_num(total_kcal)} из {kcal_goal:g} ккал — "
+                f"  Итого: ~{fmt.num(total_kcal)} из {kcal_goal:g} ккал — "
                 f"{_remaining(kcal_goal - total_kcal)}"
             )
             details = _kcal_details(kcal_by_feeding, unquantified, gravy, labels)
@@ -421,7 +383,7 @@ async def render_summary(
         for e in breathing:
             state = {1: " во сне", 0: " не во сне"}.get(e["asleep"], "")
             flag = " — выше 30 во сне" if e["asleep"] == 1 and e["breaths"] > SLEEP_BREATHS_LIMIT else ""
-            lines.append(f"  {_time_of(e)} — {_num(e['breaths'])} в минуту{state}{flag}")
+            lines.append(f"  {_time_of(e)} — {fmt.num(e['breaths'])} в минуту{state}{flag}")
 
     temperature = [e for e in events if e["type"] == "temperature"]
     if temperature:

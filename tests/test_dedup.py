@@ -6,7 +6,7 @@ from datetime import datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import db
+from skrypka_bot import db, ingest
 
 BERLIN = ZoneInfo("Europe/Berlin")
 NOON = datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN)
@@ -20,7 +20,7 @@ def event(type, description, **fields):
 
 
 def message(chat_id, message_id, text, *events, minute=0):
-    db.save_message(chat_id, message_id, "owner", NOON.replace(minute=minute), text, list(events))
+    ingest.save_message(chat_id, message_id, "owner", NOON.replace(minute=minute), text, list(events))
 
 
 def manual(chat_id, type, description, **fields):

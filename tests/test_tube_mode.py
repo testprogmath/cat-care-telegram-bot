@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from conftest import animal
 
-from skrypka_bot import db, main, parser, profiles, summary
+from skrypka_bot import db, ingest, main, parser, profiles, summary
 from skrypka_bot.profiles import Tube
 
 BERLIN = ZoneInfo("Europe/Berlin")
@@ -44,7 +44,7 @@ def tube_feed(chat_id, message_id, ml):
     event = SimpleNamespace(type="food", name=None, dose=None, water_ml=None, kcal=ml, feeding="tube",
                             amount_ml=ml, temp_c=None, liquid=True, water_fraction=None, time=None,
                             description=f"дала {ml:g} мл")
-    db.save_message(chat_id, message_id, "owner", datetime(2026, 10, 11, 12, message_id, tzinfo=BERLIN),
+    ingest.save_message(chat_id, message_id, "owner", datetime(2026, 10, 11, 12, message_id, tzinfo=BERLIN),
                     event.description, [event])
     with sqlite3.connect(db.DB_PATH) as conn:
         return [row[0] for row in conn.execute("SELECT amount_ml FROM events WHERE chat_id = ?", (chat_id,))]

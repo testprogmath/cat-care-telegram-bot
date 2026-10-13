@@ -4,7 +4,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import charts, db, profiles
+from skrypka_bot import charts, ingest, profiles
 
 BERLIN = ZoneInfo("Europe/Berlin")
 
@@ -13,7 +13,7 @@ def test_week_bars_carry_their_values(chat, monkeypatch):
     event = dict(type="food", name=None, dose=None, water_ml=None, kcal=40.0, feeding="tube",
                  amount_ml=None, temp_c=None, liquid=None, water_fraction=None, time=None,
                  description="через зонд")
-    db.save_message(chat, 1, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "запись",
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "запись",
                     [SimpleNamespace(**event), SimpleNamespace(**{**event, "feeding": "self", "kcal": 12.0})])
     labels = []
     original = charts.plt.Axes.bar_label
@@ -34,9 +34,9 @@ def test_week_bars_carry_their_values(chat, monkeypatch):
 def test_water_drunk_and_water_given_are_separate_parts_of_the_bar(chat, monkeypatch):
     water = dict(type="water", name=None, dose=None, kcal=None, amount_ml=None, temp_c=None,
                  liquid=None, water_fraction=None, time=None)
-    db.save_message(chat, 1, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "попил", [
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "попил", [
         SimpleNamespace(**water, water_ml=30.0, feeding="self", description="попил 30 мл")])
-    db.save_message(chat, 2, "owner", datetime(2026, 10, 6, 16, 0, tzinfo=BERLIN), "дала", [
+    ingest.save_message(chat, 2, "owner", datetime(2026, 10, 6, 16, 0, tzinfo=BERLIN), "дала", [
         SimpleNamespace(**water, water_ml=25.0, feeding="tube", description="дала 25 мл")])
     bars = []
     original = charts.plt.Axes.bar

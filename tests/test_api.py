@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi.testclient import TestClient
 
-from skrypka_bot import api, db
+from skrypka_bot import api, db, ingest
 
 BERLIN = ZoneInfo("Europe/Berlin")
 TOKEN = "t" * 40
@@ -28,7 +28,7 @@ def saved(chat_id, type, sent_at=DAY_SENT, text="запись", **fields):
                 amount_ml=None, temp_c=None, liquid=None, water_fraction=None, time=None,
                 description="")
     event = SimpleNamespace(**{**base, **fields})
-    db.save_message(chat_id, next(_message_ids), "owner", sent_at, text, [event])
+    ingest.save_message(chat_id, next(_message_ids), "owner", sent_at, text, [event])
     with sqlite3.connect(db.DB_PATH) as conn:
         return conn.execute("SELECT max(id) FROM events").fetchone()[0]
 

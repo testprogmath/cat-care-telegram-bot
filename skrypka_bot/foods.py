@@ -3,7 +3,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import date
 
-from . import db
+from . import figures
 
 UNNAMED_DRY = "сухой, неизвестно какой"
 UNNAMED_WET = "жидкий, неизвестно какой"
@@ -112,7 +112,7 @@ def report(rows: list[sqlite3.Row]) -> tuple[list[FoodLine], TubeLine]:
     for row in rows:
         day = date.fromisoformat(row["day"])
         if row["type"] == "food":
-            if db.is_given(row):
+            if figures.is_given(row):
                 tube.feeds += 1
                 tube.kcal += row["kcal"] or 0
                 continue

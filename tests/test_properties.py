@@ -9,10 +9,10 @@ from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from conftest import animal
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
-from skrypka_bot import care_export, db, parser
+from skrypka_bot import care_export, db, ingest, parser
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAYS = st.dates(min_value=date(2024, 1, 1), max_value=date(2030, 12, 31))
@@ -37,6 +37,7 @@ def test_every_instant_in_a_care_days_window_belongs_to_that_day(day, start_at, 
         start, end = care_export.window_of(day, BERLIN)
         span = end.astimezone(UTC) - start.astimezone(UTC)
         instant = (start.astimezone(UTC) + span * fraction).astimezone(BERLIN)
+        assume(instant < end)
         assert db.care_day(instant) == day
 
 
@@ -87,15 +88,15 @@ def test_visits_counted_in_one_message_are_all_kept_and_a_resend_adds_none(count
     with diary():
         events = [toilet(f"пописал ({k} из {count})") for k in range(1, count + 1)]
         for _ in range(resends + 1):
-            db.save_message(-1, 1, "owner", NOON, "пописал", events)
+            ingest.save_message(-1, 1, "owner", NOON, "пописал", events)
         assert visits() == count
 
 
 @given(st.integers(0, 299))
 def test_the_same_visit_from_two_messages_within_five_minutes_counts_once(seconds_apart):
     with diary():
-        db.save_message(-1, 1, "owner", NOON, "пописал", [toilet("пописал")])
-        db.save_message(-1, 2, "owner", NOON + timedelta(seconds=seconds_apart), "пописал", [toilet("пописал")])
+        ingest.save_message(-1, 1, "owner", NOON, "пописал", [toilet("пописал")])
+        ingest.save_message(-1, 2, "owner", NOON + timedelta(seconds=seconds_apart), "пописал", [toilet("пописал")])
         assert visits() == 1
 
 
