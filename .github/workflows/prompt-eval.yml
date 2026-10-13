@@ -37,3 +37,12 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         working-directory: evals
         run: npx -y promptfoo@0.124.1 eval -c promptfooconfig.yaml --no-cache --no-progress-bar -o results.json
+      - name: Summarise the results
+        if: ${{ !cancelled() && hashFiles('evals/results.json') != '' }}
+        run: python evals/summary.py evals/results.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() && hashFiles('evals/results.json') != '' }}
+        with:
+          name: prompt-eval-results
+          path: evals/results.json
+          retention-days: 30
