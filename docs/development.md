@@ -47,8 +47,8 @@ keeps `results.json` as an artifact for 30 days.
 `fuzz/` holds Atheris fuzzers for code that reads free text from the chats or works with
 arbitrary moments: the toilet classifier, product names, dose normalisation and the care-day
 boundary, whose result must be the local date or the day before. ClusterFuzzLite builds them
-from `.clusterfuzzlite/` and runs them for five minutes on every pull request that changes
-`skrypka_bot/`, `fuzz/` or `.clusterfuzzlite/`. To run one by hand for a minute:
+from `.clusterfuzzlite/` and runs them for two minutes on every pull request that changes
+`skrypka_bot/`, `fuzz/` or `.clusterfuzzlite/`, and for half an hour every Sunday night. To run one by hand for a minute:
 
 ```bash
 pip install atheris -e .
