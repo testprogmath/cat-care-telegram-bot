@@ -41,6 +41,8 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 # Values always go through "?" placeholders; column names come from EDITABLE_COLUMNS.
 "skrypka_bot/db.py" = ["S608"]
+# Only "?" placeholders, one per row id, are joined into the SQL.
+"skrypka_bot/ingest.py" = ["S608"]
 # urlopen only ever gets fixed https URLs of Telegram.
 "skrypka_bot/web_auth.py" = ["S310"]
 # Tests assert, use fake secrets, and build naive datetimes on purpose to test that path.

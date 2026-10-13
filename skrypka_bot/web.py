@@ -16,7 +16,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
-from . import charts, db, foods, meds, views, web_auth
+from . import charts, db, foods, meds, timeline, views, web_auth
 from .profiles import Profile
 
 WEEK_DAYS = 7
@@ -237,9 +237,9 @@ def day_page(request: Request, day: date, person: Annotated[Viewer, Depends(view
              current: Annotated[Animal, Depends(animal)], show: str | None = None):
     rows = db.events_with_messages(current.subject, day, day)
     events, water = views.day_events(rows, show, current.profile.self_label)
-    clock = views.day_clock(rows, day, current.profile.kcal_goal, current.profile.water_goal_ml,
+    clock = timeline.day_clock(rows, day, current.profile.kcal_goal, current.profile.water_goal_ml,
                             datetime.now(timezone()))
-    legend = views.clock_legend(clock, current.profile.self_label,
+    legend = timeline.clock_legend(clock, current.profile.self_label,
                                 current.profile.pick("пила сама", "пил сам")) if clock else []
     return page(request, "day.html", person, current, day=day, events=events, water=water, clock=clock, legend=legend,
                 totals=views.day_rows(current.subject, day, day)[0], show=show, filters=views.FILTERS,
@@ -258,7 +258,7 @@ def meds_page(request: Request, person: Annotated[Viewer, Depends(viewer)],
                                                     current.profile.self_label)
                                for m in views.same_day_marks(marks) if start <= m.day <= end) if c][-4:]
     return page(request, "meds.html", person, current, start=start, end=end, ongoing=ongoing,
-                finished=finished, span=meds._span, comparisons=list(reversed(comparisons)))
+                finished=finished, span=meds.day_span, comparisons=list(reversed(comparisons)))
 
 
 @app.get("/{subject}/meds.png")

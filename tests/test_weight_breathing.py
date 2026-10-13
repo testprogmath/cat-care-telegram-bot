@@ -5,7 +5,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import db, profiles, summary
+from skrypka_bot import db, ingest, profiles, summary
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAY = date(2026, 10, 6)
@@ -17,7 +17,7 @@ def record(chat_id, n, hour, **fields):
                  description="запись")
     event.update(fields)
     sent = datetime(2026, 10, 6, hour, 0, tzinfo=BERLIN)
-    db.save_message(chat_id, n, "owner", sent, "сообщение", [SimpleNamespace(**event)])
+    ingest.save_message(chat_id, n, "owner", sent, "сообщение", [SimpleNamespace(**event)])
 
 
 def test_the_new_fields_are_stored_and_summarised(chat):

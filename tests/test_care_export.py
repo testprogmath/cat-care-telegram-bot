@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import care_export, db
+from skrypka_bot import care_export, db, ingest
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAY = date(2026, 9, 25)
@@ -26,7 +26,7 @@ def event(type, at="12:00", **overrides):
 def record(chat_id, *events, day=DAY, text="запись"):
     sent = datetime.combine(day, datetime.min.time(), tzinfo=BERLIN).replace(hour=23, minute=59)
     record.n = getattr(record, "n", 0) + 1
-    db.save_message(chat_id, record.n, "owner", sent, text, list(events))
+    ingest.save_message(chat_id, record.n, "owner", sent, text, list(events))
 
 
 def only(subject="chipunya", day=DAY, now=AFTER):

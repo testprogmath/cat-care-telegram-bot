@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import db, views
+from skrypka_bot import db, ingest, views
 
 BERLIN = ZoneInfo("Europe/Berlin")
 _ids = itertools.count(1)
@@ -17,7 +17,7 @@ def record(chat_id, day, hour=12, **fields):
                  description="запись")
     event.update(fields)
     sent = datetime(day.year, day.month, day.day, hour, 0, tzinfo=BERLIN)
-    db.save_message(chat_id, next(_ids), "owner", sent, "сообщение", [SimpleNamespace(**event)])
+    ingest.save_message(chat_id, next(_ids), "owner", sent, "сообщение", [SimpleNamespace(**event)])
 
 
 def test_weight_reports_the_change_over_a_week_and_a_month_and_goes_stale(chat):

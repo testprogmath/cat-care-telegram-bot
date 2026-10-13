@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import db
+from skrypka_bot import ingest
 
 BERLIN = ZoneInfo("Europe/Berlin")
 SENT = datetime(2026, 10, 6, 22, 45, tzinfo=BERLIN)
@@ -31,4 +31,4 @@ SENT = datetime(2026, 10, 6, 22, 45, tzinfo=BERLIN)
 )
 def test_the_event_lands_on_the_day_the_message_names(fields, sent, expected):
     event = SimpleNamespace(**{"time": None, "date": None, "days_ago": None, **fields})
-    assert db._event_time(sent, event) == expected
+    assert ingest._event_time(sent, event) == expected

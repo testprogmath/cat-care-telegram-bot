@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict
 
-from . import db, summary
+from . import classify, db, figures
 
 SCHEMA_VERSION = "care-day/1"
 SOURCE = "cat-care"
@@ -163,7 +163,7 @@ class CareDay(Strict):
 
 def _boundary() -> tuple[int, int]:
     """The care-day boundary db itself applies, not a second reading of the setting."""
-    return db._DAY_START_HOUR, db._DAY_START_MINUTE
+    return db.boundary()
 
 
 def day_start() -> str:
@@ -237,7 +237,7 @@ def _kcal(rows: list[sqlite3.Row]) -> tuple[float | None, bool, int]:
     counted = [r for r in food if r["kcal"]]
     if not counted:
         return None, False, len(food)
-    return round(summary.kcal_total(counted), 1), len(counted) == len(food), len(food)
+    return round(figures.kcal_total(counted), 1), len(counted) == len(food), len(food)
 
 
 def _drinking(rows: list[sqlite3.Row]) -> tuple[float | None, bool]:
@@ -252,8 +252,8 @@ def _water_from_food(rows: list[sqlite3.Row]) -> tuple[float | None, bool]:
     food = _food(rows)
     if not food:
         return None, False
-    wet_without_amount = summary.uncounted_wet(rows)
-    return round(summary.water_from_food(food), 1), wet_without_amount == 0
+    wet_without_amount = figures.uncounted_wet(rows)
+    return round(figures.water_from_food(food), 1), wet_without_amount == 0
 
 
 def _toilet(rows: list[sqlite3.Row]) -> tuple[int | None, int | None]:
@@ -264,7 +264,7 @@ def _toilet(rows: list[sqlite3.Row]) -> tuple[int | None, int | None]:
     on a day full of other toilet records. cat-care has no way to express "the owner
     watched all day and there was none", so no asserted-absence field exists here.
     """
-    kinds = [db.toilet_kind(r["description"]) for r in rows if r["type"] == "toilet"]
+    kinds = [classify.toilet_kind(r["description"]) for r in rows if r["type"] == "toilet"]
     stools = kinds.count("stool")
     urinations = kinds.count("urine")
     return (urinations or None), (stools or None)
@@ -278,9 +278,9 @@ def _vomiting(rows: list[sqlite3.Row], tz: ZoneInfo) -> tuple[list[VomitingEpiso
     episodes, asserted_absent = [], False
     for row in _narrative(rows):
         text = row["description"] or ""
-        if summary._NO_VOMIT_RE.search(text):
+        if classify.denies_vomiting(text):
             asserted_absent = True
-        elif summary._VOMIT_RE.search(text):
+        elif classify.reports_vomiting(text):
             episodes.append(VomitingEpisode(at=occurred_local(row, tz), note=text or None))
     return episodes, asserted_absent
 
@@ -344,7 +344,7 @@ def export(subject: str, since: date, until: date, now: datetime | None = None,
            debug: bool = False) -> list[CareDay]:
     tz = timezone()
     now = now or datetime.now(tz)
-    with db._connect() as conn:
+    with db.connect() as conn:
         assert_subjects_present(conn, since, until)
         rows = _rows(conn, subject, since, until)
     buckets: dict[date, list[sqlite3.Row]] = {}

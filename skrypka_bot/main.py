@@ -17,13 +17,10 @@ from telegram.ext import (
     filters,
 )
 
-from . import charts, db, meds, profiles
+from . import charts, db, figures, fmt, ingest, meds, profiles
 from .parser import ParseFailed, ParseRefused, parse_message
 from .profiles import Profile
 from .summary import (
-    _num,
-    _plural,
-    effective_water,
     render_progress,
     render_risk,
     render_summary,
@@ -247,7 +244,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         events = await parse_message(text, history, reply_text, report_shown, profile)
     except ParseRefused:
-        db.save_message(chat.id, msg.message_id, sender, sent_at, text, [])
+        ingest.save_message(chat.id, msg.message_id, sender, sent_at, text, [])
         await context.bot.send_message(
             chat.id, PARSE_REFUSED_NOTICE,
             reply_parameters=ReplyParameters(msg.message_id, allow_sending_without_reply=True),
@@ -261,11 +258,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     else:
         cause = None
     if cause is not None:
-        db.save_message(chat.id, msg.message_id, sender, sent_at, text, [], parsed=False)
+        ingest.save_message(chat.id, msg.message_id, sender, sent_at, text, [], parsed=False)
         logger.warning("Message %s stored unparsed, will retry", msg.message_id)
         await _warn_parse_broken(context.bot, chat.id, datetime.now(TIMEZONE), cause)
         return
-    db.save_message(chat.id, msg.message_id, sender, sent_at, text, events)
+    ingest.save_message(chat.id, msg.message_id, sender, sent_at, text, events)
     if events:
         logger.info("Saved %d event(s) from message %s", len(events), msg.message_id)
     if db.auto_left(chat.id) and db.message_added_kcal(chat.id, msg.message_id):
@@ -285,7 +282,7 @@ async def _reparse_edited(bot, chat_id: int, msg, text: str) -> None:
     except Exception:
         logger.exception("Edited message %s could not be parsed, keeping its old events", msg.message_id)
         return
-    db.replace_message_events(chat_id, msg.message_id, text, events, datetime.now(TIMEZONE))
+    ingest.replace_message_events(chat_id, msg.message_id, text, events, datetime.now(TIMEZONE))
     logger.info("Reparsed edited message %s: %d event(s)", msg.message_id, len(events))
     if db.auto_left(chat_id) and db.message_added_kcal(chat_id, msg.message_id):
         await _send_progress(bot, chat_id, reply_to=msg.message_id)
@@ -309,7 +306,7 @@ async def retry_unparsed(context: ContextTypes.DEFAULT_TYPE) -> None:
         except Exception:
             logger.exception("Reparsing still failing, leaving %d message(s) queued", len(pending))
             return
-        db.store_reparsed(row["chat_id"], row["message_id"], sent_at, row["text"], events)
+        ingest.store_reparsed(row["chat_id"], row["message_id"], sent_at, row["text"], events)
         logger.info("Reparsed message %s: %d event(s)", row["message_id"], len(events))
     _parse_warned_at.clear()
 
@@ -634,8 +631,8 @@ def render_water_reminder(profile: Profile, got: float, now: datetime) -> str | 
     if got >= goal or got >= expected - WATER_PACE_BUFFER_ML:
         return None
     text = (
-        f"💧 Напоминание: {profile.name} {profile.verb_received} {_num(got)} мл воды "
-        f"из {goal:g} (осталось {_num(goal - got)}).\n"
+        f"💧 Напоминание: {profile.name} {profile.verb_received} {fmt.num(got)} мл воды "
+        f"из {goal:g} (осталось {fmt.num(goal - got)}).\n"
         f"К {now:%H:%M} по графику должно быть ~{expected:.0f} мл, не хватает ~{expected - got:.0f} мл "
         f"(график: {goal:g} мл равномерно с {WATER_REMINDER_START_HOUR:02d}:00 "
         f"до {WATER_REMINDER_END_HOUR:02d}:00)."
@@ -645,8 +642,8 @@ def render_water_reminder(profile: Profile, got: float, now: datetime) -> str | 
         portions = math.ceil(remaining / profile.tube.water_portion_ml)
         by = f" до {WATER_REMINDER_END_HOUR:02d}:00" if now.hour < WATER_REMINDER_END_HOUR else ""
         text += (
-            f"\nЧтобы добрать {_num(remaining)} мл{by}: примерно {portions} "
-            f"{_plural(portions, 'раз', 'раза', 'раз')} по ~{remaining / portions:.0f} мл "
+            f"\nЧтобы добрать {fmt.num(remaining)} мл{by}: примерно {portions} "
+            f"{fmt.plural(portions, 'раз', 'раза', 'раз')} по ~{remaining / portions:.0f} мл "
             f"(не больше {profile.tube.water_portion_ml:g} мл за раз)."
         )
     return text
@@ -656,7 +653,7 @@ async def water_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
     now = datetime.now(TIMEZONE)
     day = db.care_day(now)
     for chat_id, profile in db.active_chats():
-        text = render_water_reminder(profile, effective_water(db.events_for_day(profile.subject_id, day)), now)
+        text = render_water_reminder(profile, figures.effective_water(db.events_for_day(profile.subject_id, day)), now)
         if text is None:
             continue
         try:
