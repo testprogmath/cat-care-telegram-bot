@@ -13,7 +13,7 @@ UNNAMED = "неизвестно"
 _PURINA = r"purina|пурина|путина"
 _PRODUCTS: list[tuple[str, str, str | None]] = [
     ("Felix Sensations", r"felix|феликс", r"sensation|сенсейшн|сенсэйшн"),
-    ("Felix Heerlijke Reepjes", r"felix|феликс", r"reepjes|streepjes|heerlijke"),
+    ("Felix Heerlijke Reepjes", r"reepjes|streepjes|heerlijke", None),
     ("Felix Sauce", r"felix|феликс", r"sauce|соус|gravy|подлив"),
     ("Felix Soup", r"felix|феликс", None),
     ("Gourmet soup", r"gourmet|гурме", None),
@@ -63,6 +63,20 @@ def product(text: str, liquid: bool | None = None, named: bool = True) -> str:
     if re.search(r"снек|снэк|snack", t):
         return UNNAMED_SNACK
     return text.strip() if named and text.strip() else UNNAMED
+
+
+GRAVY_PER_GRAM = {"Felix Heerlijke Reepjes": (0.30, 0.9)}
+
+
+def fill_gravy(event) -> None:
+    """Calories for gravy of a product whose gravy has an estimate, when the model left them out."""
+    if event.kcal or not event.amount_ml:
+        return
+    rates = GRAVY_PER_GRAM.get(product(f"{event.name or ''} {event.description or ''}", True))
+    if rates:
+        kcal_per_g, water_fraction = rates
+        event.kcal = round(event.amount_ml * kcal_per_g, 1)
+        event.water_fraction = water_fraction
 
 
 def refused_products(row: sqlite3.Row) -> list[str]:

@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import profiles
+from . import foods, profiles
 
 logger = logging.getLogger(__name__)
 
@@ -629,6 +629,7 @@ def _insert_events(
         occurred_at = _event_time(sent_at, event)
         if event.type == "food":
             _backfill_amount_ml(event)
+            foods.fill_gravy(event)
             if (
                 event.feeding == "tube"
                 and profile.tube
