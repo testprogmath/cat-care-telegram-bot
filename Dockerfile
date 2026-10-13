@@ -2,10 +2,11 @@ FROM python:3.12-slim@sha256:05cda9777409a9c3ffddd94a4c476b79f0769a0b4857f0c7ed9
 
 WORKDIR /app
 
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --require-hashes -r requirements.txt
 COPY pyproject.toml README.md ./
 COPY skrypka_bot ./skrypka_bot
-# hadolint ignore=DL3013
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
+RUN pip install --no-cache-dir --no-deps -e .
 
 VOLUME /app/data
 

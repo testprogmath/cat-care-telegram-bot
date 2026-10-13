@@ -1,10 +1,23 @@
 # Development
 
 ```bash
-pip install -e '.[dev]'
+pip install --require-hashes -r requirements-dev.txt
+pip install --no-deps -e .
 OPENAI_API_KEY=dummy pytest -q
 ruff check .
 ```
+
+Every dependency is locked with its hashes: `requirements.txt` for the image and the bot,
+`requirements-dev.txt` for tests and linting. `pyproject.toml` still says what the project
+needs; the lock files say exactly which builds are installed, and pip refuses anything whose
+hash differs. After changing a dependency in `pyproject.toml`, regenerate both:
+
+```bash
+uv pip compile pyproject.toml --generate-hashes --universal --python-version 3.11 -o requirements.txt
+uv pip compile pyproject.toml --extra dev --generate-hashes --universal --python-version 3.11 -o requirements-dev.txt
+```
+
+Dependabot proposes version bumps for both files.
 
 For the bot alone without Docker, run `skrypka-bot` with the variables from
 [configuration](configuration.md). The admin API is `care-api`, the site `care-web`.
@@ -32,7 +45,8 @@ each with the events the parser must produce for it. `evals/provider.py` runs th
 within 1% or 0.05. It calls OpenAI, so it costs a little and needs the key:
 
 ```bash
-pip install -e .
+pip install --require-hashes -r requirements.txt
+pip install --no-deps -e .
 cd evals
 OPENAI_API_KEY=... PYTHONPATH=.. PROMPTFOO_PYTHON=$(which python) \
   npx -y promptfoo@0.124.1 eval -c promptfooconfig.yaml --no-cache
