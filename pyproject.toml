@@ -45,3 +45,5 @@ ignore = ["E501"]
 "skrypka_bot/web_auth.py" = ["S310"]
 # Tests assert, use fake secrets, and build naive datetimes on purpose to test that path.
 "tests/*" = ["S101", "S105", "S106", "S608", "DTZ"]
+# A fuzzer's assert is its oracle, and it feeds naive datetimes on purpose.
+"fuzz/*" = ["S101", "DTZ"]
