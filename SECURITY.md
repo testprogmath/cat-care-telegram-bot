@@ -8,12 +8,29 @@ older is patched.
 
 ## Reporting a vulnerability
 
-Open a private report under **Security → Report a vulnerability** in this
-repository. Do not open a public issue for a vulnerability.
+Report a vulnerability privately through GitHub:
+<https://github.com/testprogmath/cat-care-telegram-bot/security/advisories/new>.
+Do not open a public issue, pull request or discussion for it.
 
-Include the steps to reproduce it. This is a personal project, so expect a
-first reply within a week. If the report is valid, the fix and the deploy
-follow in the same week. If it is not, you get the reasoning.
+Include:
+
+- what an attacker can do, and which part is affected: the bot, the admin API,
+  the web pages, the export or the deploy;
+- the steps to reproduce it, or a proof of concept;
+- the release you tested, from the tag or the release page.
+
+## What happens next
+
+This is a personal project, so expect:
+
+1. A first reply within a week.
+2. If the report is valid, the fix and the deploy in the same week. If it is
+   not, the reasoning.
+3. Once the fix is deployed, a GitHub security advisory that credits the
+   reporter, unless they ask not to be named.
+
+Please keep the report private until the advisory is published, or until 90 days
+have passed, whichever comes first.
 
 ## What matters here
 
