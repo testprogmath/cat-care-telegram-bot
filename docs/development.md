@@ -19,6 +19,27 @@ message produces the right events is not tested; see [the parser](parser.md).
 Tests of a rule that does not depend on which cat it is build a made-up animal with
 `animal()` from `tests/conftest.py`, with or without a tube.
 
+## The prompt regression set
+
+No unit test calls the model, so `evals/` holds a promptfoo set instead: real kinds of messages,
+each with the events the parser must produce for it. `evals/provider.py` runs the bot's own
+`parse_message`, and `evals/assert_events.py` compares only the fields a case lists, numbers
+within 1% or 0.05. It calls OpenAI, so it costs a little and needs the key:
+
+```bash
+pip install -e .
+cd evals
+OPENAI_API_KEY=... PYTHONPATH=.. PROMPTFOO_PYTHON=$(which python) \
+  npx -y promptfoo@0.124.1 eval -c promptfooconfig.yaml --no-cache
+```
+
+Add a case whenever a message was parsed wrong and the prompt was fixed for it. Write the
+message for the set or cut it down to the words that matter: the cases are public, so no
+names of people, places, clinics or sums of money from the chats.
+
+The `Prompt eval` workflow runs the set on every pull request that changes `parser.py`,
+`profiles.py` or `evals/`, with `OPENAI_API_KEY` from the `prompt-eval` environment.
+
 ## CI
 
 On every pull request and every push to `main`:

@@ -1,0 +1,64 @@
+# Each case: the animal ("skripa" or "chipunya"), optionally tube: out, the message, and the
+# events it must produce. Only the listed fields are compared; numbers within 1% or 0.05.
+# Messages are written for this set or reduced from the chats to the words that matter:
+# no names of people, places or sums of money.
+
+- description: drinking time at the animal's own rate
+  vars: {animal: skripa, text: "51сек пила водичку",
+         expected: [{type: water, feeding: self, water_ml: 14}]}
+- description: two drinking times are added
+  vars: {animal: skripa, text: "Попила водичку 39+40секунд сама",
+         expected: [{type: water, feeding: self, water_ml: 21.5}]}
+- description: the other animal's rate
+  vars: {animal: chipunya, text: "60 секунд пил водичку",
+         expected: [{type: water, feeding: self, water_ml: 27}]}
+- description: a worded estimate of drinking
+  vars: {animal: skripa, text: "немного попила",
+         expected: [{type: water, feeding: self, water_ml: 1}]}
+- description: water given by people
+  vars: {animal: skripa, text: "дала 10 мл воды",
+         expected: [{type: water, feeding: tube, water_ml: 10}]}
+- description: a tube feed and the water after it
+  vars: {animal: skripa, text: "Дала 18мл Royal Canin Recovery Liquid и 12мл воды",
+         expected: [{type: food, feeding: tube, amount_ml: 18, kcal: 18},
+                    {type: water, feeding: tube, water_ml: 12}]}
+- description: given by syringe while the tube is out
+  vars: {animal: skripa, tube: out, text: "дала 20 мл Recovery Liquid",
+         expected: [{type: food, feeding: tube, amount_ml: 20}]}
+- description: dry food by weight
+  vars: {animal: skripa, text: "съела 5 г сухариков PurinaOne",
+         expected: [{type: food, feeding: self, kcal: 18.5}]}
+- description: two soups in one message, broth only
+  vars: {animal: chipunya, text: "Съел (15+29)г двух разных супчиков Felix, без кусочков",
+         expected: [{type: food, amount_ml: 15, kcal: 6.4, water_fraction: 0.95},
+                    {type: food, amount_ml: 29, kcal: 12.3, water_fraction: 0.95}]}
+- description: soup with nothing said about the bits is broth
+  vars: {animal: chipunya, text: "Поел 17г супчика Феликс с курицей",
+         expected: [{type: food, amount_ml: 17, kcal: 7.2, water_fraction: 0.95}]}
+- description: a whole soup
+  vars: {animal: chipunya, text: "съел весь супчик Felix с бифом",
+         expected: [{type: food, amount_ml: 48, kcal: 23, water_fraction: 0.875}]}
+- description: soup offered is not soup eaten
+  vars: {animal: chipunya, text: "дала супчик Felix", expected: []}
+- description: gravy of food with pieces, no volume
+  vars: {animal: chipunya, text: "полизал подливку от Monge, кусочки не ел", expected: []}
+- description: Felix Sauce with water and a leftover
+  vars: {animal: skripa, text: "выпила Felix sauce с 20 мл воды, осталось 10г",
+         expected: [{type: food, amount_ml: 50, kcal: 8.33}]}
+- description: Felix Sensations by weight
+  vars: {animal: skripa, text: "съела 30 г Felix Sensations с уткой",
+         expected: [{type: food, amount_ml: 30, kcal: 22.2, water_fraction: 0.8}]}
+- description: Felix Heerlijke Reepjes by weight
+  vars: {animal: skripa, text: "съела 28 г Felix Heerlijke Reepjes Kip",
+         expected: [{type: food, amount_ml: 28, kcal: 25, water_fraction: 0.786}]}
+- description: a whole pouch of Heerlijke Reepjes, spelt Streepjes
+  vars: {animal: chipunya, text: "съел весь пауч Felix Heerlijke Streepjes с уткой",
+         expected: [{type: food, amount_ml: 85, kcal: 75.9, water_fraction: 0.786}]}
+- description: food put down and not eaten is a refusal, not a feeding
+  vars: {animal: skripa, text: "насыпала 12 г, не ест", expected: [{type: refusal}]}
+- description: a counted toilet visit is that many events
+  vars: {animal: skripa, text: "Ночью два раза пописала",
+         expected: [{type: toilet}, {type: toilet}]}
+- description: three visits
+  vars: {animal: chipunya, text: "Пописал три раза за ночь",
+         expected: [{type: toilet}, {type: toilet}, {type: toilet}]}
