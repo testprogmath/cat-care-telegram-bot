@@ -19,6 +19,11 @@ message produces the right events is not tested; see [the parser](parser.md).
 Tests of a rule that does not depend on which cat it is build a made-up animal with
 `animal()` from `tests/conftest.py`, with or without a tube.
 
+`tests/test_properties.py` states rules that must hold for every input and lets Hypothesis
+look for a counterexample: each instant of a care day's window belongs to that day, a later
+instant never falls on an earlier day (including the nights the clocks change), seconds of
+drinking round to the nearest half millilitre, and a resent or repeated report adds nothing.
+
 ## The prompt regression set
 
 No unit test calls the model, so `evals/` holds a promptfoo set instead: real kinds of messages,
