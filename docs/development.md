@@ -61,6 +61,19 @@ The `Prompt eval` workflow runs the set on every pull request that changes `pars
 writes a table of every case to the job's summary, with the reason next to each failure, and
 keeps `results.json` as an artifact for 30 days.
 
+## Fuzzing
+
+`fuzz/` holds Atheris fuzzers for code that reads free text from the chats or works with
+arbitrary moments: the toilet classifier, product names, dose normalisation and the care-day
+boundary, whose result must be the local date or the day before. ClusterFuzzLite builds them
+from `.clusterfuzzlite/` and runs them for two minutes on every pull request that changes
+`skrypka_bot/`, `fuzz/` or `.clusterfuzzlite/`, and for half an hour every Sunday night. To run one by hand for a minute:
+
+```bash
+pip install atheris -e .
+python fuzz/text_fuzzer.py -max_total_time=60
+```
+
 ## CI
 
 On every pull request and every push to `main`:
