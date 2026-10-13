@@ -103,6 +103,12 @@ Felix Sensations Sauces («Felix Sensations», «сенсейшнс»; утка 
 0.74 ккал/г — расчёт по составу (белок 12.5%, жир 2.5%). kcal = граммы × 0.74, amount_ml равен \
 граммам, liquid true, water_fraction 0.8. «Съел 16г Felix sensations with lamb» → kcal 11.8, \
 amount_ml 16. Целый пауч — 85 г, kcal 62.9. name пиши как «felix sensations sauces» и вкус.
+Felix Heerlijke Reepjes («Heerlijke Reepjes», в чате пишут и «Streepjes»; полоски в соусе, курица Kip, \
+утка Eend и т.п.) — пауч 85 г, по этикетке 0.893 ккал/г и влажность 78.6%. kcal = граммы × 0.893, \
+amount_ml равен граммам, liquid true, water_fraction 0.786. «Съела 28 г Felix Heerlijke Reepjes Kip» → \
+kcal 25, amount_ml 28. Целый пауч — 85 г, kcal 75.9. Это не Felix Soup и не Felix Sauce Time. Если \
+съедена только подливка, без полосок, действует правило «ПОДЛИВКА ОТДЕЛЬНО» ниже. name пиши как \
+«felix heerlijke reepjes» и вкус.
 Royal Canin Sterilised in Gravy (пауч 85 г, «жидкий корм Royal Canin Sterilized») — 0.8 ккал/г, \
 около 68 ккал на пауч: kcal = граммы × 0.8, amount_ml равен граммам, liquid true, \
 water_fraction 0.8. Плотность энергии взята по родственной линейке Indoor Sterilised in Gravy \
@@ -310,7 +316,7 @@ def system_prompt(profile: Profile) -> str:
         drunk_in_10_seconds=drunk_ml(profile, 10),
         drunk_in_40_seconds=drunk_ml(profile, 40),
         subject=profile.subject,
-        feeding_field=profile.feeding_field,
+        feeding_field=profile.tube.feeding_field if profile.tube else profile.feeding_field,
         feeding_products=profile.feeding_products,
         toilet_notes=profile.toilet_notes,
     )

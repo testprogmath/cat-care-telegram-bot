@@ -14,7 +14,7 @@ _NO_VOMIT_RE = re.compile(r"без рвоты|не вырвало|не стош�
 
 
 def _feeding_labels(profile: Profile) -> dict[str, str]:
-    return {"tube": "зонд", "self": profile.self_label}
+    return {"tube": "зонд" if profile.tube else "дали", "self": profile.self_label}
 
 
 def _kcal_totals(food: list[sqlite3.Row]) -> tuple[float, dict[str, float], int, int]:
