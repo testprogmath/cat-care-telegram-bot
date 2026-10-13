@@ -83,8 +83,12 @@ jobs:
         with:
           context: .
           push: false
+          load: true
+          tags: cat-care:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Smoke-test the image
+        run: docker run --rm -v "$PWD/tests/image_smoke.py:/smoke.py:ro" cat-care:ci python /smoke.py
 
   release:
     needs: [lint, static, tests, build]

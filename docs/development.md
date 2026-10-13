@@ -87,7 +87,9 @@ On every pull request and every push to `main`:
   for that comparison. The settings are in `.octocov.yml`.
 - `static`: shellcheck on the deploy scripts, hadolint on the Dockerfile, actionlint and
   zizmor on the workflows, and gitleaks on the whole git history.
-- `build`: the Docker image.
+- `build`: the Docker image, then `tests/image_smoke.py` inside it: every entry point imports,
+  a message writes two rows to a scratch database and reads them back, and the prompt files
+  are there. It catches a file left out of the image, which the tests run from source cannot.
 
 The `Scorecard` workflow runs on every push to `main` and every Saturday. It rates the
 repository on the OpenSSF Scorecard checks (pinned dependencies, token permissions, branch
