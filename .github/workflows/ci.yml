@@ -96,6 +96,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
+      id-token: write
     outputs:
       tag: ${{ steps.version.outputs.tag }}
     env:
@@ -135,6 +136,18 @@ jobs:
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: gh release create "$TAG" --target "$SHA" --title "$TAG" --generate-notes
+      - if: steps.version.outputs.tag != ''
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: git archive --format=tar.gz --prefix="cat-care-$TAG/" -o "cat-care-$TAG.tar.gz" "$SHA"
+      - if: steps.version.outputs.tag != ''
+        uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
+        with:
+          inputs: cat-care-${{ steps.version.outputs.tag }}.tar.gz
+      - if: steps.version.outputs.tag != ''
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release upload "$TAG" "cat-care-$TAG.tar.gz" "cat-care-$TAG.tar.gz.sigstore.json"
 
   deploy:
     needs: release
