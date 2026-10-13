@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from html import escape
 
+from . import fmt
 from .profiles import Profile
-from .summary import _plural
 
 UNNAMED = "не названо"
 NO_DOSE = "без дозы"
@@ -154,7 +154,7 @@ def render_period(rows: list[sqlite3.Row], day_from: date, day_to: date, profile
     span = (day_to - day_from).days + 1
     header = (
         f"💊 {profile.name}: лекарства {_dm(day_from)}–{_dm(day_to)} "
-        f"({span} {_plural(span, 'день', 'дня', 'дней')})"
+        f"({span} {fmt.plural(span, 'день', 'дня', 'дней')})"
     )
     found = courses(rows)
     if not found:
@@ -165,8 +165,8 @@ def render_period(rows: list[sqlite3.Row], day_from: date, day_to: date, profile
         lines += [
             "",
             _label(course.drug),
-            f"  {given} {_plural(given, 'приём', 'приёма', 'приёмов')} "
-            f"за {on_days} {_plural(on_days, 'день', 'дня', 'дней')}, "
+            f"  {given} {fmt.plural(given, 'приём', 'приёма', 'приёмов')} "
+            f"за {on_days} {fmt.plural(on_days, 'день', 'дня', 'дней')}, "
             f"{_span(course.first, course.last)}",
             f"  дозы: {_doses(course)}",
         ]

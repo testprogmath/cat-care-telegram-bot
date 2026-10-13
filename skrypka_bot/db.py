@@ -13,22 +13,6 @@ logger = logging.getLogger(__name__)
 
 DB_PATH = Path(os.environ.get("DB_PATH", "data/skrypka.db"))
 
-LIQUID_FOOD_WATER_FRACTION = float(os.environ.get("LIQUID_FOOD_WATER_FRACTION", "0.85"))
-
-
-def is_given(row: sqlite3.Row) -> bool:
-    """People gave it, through the tube or by syringe; anything else the animal took itself."""
-    return row["feeding"] == "tube"
-
-
-def is_liquid_food(row: sqlite3.Row) -> bool:
-    return row["type"] == "food" and bool(is_given(row) or row["liquid"])
-
-
-def food_water_ml(row: sqlite3.Row) -> float:
-    if not is_liquid_food(row):
-        return 0.0
-    return (row["amount_ml"] or 0) * (row["water_fraction"] or LIQUID_FOOD_WATER_FRACTION)
 
 DAY_START = os.environ.get("DAY_START", "00:00")
 _DAY_START_HOUR, _DAY_START_MINUTE = (int(part) for part in DAY_START.split(":"))

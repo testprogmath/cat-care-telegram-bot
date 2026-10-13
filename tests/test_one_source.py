@@ -4,7 +4,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import care_export, db, ingest, profiles, summary, views
+from skrypka_bot import care_export, db, figures, ingest, profiles, summary, views
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAY = date(2026, 10, 6)
@@ -29,9 +29,9 @@ def test_a_diary_moved_to_another_chat_keeps_one_set_of_figures(chat):
     [site] = views.day_rows("chipunya", DAY, DAY)
     [export] = care_export.export("chipunya", DAY, DAY, now=datetime(2026, 10, 7, 12, 0, tzinfo=BERLIN))
 
-    assert summary.kcal_total([e for e in bot if e["type"] == "food"]) == 52.0
+    assert figures.kcal_total([e for e in bot if e["type"] == "food"]) == 52.0
     assert site.kcal == export.food_kcal == 52.0
-    assert summary.effective_water(bot) == site.drinking_ml == export.water_drinking_ml == 30.0
+    assert figures.effective_water(bot) == site.drinking_ml == export.water_drinking_ml == 30.0
     assert site.drank_ml == 30.0 and site.drank_times == 2
     assert profiles.get(db.profile_for(NEW_CHAT).key).subject_id == "chipunya"
 

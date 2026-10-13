@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict
 
-from . import classify, db, summary
+from . import classify, db, figures
 
 SCHEMA_VERSION = "care-day/1"
 SOURCE = "cat-care"
@@ -237,7 +237,7 @@ def _kcal(rows: list[sqlite3.Row]) -> tuple[float | None, bool, int]:
     counted = [r for r in food if r["kcal"]]
     if not counted:
         return None, False, len(food)
-    return round(summary.kcal_total(counted), 1), len(counted) == len(food), len(food)
+    return round(figures.kcal_total(counted), 1), len(counted) == len(food), len(food)
 
 
 def _drinking(rows: list[sqlite3.Row]) -> tuple[float | None, bool]:
@@ -252,8 +252,8 @@ def _water_from_food(rows: list[sqlite3.Row]) -> tuple[float | None, bool]:
     food = _food(rows)
     if not food:
         return None, False
-    wet_without_amount = summary.uncounted_wet(rows)
-    return round(summary.water_from_food(food), 1), wet_without_amount == 0
+    wet_without_amount = figures.uncounted_wet(rows)
+    return round(figures.water_from_food(food), 1), wet_without_amount == 0
 
 
 def _toilet(rows: list[sqlite3.Row]) -> tuple[int | None, int | None]:

@@ -17,13 +17,10 @@ from telegram.ext import (
     filters,
 )
 
-from . import charts, db, ingest, meds, profiles
+from . import charts, db, figures, fmt, ingest, meds, profiles
 from .parser import ParseFailed, ParseRefused, parse_message
 from .profiles import Profile
 from .summary import (
-    _num,
-    _plural,
-    effective_water,
     render_progress,
     render_risk,
     render_summary,
@@ -634,8 +631,8 @@ def render_water_reminder(profile: Profile, got: float, now: datetime) -> str | 
     if got >= goal or got >= expected - WATER_PACE_BUFFER_ML:
         return None
     text = (
-        f"💧 Напоминание: {profile.name} {profile.verb_received} {_num(got)} мл воды "
-        f"из {goal:g} (осталось {_num(goal - got)}).\n"
+        f"💧 Напоминание: {profile.name} {profile.verb_received} {fmt.num(got)} мл воды "
+        f"из {goal:g} (осталось {fmt.num(goal - got)}).\n"
         f"К {now:%H:%M} по графику должно быть ~{expected:.0f} мл, не хватает ~{expected - got:.0f} мл "
         f"(график: {goal:g} мл равномерно с {WATER_REMINDER_START_HOUR:02d}:00 "
         f"до {WATER_REMINDER_END_HOUR:02d}:00)."
@@ -645,8 +642,8 @@ def render_water_reminder(profile: Profile, got: float, now: datetime) -> str | 
         portions = math.ceil(remaining / profile.tube.water_portion_ml)
         by = f" до {WATER_REMINDER_END_HOUR:02d}:00" if now.hour < WATER_REMINDER_END_HOUR else ""
         text += (
-            f"\nЧтобы добрать {_num(remaining)} мл{by}: примерно {portions} "
-            f"{_plural(portions, 'раз', 'раза', 'раз')} по ~{remaining / portions:.0f} мл "
+            f"\nЧтобы добрать {fmt.num(remaining)} мл{by}: примерно {portions} "
+            f"{fmt.plural(portions, 'раз', 'раза', 'раз')} по ~{remaining / portions:.0f} мл "
             f"(не больше {profile.tube.water_portion_ml:g} мл за раз)."
         )
     return text
@@ -656,7 +653,7 @@ async def water_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
     now = datetime.now(TIMEZONE)
     day = db.care_day(now)
     for chat_id, profile in db.active_chats():
-        text = render_water_reminder(profile, effective_water(db.events_for_day(profile.subject_id, day)), now)
+        text = render_water_reminder(profile, figures.effective_water(db.events_for_day(profile.subject_id, day)), now)
         if text is None:
             continue
         try:

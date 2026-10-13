@@ -5,7 +5,7 @@ import re
 import sqlite3
 from datetime import date, datetime, timedelta
 
-from . import classify, db, foods, profiles
+from . import classify, db, figures, foods, profiles
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ def _is_separate_portion(existing_ml, new_ml) -> bool:
 
 
 def _same_form(row: sqlite3.Row, event) -> bool:
-    return bool(row["liquid"] or db.is_given(row)) == bool(
+    return bool(row["liquid"] or figures.is_given(row)) == bool(
         event.liquid or event.feeding == "tube"
     )
 

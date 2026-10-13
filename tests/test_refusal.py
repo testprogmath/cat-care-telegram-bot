@@ -6,7 +6,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import db, ingest, profiles, summary
+from skrypka_bot import db, figures, ingest, profiles, summary
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAY = date(2026, 10, 5)
@@ -37,4 +37,4 @@ def test_the_day_lists_what_he_would_not_eat(chat):
         "  09:00 — royal canin urinary care",
         "  12:00 — отказался от корма",
     ]
-    assert summary.kcal_total(events) == 10.0
+    assert figures.kcal_total(events) == 10.0
