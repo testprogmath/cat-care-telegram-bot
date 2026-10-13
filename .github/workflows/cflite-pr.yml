@@ -12,6 +12,11 @@ permissions: read-all
 jobs:
   pr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      FUZZ_SECONDS: 120
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -23,10 +28,44 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sanitizer: address
       - name: Run fuzzers
+        id: run
         uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          fuzz-seconds: 120
+          fuzz-seconds: ${{ env.FUZZ_SECONDS }}
           mode: code-change
           sanitizer: address
           output-sarif: true
+      - name: Report on the pull request
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.run.outcome }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          marker="<!-- clusterfuzzlite-report -->"
+          crashes=$(find "$GITHUB_WORKSPACE/out/artifacts" -type f 2>/dev/null | wc -l | tr -d " ")
+          sarif="$GITHUB_WORKSPACE/cifuzz-sarif/results.sarif"
+          kind=$( [ -f "$sarif" ] && jq -r '.runs[0].results[0].message.text // empty' "$sarif" || true)
+          if [ "$OUTCOME" = success ]; then
+            verdict="✅ no crash in ${FUZZ_SECONDS} seconds of fuzzing"
+          else
+            verdict="❌ the fuzzers found a crash${kind:+: \`$kind\`}"
+          fi
+          body="$marker
+          ### ClusterFuzzLite: $verdict
+
+          | | |
+          |---|---|
+          | Fuzzers | \`fuzz/*_fuzzer.py\` |
+          | Crashing inputs saved | $crashes |
+          | Run | [logs and artifacts]($RUN_URL) |"
+          body=$(printf '%s\n' "$body" | sed 's/^          //')
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" >/dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" >/dev/null
+          fi

@@ -67,7 +67,9 @@ keeps `results.json` as an artifact for 30 days.
 arbitrary moments: the toilet classifier, product names, dose normalisation and the care-day
 boundary, whose result must be the local date or the day before. ClusterFuzzLite builds them
 from `.clusterfuzzlite/` and runs them for two minutes on every pull request that changes
-`skrypka_bot/`, `fuzz/` or `.clusterfuzzlite/`, and for half an hour every Sunday night. To run one by hand for a minute:
+`skrypka_bot/`, `fuzz/` or `.clusterfuzzlite/`, and for half an hour every Sunday night. The
+pull request gets one comment, updated on each run, with the result, the kind of crash if
+there was one, how many crashing inputs were saved and a link to the run. To run one by hand for a minute:
 
 ```bash
 pip install atheris -e .
