@@ -8,7 +8,7 @@ from skrypka_bot import main
 from skrypka_bot.profiles import Tube
 
 WITHOUT_TUBE = animal(water_goal_ml=280.0)
-WITH_TUBE = animal(tube=Tube(water_portion_ml=25.0, max_feed_ml=100.0))
+WITH_TUBE = animal(tube=Tube(water_portion_ml=25.0, max_feed_ml=100.0, feeding_field="через зонд"))
 
 
 def test_behind_schedule_the_reminder_states_the_expected_amount_and_the_gap():

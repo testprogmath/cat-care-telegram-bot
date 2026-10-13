@@ -17,7 +17,7 @@ WITH_TUBE, WITHOUT_TUBE = -2, -3
 
 @pytest.fixture
 def animals(chat, monkeypatch):
-    tubed = animal("tubed", tube=Tube(water_portion_ml=25.0, max_feed_ml=100.0))
+    tubed = animal("tubed", tube=Tube(water_portion_ml=25.0, max_feed_ml=100.0, feeding_field="через зонд"))
     untubed = animal("untubed")
     monkeypatch.setattr(profiles, "PROFILES", {**profiles.PROFILES, "tubed": tubed, "untubed": untubed})
     db.set_profile(WITH_TUBE, "tubed")
