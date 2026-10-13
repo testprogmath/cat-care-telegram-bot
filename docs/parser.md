@@ -30,7 +30,7 @@ a refusal and no feeding.
 The model's answer is not stored blindly. Before events reach the diary:
 
 - Food and water from a message that reads like a daily recap are discarded. The test is
-  a word list (`_RECAP_RE` in `db.py`: "за сутки", "за день", "в сумме" and a few more),
+  a word list (`is_recap` in `classify.py`: "за сутки", "за день", "в сумме" and a few more),
   so a real feed written as "за день первый раз съела 5 г" is discarded too.
 - For an animal with a tube, a single tube feed above the tube's limit (100 ml by default)
   is rejected as implausible.

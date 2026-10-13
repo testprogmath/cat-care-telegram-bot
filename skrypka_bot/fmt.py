@@ -14,3 +14,6 @@ def plural(n: int, one: str, few: str, many: str) -> str:
 def num(value: float) -> str:
     return f"{round(value, 1):g}"
 
+
+def comma(value: float) -> str:
+    return f"{value:g}".replace(".", ",")

@@ -18,6 +18,10 @@ DAY_START = os.environ.get("DAY_START", "00:00")
 _DAY_START_HOUR, _DAY_START_MINUTE = (int(part) for part in DAY_START.split(":"))
 
 
+def boundary() -> tuple[int, int]:
+    return _DAY_START_HOUR, _DAY_START_MINUTE
+
+
 def timezone() -> ZoneInfo:
     return ZoneInfo(os.environ.get("TIMEZONE", "Europe/Berlin"))
 

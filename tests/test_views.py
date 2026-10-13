@@ -5,7 +5,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import db, foods, ingest, views
+from skrypka_bot import db, foods, ingest, timeline, views
 
 BERLIN = ZoneInfo("Europe/Berlin")
 _ids = itertools.count(1)
@@ -88,7 +88,7 @@ def test_the_day_clock_places_each_event_on_its_hour(chat):
     record(chat, date(2026, 10, 5), 18, type="toilet", description="пыталась пописать, не получилось")
     record(chat, date(2026, 10, 5), 20, name="серения", dose="6 мг")
     rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
-    clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, 9, tzinfo=BERLIN))
+    clock = timeline.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, 9, tzinfo=BERLIN))
     assert clock.kcal_pct == 50.0 and round(clock.water_pct, 1) == 11.8
     assert [(m.x, m.shape, m.tone) for m in clock.marks] == [
         (88.5, "circle", "tube"), (137.0, "circle", "self"), (137.0, "square", "stool"),
@@ -101,14 +101,14 @@ def test_the_day_clock_places_each_event_on_its_hour(chat):
 def test_today_stops_the_lines_at_now(chat):
     record(chat, date(2026, 10, 5), 6, type="food", feeding="self", kcal=25.0, description="поела")
     rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
-    clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 5, 12, tzinfo=BERLIN))
+    clock = timeline.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 5, 12, tzinfo=BERLIN))
     assert clock.kcal_line.split()[-1] == f"137.0,{clock.y(10)}"
 
 
 def test_a_day_with_only_notes_has_no_clock(chat):
     record(chat, date(2026, 10, 5), 9, type="state", description="спит")
     rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
-    assert views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN)) is None
+    assert timeline.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN)) is None
 
 
 def test_the_legend_lists_only_the_marks_the_day_has(chat):
@@ -116,8 +116,8 @@ def test_the_legend_lists_only_the_marks_the_day_has(chat):
     record(chat, date(2026, 10, 5), 7, type="water", feeding="tube", water_ml=15.0, description="промыли зонд")
     record(chat, date(2026, 10, 5), 12, type="toilet", description="пописала")
     rows = db.events_with_messages("chipunya", date(2026, 10, 5), date(2026, 10, 5))
-    clock = views.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN))
-    legend = views.clock_legend(clock, "сама", "пила сама")
+    clock = timeline.day_clock(rows, date(2026, 10, 5), 250, 340, datetime(2026, 10, 7, tzinfo=BERLIN))
+    legend = timeline.clock_legend(clock, "сама", "пила сама")
     assert [(name, [(i.shape, i.tone, i.label) for i in items]) for name, items in legend] == [
         ("Еда", [("circle", "tube", "зонд")]),
         ("Вода", [("ring", "drink", "дали в зонд")]),

@@ -53,7 +53,7 @@ def _drug(row: sqlite3.Row) -> str:
     return (row["name"] or "").strip().lower() or UNNAMED
 
 
-def _label(drug: str) -> str:
+def drug_label(drug: str) -> str:
     form = FORMS.get(drug)
     return f"{drug} ({form})" if form else drug
 
@@ -122,11 +122,11 @@ def _dm(day: date) -> str:
     return day.strftime("%d.%m")
 
 
-def _span(first: date, last: date) -> str:
+def day_span(first: date, last: date) -> str:
     return _dm(first) if first == last else f"{_dm(first)}–{_dm(last)}"
 
 
-def _doses(course: Course) -> str:
+def dose_summary(course: Course) -> str:
     ranked = sorted(course.doses.items(), key=lambda item: (item[0] == NO_DOSE, -item[1]))
     return ", ".join(f"{dose} ×{n}" for dose, n in ranked)
 
@@ -142,7 +142,7 @@ def render_week(rows: list[sqlite3.Row], end_day: date, profile: Profile) -> str
     for course in found:
         cells = " ".join(f"{course.days[d] or '·':>2}" for d in days)
         grid.append(f"{course.drug:<{width}} {cells}")
-    doses = [f"{_label(c.drug)}: {_doses(c)}" for c in found]
+    doses = [f"{drug_label(c.drug)}: {dose_summary(c)}" for c in found]
     return (
         f"{escape(header)}\n<pre>{escape(chr(10).join(grid))}</pre>\n"
         "Число в клетке: сколько раз дали за сутки, · не записано.\n\n"
@@ -164,10 +164,10 @@ def render_period(rows: list[sqlite3.Row], day_from: date, day_to: date, profile
         given, on_days = course.given, len(course.days)
         lines += [
             "",
-            _label(course.drug),
+            drug_label(course.drug),
             f"  {given} {fmt.plural(given, 'приём', 'приёма', 'приёмов')} "
             f"за {on_days} {fmt.plural(on_days, 'день', 'дня', 'дней')}, "
-            f"{_span(course.first, course.last)}",
-            f"  дозы: {_doses(course)}",
+            f"{day_span(course.first, course.last)}",
+            f"  дозы: {dose_summary(course)}",
         ]
     return escape("\n".join(lines))

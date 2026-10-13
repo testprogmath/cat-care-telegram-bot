@@ -163,7 +163,7 @@ class CareDay(Strict):
 
 def _boundary() -> tuple[int, int]:
     """The care-day boundary db itself applies, not a second reading of the setting."""
-    return db._DAY_START_HOUR, db._DAY_START_MINUTE
+    return db.boundary()
 
 
 def day_start() -> str:
