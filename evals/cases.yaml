@@ -62,3 +62,16 @@
 - description: three visits
   vars: {animal: chipunya, text: "Пописал три раза за ночь",
          expected: [{type: toilet}, {type: toilet}, {type: toilet}]}
+- description: a past dose only mentioned is not recorded
+  vars: {animal: skripa, text: "вчера дала серению", expected: []}
+- description: medication history is not recorded
+  vars: {animal: skripa, text: "последняя доза была в четверг", expected: []}
+- description: a past dose with its time is a late entry
+  vars: {animal: skripa, text: "вчера в 23:30 дала серению 6 мг",
+         expected: [{type: medication, name: серения, dose: "6 мг", days_ago: 1, time: "23:30"}]}
+- description: a past dose the owner says was not written down is a late entry
+  vars: {animal: skripa, text: "забыла написать: вчера дала серению 6 мг",
+         expected: [{type: medication, name: серения, days_ago: 1}]}
+- description: a past dose with a calendar date and time
+  vars: {animal: skripa, text: "04.10 дала в 23:30 миратаз",
+         expected: [{type: medication, name: миратаз, date: "04.10", time: "23:30"}]}
