@@ -35,7 +35,7 @@ Every change in behaviour comes with a test that fails without it, and every fix
 with a test that reproduces it. A rule that does not depend on a particular animal is
 tested on a made-up one from `animal()` in `tests/conftest.py`.
 
-A change to the parsing prompt (`skrypka_bot/parser.py`, `skrypka_bot/profiles.py`) also
+A change to the parsing prompt (`skrypka_bot/prompts/`, `skrypka_bot/profiles.py`) also
 adds a case to `evals/cases.yaml` for the message it fixes. The `Prompt eval` workflow runs
 the whole set against the model on the pull request; see
 [development](docs/development.md#the-prompt-regression-set).
