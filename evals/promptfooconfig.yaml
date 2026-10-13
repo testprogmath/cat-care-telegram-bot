@@ -1,0 +1,12 @@
+description: The diary parser on messages whose events must not change
+prompts:
+  - "{{text}}"
+providers:
+  - id: file://provider.py
+    config:
+      workers: 4
+defaultTest:
+  assert:
+    - type: python
+      value: file://assert_events.py
+tests: file://cases.yaml

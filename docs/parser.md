@@ -23,7 +23,7 @@ output shape; it is not a recorded model response, and the chats are in Russian.
 
 That message counts as 36.1 ml of water toward the daily goal: 10 ml drunk plus 26.1 ml from
 the food. The message "насыпала 12 г, не ест" (*put down 12 g, she is not eating*) produces
-no events at all.
+a refusal and no feeding.
 
 ## What the code checks after the model
 
