@@ -20,6 +20,20 @@ labels. A push to `main` that did not come from a labelled pull request releases
 The first release was `v1.0.0`. The version in `pyproject.toml` is not updated; the tag
 is the version.
 
+## Signed source archives
+
+Each release carries `cat-care-vX.Y.Z.tar.gz`, the source at the released commit, and
+`cat-care-vX.Y.Z.tar.gz.sigstore.json`, its Sigstore signature. The release job signs the
+archive with the workflow's own GitHub identity; there is no key to keep. To check that an
+archive came from this repository's release job:
+
+```bash
+pip install sigstore
+python -m sigstore verify identity cat-care-vX.Y.Z.tar.gz \
+  --cert-identity https://github.com/testprogmath/cat-care-telegram-bot/.github/workflows/ci.yml@refs/heads/main \
+  --cert-oidc-issuer https://token.actions.githubusercontent.com
+```
+
 ## How a deploy reaches the server
 
 The workflow cannot open a shell on the server. Its SSH key runs one command,
