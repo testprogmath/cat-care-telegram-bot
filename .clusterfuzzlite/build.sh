@@ -1,5 +1,6 @@
 #!/bin/bash -eu
-pip3 install .
+pip3 install --require-hashes -r requirements.txt
+pip3 install --no-deps -e .
 
 for fuzzer in "$SRC"/cat-care/fuzz/*_fuzzer.py; do
   fuzzer_basename=$(basename -s .py "$fuzzer")
