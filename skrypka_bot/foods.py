@@ -13,6 +13,7 @@ UNNAMED = "неизвестно"
 _PURINA = r"purina|пурина|путина"
 _PRODUCTS: list[tuple[str, str, str | None]] = [
     ("Felix Sensations", r"felix|феликс", r"sensation|сенсейшн|сенсэйшн"),
+    ("Felix Heerlijke Reepjes", r"felix|феликс", r"reepjes|streepjes|heerlijke"),
     ("Felix Sauce", r"felix|феликс", r"sauce|соус|gravy|подлив"),
     ("Felix Soup", r"felix|феликс", None),
     ("Gourmet soup", r"gourmet|гурме", None),
