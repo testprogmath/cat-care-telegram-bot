@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - skrypka_bot/parser.py
+      - skrypka_bot/prompts/**
       - skrypka_bot/profiles.py
       - evals/**
   workflow_dispatch:

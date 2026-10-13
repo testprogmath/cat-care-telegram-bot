@@ -56,7 +56,7 @@ Add a case whenever a message was parsed wrong and the prompt was fixed for it. 
 message for the set or cut it down to the words that matter: the cases are public, so no
 names of people, places, clinics or sums of money from the chats.
 
-The `Prompt eval` workflow runs the set on every pull request that changes `parser.py`,
+The `Prompt eval` workflow runs the set on every pull request that changes `parser.py`, the prompts in `prompts/`,
 `profiles.py` or `evals/`, with `OPENAI_API_KEY` from the `prompt-eval` environment. Each run
 writes a table of every case to the job's summary, with the reason next to each failure, and
 keeps `results.json` as an artifact for 30 days.
