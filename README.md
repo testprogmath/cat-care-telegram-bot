@@ -1,5 +1,7 @@
 # Cat Care Telegram Bot
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/testprogmath/cat-care-telegram-bot/badge)](https://scorecard.dev/viewer/?uri=github.com/testprogmath/cat-care-telegram-bot)
+
 A care diary for a seriously ill cat, kept by the people who live with her.
 
 Nobody types structured data at 3am. They type "gave 30 ml through the tube, she pulled

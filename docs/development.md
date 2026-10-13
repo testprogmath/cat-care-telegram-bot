@@ -53,6 +53,11 @@ On every pull request and every push to `main`:
   zizmor on the workflows, and gitleaks on the whole git history.
 - `build`: the Docker image.
 
+The `Scorecard` workflow runs on every push to `main` and every Saturday. It rates the
+repository on the OpenSSF Scorecard checks (pinned dependencies, token permissions, branch
+protection, code review and more), publishes the score behind the README badge, and adds its
+findings to code scanning under the Security tab.
+
 Every action is pinned to a commit and every tool image to a digest. The octocov binary
 is pinned by version and checksum as well, because its action otherwise downloads the
 latest release. Dependabot proposes updates for pip, GitHub Actions and the base image
