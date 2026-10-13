@@ -2,26 +2,21 @@ import logging
 import math
 import os
 from functools import lru_cache
-from importlib import resources
 from typing import Literal
 
 import openai
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
+from . import texts
 from .profiles import Profile
 
 logger = logging.getLogger(__name__)
 
 MODEL = os.environ.get("OPENAI_MODEL", "gpt-5-mini")
 
-def _prompt(name: str) -> str:
-    """A prompt file; a backslash at the end of a line joins it to the next, as in Python source."""
-    return (resources.files(__package__) / "prompts" / name).read_text(encoding="utf-8").replace("\\\n", "")
-
-
-SYSTEM_PROMPT_TEMPLATE = _prompt("system.md")
-CONDENSE_PROMPT = _prompt("condense.md")
+SYSTEM_PROMPT_TEMPLATE = texts.prompt("system.md")
+CONDENSE_PROMPT = texts.prompt("condense.md")
 
 
 EventType = Literal[
