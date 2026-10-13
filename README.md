@@ -91,6 +91,7 @@ messages. Then add the bot to a chat and assign the animal with `/profile <им�
   matter.
 - [Releases and deploys](docs/deploy.md): labels, the deploy key, rollback, setup.
 - [Development](docs/development.md): tests and CI.
+- [Contributing](CONTRIBUTING.md): reporting a bug, proposing a change, the test policy.
 - [Security](SECURITY.md): reporting a vulnerability, and where the sensitive parts are.
 
 Python 3.11+, python-telegram-bot, APScheduler, matplotlib, FastAPI, SQLite. No ORM, no
