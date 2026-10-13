@@ -1,6 +1,7 @@
 # Cat Care Telegram Bot
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/testprogmath/cat-care-telegram-bot/badge)](https://scorecard.dev/viewer/?uri=github.com/testprogmath/cat-care-telegram-bot)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15454/badge)](https://www.bestpractices.dev/projects/15454)
 
 A care diary for a seriously ill cat, kept by the people who live with her.
 
