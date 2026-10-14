@@ -1,7 +1,7 @@
 # The parser
 
 Every message in a chat with an animal goes to the model with that animal's prompt
-(`prompts/system.md` plus the profile's own rules in `profiles.py`) and comes back as zero or
+(`prompts/system.md` plus the animal's own rules in `prompts/<key>/`) and comes back as zero or
 more typed events. The README lists the traps the prompt has to avoid. This page shows
 what an answer looks like and what the code checks before an answer reaches the diary.
 
@@ -55,7 +55,11 @@ An outage therefore delays diary entries rather than losing them.
 ## Changing the prompt
 
 The shared prompt is `skrypka_bot/prompts/system.md`; `{subject}` and the other names in
-braces are filled from the animal's profile. A backslash at the end of a line joins it to
+braces are filled from the animal's profile. Each animal's own rules are files too, under
+`prompts/<key>/`: `subject.md`, `feeding.md` (and `feeding-tube.md` for the rules that apply
+while the tube is in), `products.md` and `toilet.md`. Product rules shared by both animals are
+in `prompts/products/` and are placed into `products.md` where it says `{purina_one}` or
+`{royal_canin_sensory}`. A backslash at the end of a line joins it to
 the next one, so long rules can wrap in the file and still reach the model as one line.
 
 Every new message in every chat goes through the prompt, and a lost rule raises no error:

@@ -5,7 +5,8 @@ pip3 install --no-deps -e .
 for fuzzer in "$SRC"/cat-care/fuzz/*_fuzzer.py; do
   fuzzer_basename=$(basename -s .py "$fuzzer")
   fuzzer_package=${fuzzer_basename}.pkg
-  pyinstaller --distpath "$OUT" --onefile --name "$fuzzer_package" "$fuzzer"
+  pyinstaller --distpath "$OUT" --onefile --name "$fuzzer_package" \
+    --add-data "$SRC/cat-care/skrypka_bot/prompts:skrypka_bot/prompts" "$fuzzer"
   cat > "$OUT/$fuzzer_basename" <<WRAPPER
 #!/bin/sh
 # LLVMFuzzerTestOneInput for fuzzer detection.
