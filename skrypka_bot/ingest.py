@@ -93,6 +93,15 @@ def _is_separate_portion(existing_ml, new_ml) -> bool:
     return existing_ml is not None and new_ml is not None and existing_ml != new_ml
 
 
+def _name_words(name: str | None) -> frozenset[str]:
+    return frozenset(re.findall(r"\w+", (name or "").lower()))
+
+
+def _different_products(existing: str | None, new: str | None) -> bool:
+    a, b = _name_words(existing), _name_words(new)
+    return bool(a and b) and not (a <= b or b <= a)
+
+
 def _same_form(row: sqlite3.Row, event) -> bool:
     return bool(row["liquid"] or figures.is_given(row)) == bool(
         event.liquid or event.feeding == "tube"
@@ -105,11 +114,13 @@ def _dedup_food(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, e
     existing = [
         row
         for row in conn.execute(
-            "SELECT id, message_id, kcal, feeding, amount_ml, liquid, description FROM events "
+            "SELECT id, message_id, name, kcal, feeding, amount_ml, liquid, description FROM events "
             "WHERE chat_id = ? AND type = 'food' AND occurred_at BETWEEN ? AND ?",
             (chat_id, lo, hi),
         )
-        if _same_form(row, event) and not _is_separate_portion(row["amount_ml"], event.amount_ml)
+        if _same_form(row, event)
+        and not _is_separate_portion(row["amount_ml"], event.amount_ml)
+        and not _different_products(row["name"], event.name)
     ]
     if not existing:
         return True
