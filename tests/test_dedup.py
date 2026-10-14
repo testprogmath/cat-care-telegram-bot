@@ -84,3 +84,19 @@ def test_an_exact_amount_replaces_an_estimate_but_not_a_manual_record(chat):
     assert [description for _, description in stored("water")] == ["дала 5 мл", "попил 10 мл"]
     assert kept in [event_id for event_id, _ in stored("water")]
     assert dedup_edits() == [(estimate, "немного попил", {"replaced_by": "попил 10 мл"})]
+
+
+def test_two_flavours_of_the_same_size_eaten_one_after_the_other_are_two_feedings(chat):
+    message(chat, 1, "курица", event("food", "снек с курицей", name="vitakraft с курицей", kcal=7.5,
+                                     amount_ml=15.0, liquid=True))
+    message(chat, 2, "говядина", event("food", "снек с говядиной", name="vitakraft с говядиной", kcal=7.5,
+                                       amount_ml=15.0, liquid=True), minute=1)
+    assert [description for _, description in stored("food")] == ["снек с курицей", "снек с говядиной"]
+
+
+def test_the_same_product_named_more_or_less_fully_is_still_one_feeding(chat):
+    message(chat, 1, "снек", event("food", "съел снек", name="vitakraft с говядиной", kcal=7.5,
+                                   amount_ml=15.0, liquid=True))
+    message(chat, 2, "тоже съел", event("food", "тоже съел снек", name="Vitakraft", kcal=7.5,
+                                        amount_ml=15.0, liquid=True), minute=1)
+    assert [description for _, description in stored("food")] == ["съел снек"]
