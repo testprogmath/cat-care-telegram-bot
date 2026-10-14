@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from skrypka_bot import db, main
+from skrypka_bot import db, jobs
 
 
 def test_the_care_day_starts_at_midnight_by_default():
@@ -29,4 +29,4 @@ def test_before_a_later_boundary_belongs_to_the_previous_day(monkeypatch):
 )
 def test_pace_tracks_the_active_window(now, expected):
     """/risk divides intake by this, so it must stay inside 0..1."""
-    assert main.day_pace(now) == pytest.approx(expected)
+    assert jobs.day_pace(now) == pytest.approx(expected)

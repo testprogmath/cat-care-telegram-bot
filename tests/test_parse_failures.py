@@ -10,7 +10,7 @@ import httpx
 import openai
 import pytest
 
-from skrypka_bot import db, main, parser, profiles
+from skrypka_bot import db, messages, parser, profiles
 
 BERLIN = ZoneInfo("Europe/Berlin")
 REQUEST = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
@@ -76,14 +76,14 @@ def receive(chat_id, monkeypatch, failure):
     async def fail(*_):
         raise failure
 
-    monkeypatch.setattr(main, "parse_message", fail)
-    main._parse_warned_at.clear()
+    monkeypatch.setattr(messages, "parse_message", fail)
+    messages._parse_warned_at.clear()
     bot = Bot()
     message = SimpleNamespace(message_id=7, text="съел 5 г", caption=None, date=datetime.now(BERLIN),
                               from_user=SimpleNamespace(full_name="owner"), reply_to_message=None)
     update = SimpleNamespace(effective_message=message,
                              effective_chat=SimpleNamespace(id=chat_id, title="Чипуня", full_name="Чипуня"))
-    asyncio.run(main.handle_message(update, SimpleNamespace(bot=bot)))
+    asyncio.run(messages.handle_message(update, SimpleNamespace(bot=bot)))
     with sqlite3.connect(db.DB_PATH) as conn:
         parsed = conn.execute("SELECT parsed FROM messages WHERE message_id = 7").fetchone()[0]
     return bot.sent, parsed
@@ -91,7 +91,7 @@ def receive(chat_id, monkeypatch, failure):
 
 def test_a_refused_message_is_answered_and_not_retried(chat, monkeypatch):
     sent, parsed = receive(chat, monkeypatch, parser.ParseRefused("no"))
-    assert sent == [main.PARSE_REFUSED_NOTICE]
+    assert sent == [messages.PARSE_REFUSED_NOTICE]
     assert parsed == 1
 
 
@@ -103,4 +103,4 @@ def test_a_refused_message_is_answered_and_not_retried(chat, monkeypatch):
 def test_a_failed_message_is_kept_for_retry_and_the_warning_names_the_cause(chat, monkeypatch, failure, cause):
     sent, parsed = receive(chat, monkeypatch, failure)
     assert parsed == 0
-    assert len(sent) == 1 and sent[0].endswith(main.PARSE_BROKEN_CAUSES[cause])
+    assert len(sent) == 1 and sent[0].endswith(messages.PARSE_BROKEN_CAUSES[cause])

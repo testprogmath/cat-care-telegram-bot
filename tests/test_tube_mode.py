@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from conftest import animal
 
-from skrypka_bot import db, ingest, main, parser, profiles, summary
+from skrypka_bot import commands, db, ingest, jobs, messages, parser, profiles, summary
 from skrypka_bot.profiles import Tube
 
 BERLIN = ZoneInfo("Europe/Berlin")
@@ -35,7 +35,7 @@ def tubed(chat, monkeypatch):
 
 def tube(chat_id, *args):
     bot = Bot()
-    asyncio.run(main.tube_command(SimpleNamespace(effective_chat=SimpleNamespace(id=chat_id)),
+    asyncio.run(commands.tube_command(SimpleNamespace(effective_chat=SimpleNamespace(id=chat_id)),
                                   SimpleNamespace(bot=bot, args=list(args))))
     return bot.sent
 
@@ -61,9 +61,9 @@ def test_with_the_tube_out_the_animal_has_no_tube_until_it_is_back(tubed):
 
 def test_with_the_tube_out_the_water_reminder_gives_no_portions(tubed):
     at = datetime(2026, 10, 11, 15, 0)
-    assert len(main.render_water_reminder(db.profile_for(TUBED), 120.0, at).splitlines()) == 3
+    assert len(jobs.render_water_reminder(db.profile_for(TUBED), 120.0, at).splitlines()) == 3
     tube(TUBED, "off")
-    assert len(main.render_water_reminder(db.profile_for(TUBED), 120.0, at).splitlines()) == 2
+    assert len(jobs.render_water_reminder(db.profile_for(TUBED), 120.0, at).splitlines()) == 2
 
 
 def test_with_the_tube_out_the_tube_feed_limit_does_not_apply(tubed):
@@ -110,25 +110,25 @@ def say(chat_id, text, monkeypatch, message_id=50):
     async def nothing(*_):
         return []
 
-    monkeypatch.setattr(main, "parse_message", nothing)
+    monkeypatch.setattr(messages, "parse_message", nothing)
     bot = Bot()
     message = SimpleNamespace(message_id=message_id, text=text, caption=None, date=datetime.now(BERLIN),
                               from_user=SimpleNamespace(full_name="owner"), reply_to_message=None)
     update = SimpleNamespace(effective_message=message, edited_message=None,
                              effective_chat=SimpleNamespace(id=chat_id, title="", full_name=""))
-    asyncio.run(main.handle_message(update, SimpleNamespace(bot=bot)))
+    asyncio.run(messages.handle_message(update, SimpleNamespace(bot=bot)))
     return bot.sent
 
 
 def test_a_message_that_the_tube_came_out_suggests_switching_it_off(tubed, monkeypatch):
-    assert say(TUBED, "Скрипка вытащила зонд", monkeypatch) == [main.TUBE_OUT_HINT]
+    assert say(TUBED, "Скрипка вытащила зонд", monkeypatch) == [messages.TUBE_OUT_HINT]
     assert say(TUBED, "дала через зонд 30 мл", monkeypatch, 51) == []
 
 
 def test_once_it_is_off_only_putting_it_back_is_suggested(tubed, monkeypatch):
     tube(TUBED, "off")
     assert say(TUBED, "трубка выпала", monkeypatch) == []
-    assert say(TUBED, "поставили трубку обратно", monkeypatch, 51) == [main.TUBE_IN_HINT]
+    assert say(TUBED, "поставили трубку обратно", monkeypatch, 51) == [messages.TUBE_IN_HINT]
 
 
 def test_an_animal_without_a_tube_gets_no_suggestion(chat, monkeypatch):
