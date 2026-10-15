@@ -33,6 +33,9 @@ reviews:
       instructions: >-
         Every action is pinned to a full commit SHA with its version in a comment, each job gets only the
         permissions it needs, and no expression in double braces appears inside a run script; it goes through env.
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
   auto_review:
     enabled: true
     drafts: false
