@@ -96,6 +96,9 @@ repository on the OpenSSF Scorecard checks (pinned dependencies, token permissio
 protection, code review and more), publishes the score behind the README badge, and adds its
 findings to code scanning under the Security tab.
 
+CodeRabbit reviews every pull request with the rules in `.coderabbit.yaml`. Its comments are
+advice, not approval: it never approves a pull request by itself.
+
 Every action is pinned to a commit and every tool image to a digest. The octocov binary
 is pinned by version and checksum as well, because its action otherwise downloads the
 latest release. Dependabot proposes updates for pip, GitHub Actions and the base image

@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-GB
+tone_instructions: >-
+  Plain, direct British English. No praise or filler: say what is wrong, why it matters here, and what to change.
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  sequence_diagrams: false
+  path_filters:
+    - "!requirements.txt"
+    - "!requirements-dev.txt"
+  path_instructions:
+    - path: "skrypka_bot/**/*.py"
+      instructions: >-
+        Every change in behaviour needs a test in tests/ that fails without it, and every fixed bug a test that
+        reproduces it (CONTRIBUTING.md). No cat may be named, defaulted to or special-cased outside
+        skrypka_bot/profiles.py and skrypka_bot/prompts/<key>/. The diary is read by subject; writes,
+        de-duplication and chat membership go by chat. A module must not use another module's private names.
+    - path: "skrypka_bot/prompts/**"
+      instructions: >-
+        These are prompts for an LLM that turns Russian chat messages about two cats into diary events, not
+        documentation. Look for rules that contradict each other or the code (calorie and water figures in
+        figures.py and foods.py), for rules about one animal in the shared system.md instead of that animal's
+        folder, and check that the pull request adds a case to evals/cases.yaml for the message it fixes. A
+        backslash at the end of a line joins it to the next one on load; it is not an error.
+    - path: "evals/**"
+      instructions: >-
+        The promptfoo regression set, run against the live model. Cases must contain no names of people, places,
+        clinics or sums of money from the chats. Check each expected value against the prompt's rules.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Every action is pinned to a full commit SHA with its version in a comment, each job gets only the
+        permissions it needs, and no expression in double braces appears inside a run script; it goes through env.
+  auto_review:
+    enabled: true
+    drafts: false
