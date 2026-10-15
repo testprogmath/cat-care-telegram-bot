@@ -42,6 +42,7 @@ class Event(BaseModel):
     weight_kg: float | None = None
     breaths_per_min: float | None = None
     asleep: bool | None = None
+    stool_score: int | None = None
     description: str
 
 

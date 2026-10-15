@@ -74,6 +74,13 @@ def _backfill_amount_ml(event) -> None:
         event.amount_ml = float(match.group(1).replace(",", "."))
 
 
+def _stool_score(event) -> int | None:
+    score = getattr(event, "stool_score", None)
+    if event.type != "toilet" or score not in range(1, 6):
+        return None
+    return score if classify.toilet_kind(event.description) == "stool" else None
+
+
 def _replace_rows(conn: sqlite3.Connection, ids: list[int], replacement: str) -> None:
     edited_at = datetime.now().astimezone()
     for event_id in ids:
@@ -330,8 +337,8 @@ def _insert_events(
                 continue
         conn.execute(
             "INSERT INTO events "
-            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, weight_kg, breaths, asleep, description) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, weight_kg, breaths, asleep, stool_score, description) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 chat_id,
                 subject,
@@ -351,6 +358,7 @@ def _insert_events(
                 getattr(event, "weight_kg", None),
                 getattr(event, "breaths_per_min", None),
                 {True: 1, False: 0}.get(getattr(event, "asleep", None)),
+                _stool_score(event),
                 event.description,
             ),
         )

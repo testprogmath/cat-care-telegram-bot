@@ -9,7 +9,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from . import common, db, ingest, profiles
+from . import classify, common, db, ingest, profiles, questions
 from .parser import ParseFailed, ParseRefused, parse_message
 from .profiles import Profile
 
@@ -114,6 +114,34 @@ async def _suggest_tube_switch(bot, chat_id: int, message_id: int, profile: Prof
         )
 
 
+async def _record_stool_answer(bot, chat_id: int, msg, text: str, sender: str, sent_at: datetime) -> bool:
+    replied_to = msg.reply_to_message
+    source = db.stool_question(chat_id, replied_to.message_id) if replied_to else None
+    score = questions.score_from_reply(text) if source is not None else None
+    if score is None:
+        return False
+    now = datetime.now(common.TIMEZONE)
+    for row in db.toilet_events(chat_id, source):
+        if classify.toilet_kind(row["description"]) == "stool":
+            db.update_event(row["id"], {"stool_score": score}, now)
+    ingest.save_message(chat_id, msg.message_id, sender, sent_at, text, [])
+    await bot.send_message(
+        chat_id, questions.stool_confirmation(score),
+        reply_parameters=ReplyParameters(msg.message_id, allow_sending_without_reply=True),
+    )
+    return True
+
+
+async def _ask_about_stool(bot, chat_id: int, message_id: int) -> None:
+    if not any(questions.needs_stool_score(row) for row in db.toilet_events(chat_id, message_id)):
+        return
+    sent = await bot.send_message(
+        chat_id, questions.STOOL_QUESTION,
+        reply_parameters=ReplyParameters(message_id, allow_sending_without_reply=True),
+    )
+    db.note_stool_question(chat_id, sent.message_id, message_id, sent.date.astimezone(common.TIMEZONE))
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = update.effective_message
     chat = update.effective_chat
@@ -136,6 +164,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await _track_hospital_stay(context.bot, chat.id, profile, text, sent_at)
     await _suggest_tube_switch(context.bot, chat.id, msg.message_id, profile, text)
     sender = msg.from_user.full_name if msg.from_user else ""
+    if await _record_stool_answer(context.bot, chat.id, msg, text, sender, sent_at):
+        return
     replied_to = msg.reply_to_message
     reply_text = (replied_to.text or replied_to.caption) if replied_to else None
     history, report_shown = _history(chat.id, sent_at)
@@ -165,6 +195,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.info("Saved %d event(s) from message %s", len(events), msg.message_id)
     if db.auto_left(chat.id) and db.message_added_kcal(chat.id, msg.message_id):
         await common.send_progress(context.bot, chat.id, reply_to=msg.message_id)
+    await _ask_about_stool(context.bot, chat.id, msg.message_id)
 
 
 async def _reparse_edited(bot, chat_id: int, msg, text: str) -> None:

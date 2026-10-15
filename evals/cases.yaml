@@ -71,6 +71,15 @@
          expected: [{type: food, amount_ml: 85, kcal: 75.9, water_fraction: 0.786}]}
 - description: food put down and not eaten is a refusal, not a feeding
   vars: {animal: skripa, text: "насыпала 12 г, не ест", expected: [{type: refusal}]}
+- description: a described stool gets its point on the scale
+  vars: {animal: skripa, text: "покакала, стул жидкий, почти вода",
+         expected: [{type: toilet, stool_score: 1}]}
+- description: a normal formed stool is a 4
+  vars: {animal: chipunya, text: "покакал, нормальная колбаска",
+         expected: [{type: toilet, stool_score: 4}]}
+- description: a stool with no consistency named has no score, so the bot asks
+  vars: {animal: skripa, text: "покакала",
+         expected: [{type: toilet, stool_score: null}]}
 - description: a counted toilet visit is that many events
   vars: {animal: skripa, text: "Ночью два раза пописала",
          expected: [{type: toilet}, {type: toilet}]}

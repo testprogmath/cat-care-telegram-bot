@@ -54,9 +54,25 @@ by now and how much is missing. For an animal with a tube it also splits what is
 the goal into portions no larger than the tube takes, for example "примерно 9 раз по ~24 мл
 (не больше 25 мл за раз)".
 
+## Stool score and check-ins
+
+A stool whose consistency the message describes gets a score on the 1 to 5 Feline Fecal
+Consistency Scale (Koochaki et al., Waltham International Nutritional Sciences Symposium,
+2013), which was developed and validated on cats and describes each point as an owner sees
+it, litter included: 1 liquid, 2 slimy like pudding, 3 mushy, 4 formed and moist (ideal),
+5 hard and dry. A stool with no consistency named gets a reply asking for the score. An
+answer to that question with one digit, or a word that names one point ("кашица",
+"норма"), scores every stool of the asked message without going through the model; any
+other answer is parsed as an ordinary message. The score shows next to the stool in the
+summary and on the day page.
+
+Between 09:00 and 22:00, when nothing has been written in a chat for three hours, the bot
+asks how the animal is doing. Its question counts as a message, so the next one waits
+another three hours. The answer is parsed like any message.
+
 ## Hospital pause
 
 While the cat is admitted, nobody at home can offer her water, so reminders become noise.
-The word *opname* (or *опнаме*) in any message pauses water reminders and the daily
-summary. A message about coming home ("забрали", "домой", "выписали", "ontslag", "naar
+The word *opname* (or *опнаме*) in any message pauses water reminders, check-ins and the
+daily summary. A message about coming home ("забрали", "домой", "выписали", "ontslag", "naar
 huis") or `/reminders on` resumes them. Parsing and commands keep working throughout.

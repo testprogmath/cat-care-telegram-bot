@@ -1,4 +1,4 @@
-"""What the bot does on a schedule: the daily summary and the water reminders."""
+"""What the bot does on a schedule: the daily summary, the water reminders and the check-ins."""
 
 import logging
 import math
@@ -8,7 +8,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from . import common, db, figures, fmt
+from . import common, db, figures, fmt, questions
 from .profiles import Profile
 from .summary import (
     render_summary,
@@ -89,3 +89,16 @@ async def water_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
             await context.bot.send_message(chat_id, text)
         except Exception:
             logger.exception("Failed to send water reminder to chat %s", chat_id)
+
+
+async def checkin(context: ContextTypes.DEFAULT_TYPE) -> None:
+    now = datetime.now(common.TIMEZONE)
+    for chat_id, profile in db.active_chats():
+        if not questions.checkin_due(now, db.last_message_at(chat_id)):
+            continue
+        try:
+            sent = await context.bot.send_message(chat_id, questions.checkin_text(profile))
+        except Exception:
+            logger.exception("Failed to send a check-in to chat %s", chat_id)
+            continue
+        db.note_bot_report(chat_id, sent.message_id, sent.date.astimezone(common.TIMEZONE), questions.CHECKIN_MARKER)

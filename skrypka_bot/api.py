@@ -8,12 +8,14 @@ from zoneinfo import ZoneInfo
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import db, profiles
 from .parser import EventType
 
 MIN_TOKEN_LENGTH = 32
+
+StoolScore = Annotated[int, Field(ge=1, le=5)]
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -77,6 +79,7 @@ class Event(EventSummary):
     weight_kg: float | None = None
     breaths: float | None = None
     asleep: bool | None = None
+    stool_score: StoolScore | None = None
     message_text: str | None
 
 
@@ -96,6 +99,7 @@ class EventPatch(BaseModel):
     weight_kg: float | None = None
     breaths: float | None = None
     asleep: bool | None = None
+    stool_score: StoolScore | None = None
     occurred_at: datetime | None = None
 
 
@@ -117,6 +121,7 @@ class EventCreate(BaseModel):
     weight_kg: float | None = None
     breaths: float | None = None
     asleep: bool | None = None
+    stool_score: StoolScore | None = None
 
 
 class Edit(BaseModel):
