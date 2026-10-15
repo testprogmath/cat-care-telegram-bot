@@ -1,10 +1,10 @@
-"""promptfoo provider: the bot's own parser, run on one chat message for one animal."""
+"""promptfoo provider: the bot's own parser on one chat message, with the fill-in the bot applies before storing."""
 
 import asyncio
 import json
 from dataclasses import replace
 
-from skrypka_bot import parser, profiles
+from skrypka_bot import foods, parser, profiles
 
 
 def call_api(prompt, options, context):
@@ -19,4 +19,7 @@ def call_api(prompt, options, context):
         ))
     except (parser.ParseFailed, parser.ParseRefused) as failure:
         return {"error": f"{type(failure).__name__}: {failure}"}
+    for event in events:
+        if event.type == "food":
+            foods.fill_gravy(event)
     return {"output": json.dumps([e.model_dump(exclude_none=True) for e in events], ensure_ascii=False)}

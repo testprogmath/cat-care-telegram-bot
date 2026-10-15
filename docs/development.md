@@ -41,7 +41,8 @@ drinking round to the nearest half millilitre, and a resent or repeated report a
 
 No unit test calls the model, so `evals/` holds a promptfoo set instead: real kinds of messages,
 each with the events the parser must produce for it. `evals/provider.py` runs the bot's own
-`parse_message`, and `evals/assert_events.py` compares only the fields a case lists, numbers
+`parse_message` and applies the gravy fill-in the bot applies before storing, so a case checks
+what reaches the diary; `evals/assert_events.py` compares only the fields a case lists, numbers
 within 1% or 0.05. It calls OpenAI, so it costs a little and needs the key:
 
 ```bash

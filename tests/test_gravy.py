@@ -24,9 +24,13 @@ def stored(chat, *events):
         return [tuple(r) for r in conn.execute("SELECT kcal, water_fraction FROM events ORDER BY id")]
 
 
-@pytest.mark.parametrize("name", ["felix heerlijke reepjes утка", "Heerlijke Streepjes"])
-def test_reepjes_gravy_without_calories_is_counted_at_the_gravy_estimate(chat, name):
-    assert stored(chat, food(name, 10.0)) == [(3.0, 0.9)]
+@pytest.mark.parametrize(("name", "expected"), [
+    ("felix heerlijke reepjes утка", (3.0, 0.9)),
+    ("Heerlijke Streepjes", (3.0, 0.9)),
+    ("felix sensations sauces утка", (4.0, 0.88)),
+])
+def test_gravy_without_calories_is_counted_at_its_products_estimate(chat, name, expected):
+    assert stored(chat, food(name, 10.0)) == [expected]
 
 
 def test_calories_the_model_gave_are_kept(chat):
