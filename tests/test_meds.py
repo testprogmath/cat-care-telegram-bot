@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import charts, db, ingest, main, meds
+from skrypka_bot import charts, commands, db, ingest, meds
 
 BERLIN = ZoneInfo("Europe/Berlin")
 TODAY = date(2026, 10, 4)
@@ -39,7 +39,7 @@ def test_the_week_is_a_grid_of_doses_per_day(chat):
     given(chat, date(2026, 10, 3), 20, "серения", "6мг")
     given(chat, date(2026, 9, 27), 20, "серения", "8 мг")
 
-    assert main.render_meds(chat, [], TODAY) == (
+    assert commands.render_meds(chat, [], TODAY) == (
         "💊 Чипуня: лекарства 28.09–04.10\n"
         "<pre>            28 29 30 01 02 03 04\n"
         "серения      ·  ·  ·  ·  ·  1  ·\n"
@@ -60,7 +60,7 @@ def test_all_covers_the_whole_diary_most_recent_drug_first_then_by_name(chat):
     given(chat, date(2026, 10, 2), 23, "ондансетрон")
     given(chat, date(2026, 9, 1), 20, None)
 
-    assert main.render_meds(chat, ["all"], TODAY) == (
+    assert commands.render_meds(chat, ["all"], TODAY) == (
         "💊 Чипуня: лекарства 04.08–04.10 (62 дня)\n"
         "\n"
         "ондансетрон\n"
@@ -86,7 +86,7 @@ def test_a_period_leaves_out_days_outside_it(chat):
     given(chat, date(2026, 9, 1), 20, "серения", "8 мг")
     given(chat, date(2026, 10, 1), 20, "серения", "8 мг")
 
-    assert main.render_meds(chat, ["2026-09-01", "2026-09-30"], TODAY) == (
+    assert commands.render_meds(chat, ["2026-09-01", "2026-09-30"], TODAY) == (
         "💊 Чипуня: лекарства 01.09–30.09 (30 дней)\n"
         "\n"
         "серения (маропитант, таблетки)\n"
@@ -96,7 +96,7 @@ def test_a_period_leaves_out_days_outside_it(chat):
 
 
 def test_an_empty_week_says_so(chat):
-    assert main.render_meds(chat, [], TODAY) == (
+    assert commands.render_meds(chat, [], TODAY) == (
         "💊 Чипуня: лекарства 28.09–04.10\nЗа эти дни лекарств не записано."
     )
 
@@ -105,7 +105,7 @@ def test_an_empty_week_says_so(chat):
     "args", [["week"], ["2026-09-01"], ["2026-09-30", "2026-09-01"], ["2026-09-01", "вчера"]]
 )
 def test_other_arguments_are_refused(chat, args):
-    assert main.render_meds(chat, args, TODAY) is None
+    assert commands.render_meds(chat, args, TODAY) is None
 
 
 @pytest.mark.parametrize(

@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import main
+from skrypka_bot import commands, common, db, messages, summary
 
 BERLIN = ZoneInfo("Europe/Berlin")
 _ids = iter(range(1000, 2000))
@@ -33,7 +33,7 @@ def receive(chat_id, message_id, text, events, monkeypatch):
     async def parsed(*_args):
         return events
 
-    monkeypatch.setattr(main, "parse_message", parsed)
+    monkeypatch.setattr(messages, "parse_message", parsed)
     bot = Bot()
     message = SimpleNamespace(
         message_id=message_id, text=text, caption=None, date=datetime.now(BERLIN),
@@ -43,7 +43,7 @@ def receive(chat_id, message_id, text, events, monkeypatch):
         effective_message=message,
         effective_chat=SimpleNamespace(id=chat_id, title="Чипуня", full_name="Чипуня"),
     )
-    asyncio.run(main.handle_message(update, SimpleNamespace(bot=bot)))
+    asyncio.run(messages.handle_message(update, SimpleNamespace(bot=bot)))
     return bot.sent
 
 
@@ -52,9 +52,9 @@ def test_a_feeding_with_calories_is_answered_with_the_progress(chat, monkeypatch
     assert len(sent) == 1
     text, reply_to = sent[0]
     assert reply_to == 1
-    now = datetime.now(main.TIMEZONE)
-    expected = main.render_progress(
-        main.db.events_for_day("chipunya", main.db.care_day(now)), now, main.db.profile_for(chat)
+    now = datetime.now(common.TIMEZONE)
+    expected = summary.render_progress(
+        db.events_for_day("chipunya", db.care_day(now)), now, db.profile_for(chat)
     )
     assert text.splitlines()[1:] == expected.splitlines()[1:]
     assert text.startswith("📈 Чипуня — итог на ")
@@ -75,14 +75,14 @@ def test_a_message_without_new_calories_gets_no_reply(chat, monkeypatch, text, e
 def autoleft(chat_id, *args):
     bot = Bot()
     update = SimpleNamespace(effective_chat=SimpleNamespace(id=chat_id))
-    asyncio.run(main.autoleft_command(update, SimpleNamespace(bot=bot, args=list(args))))
+    asyncio.run(commands.autoleft_command(update, SimpleNamespace(bot=bot, args=list(args))))
     return [text for text, _ in bot.sent]
 
 
 def test_autoleft_off_stops_the_reply_for_that_chat_only(chat, monkeypatch):
     assert autoleft(chat, "off") == ["⏸ Сводка /left после записи еды выключена.\nВключить: /autoleft on"]
     assert receive(chat, 3, "съел 3 г сухариков", [food(kcal=11.1)], monkeypatch) == []
-    assert main.db.auto_left(-2)
+    assert db.auto_left(-2)
 
 
 def test_autoleft_on_brings_the_reply_back(chat, monkeypatch):
@@ -101,4 +101,4 @@ def test_autoleft_without_an_argument_reports_the_setting(chat):
 
 def test_autoleft_refuses_an_unknown_argument(chat):
     assert autoleft(chat, "maybe") == ["Формат: /autoleft, /autoleft on или /autoleft off"]
-    assert main.db.auto_left(chat)
+    assert db.auto_left(chat)

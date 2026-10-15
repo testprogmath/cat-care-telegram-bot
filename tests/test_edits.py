@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import db, main
+from skrypka_bot import db, messages
 
 BERLIN = ZoneInfo("Europe/Berlin")
 SENT = datetime(2026, 10, 12, 16, 54, tzinfo=BERLIN)
@@ -40,7 +40,7 @@ def parser(monkeypatch):
             raise answer
         return answer
 
-    monkeypatch.setattr(main, "parse_message", parse)
+    monkeypatch.setattr(messages, "parse_message", parse)
     return answers
 
 
@@ -50,7 +50,7 @@ def send(chat_id, text, edited=False):
                               from_user=SimpleNamespace(full_name="owner"), reply_to_message=None)
     update = SimpleNamespace(effective_message=message, edited_message=message if edited else None,
                              effective_chat=SimpleNamespace(id=chat_id, title="Чипуня", full_name="Чипуня"))
-    asyncio.run(main.handle_message(update, SimpleNamespace(bot=bot)))
+    asyncio.run(messages.handle_message(update, SimpleNamespace(bot=bot)))
     return bot.sent
 
 
@@ -75,14 +75,14 @@ def test_an_edit_replaces_the_first_versions_events_and_leaves_a_trace(chat, par
 
 def test_an_edit_that_cannot_be_parsed_keeps_the_old_events(chat, parser):
     parser["съела 31 г супчика"] = [soup(31.0)]
-    parser["съела 41 г"] = main.ParseFailed("timeout")
+    parser["съела 41 г"] = messages.ParseFailed("timeout")
     send(chat, "съела 31 г супчика")
     send(chat, "съела 41 г", edited=True)
     assert stored() == ([(31.0, 13.2)], ("съела 31 г супчика", 1), [])
 
 
 def test_an_edit_of_a_message_waiting_for_retry_is_parsed_once(chat, parser):
-    parser["съела 31 г супчика"] = main.ParseFailed("timeout")
+    parser["съела 31 г супчика"] = messages.ParseFailed("timeout")
     parser["съела 41 г супчика"] = [soup(41.0)]
     send(chat, "съела 31 г супчика")
     send(chat, "съела 41 г супчика", edited=True)

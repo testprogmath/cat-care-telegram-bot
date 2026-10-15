@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi.testclient import TestClient
 
-from skrypka_bot import api, db, main
+from skrypka_bot import api, commands, db
 
 BERLIN = ZoneInfo("Europe/Berlin")
 TOKEN = "t" * 40
@@ -27,7 +27,7 @@ class Bot:
 
 def profile_command(chat_id, *args):
     bot = Bot()
-    asyncio.run(main.profile_command(SimpleNamespace(effective_chat=SimpleNamespace(id=chat_id)),
+    asyncio.run(commands.profile_command(SimpleNamespace(effective_chat=SimpleNamespace(id=chat_id)),
                                      SimpleNamespace(bot=bot, args=list(args))))
     return bot.sent
 
