@@ -87,6 +87,9 @@
 - description: a past dose the owner says was not written down is a late entry
   vars: {animal: skripa, text: "забыла написать: вчера дала серению 6 мг",
          expected: [{type: medication, name: серения, days_ago: 1}]}
+- description: a brand name stays the brand, not its active substance
+  vars: {animal: chipunya, text: "нанесла миратаз на правое ушко",
+         expected: [{type: medication, name: миратаз}]}
 - description: a past dose with a calendar date and time
   vars: {animal: skripa, text: "04.10 дала в 23:30 миратаз",
          expected: [{type: medication, name: миратаз, date: "04.10", time: "23:30"}]}
