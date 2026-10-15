@@ -65,7 +65,7 @@ def product(text: str, liquid: bool | None = None, named: bool = True) -> str:
     return text.strip() if named and text.strip() else UNNAMED
 
 
-GRAVY_PER_GRAM = {"Felix Heerlijke Reepjes": (0.30, 0.9)}
+GRAVY_PER_GRAM = {"Felix Heerlijke Reepjes": (0.30, 0.9), "Felix Sensations": (0.40, 0.88)}
 
 
 def fill_gravy(event) -> None:
