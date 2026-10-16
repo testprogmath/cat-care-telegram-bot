@@ -2,7 +2,7 @@ import re
 import sqlite3
 from datetime import date, datetime, timedelta
 
-from . import classify, db, figures, fmt
+from . import classify, db, figures, fmt, questions
 from .parser import condense_states
 from .profiles import Bands, Profile
 
@@ -395,7 +395,8 @@ async def render_summary(
     if toilet:
         lines.append("\n🚽 Туалет:")
         for e in toilet:
-            lines.append(f"  {_time_of(e)} — {e['description']}")
+            score = f" ({questions.stool_label(e['stool_score'])})" if e["stool_score"] else ""
+            lines.append(f"  {_time_of(e)} — {e['description']}{score}")
 
     if states:
         lines.append("\n😴 Состояние:")

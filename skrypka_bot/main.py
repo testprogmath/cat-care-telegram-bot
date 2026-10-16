@@ -10,7 +10,7 @@ from telegram.ext import (
     filters,
 )
 
-from . import commands, common, db, jobs, messages
+from . import commands, common, db, jobs, messages, questions
 
 RETRY_INTERVAL = timedelta(minutes=15)
 
@@ -58,6 +58,8 @@ def main() -> None:
     app.job_queue.run_repeating(
         messages.retry_unparsed, interval=RETRY_INTERVAL, first=timedelta(minutes=1)
     )
+
+    app.job_queue.run_repeating(jobs.checkin, interval=questions.CHECKIN_INTERVAL, first=timedelta(minutes=1))
 
     for reminder_hour in range(
         jobs.WATER_REMINDER_START_HOUR, jobs.WATER_REMINDER_END_HOUR + 1, jobs.WATER_REMINDER_STEP_HOURS

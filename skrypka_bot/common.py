@@ -53,13 +53,13 @@ async def send_progress(bot, chat_id: int, reply_to: int | None = None) -> None:
 
 def pause_notice(profile: Profile) -> str:
     return (
-        f"⏸ Похоже, {profile.name} в стационаре. Ставлю напоминания о воде и ежедневную "
-        "сводку на паузу. Напишите «забрали домой» или /reminders on, когда вернётесь — "
+        f"⏸ Похоже, {profile.name} в стационаре. Ставлю напоминания о воде, вопросы «как дела» "
+        "и ежедневную сводку на паузу. Напишите «забрали домой» или /reminders on, когда вернётесь — "
         "записи я веду как обычно."
     )
 
 
-RESUME_NOTICE = "▶️ Возвращаю напоминания о воде и ежедневную сводку."
+RESUME_NOTICE = "▶️ Возвращаю напоминания о воде, вопросы «как дела» и ежедневную сводку."
 
 
 async def switch_pause(bot, chat_id: int, at: datetime | None, notice: str) -> None:

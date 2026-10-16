@@ -5,7 +5,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-from . import care_export, classify, db, figures, fmt, foods, meds
+from . import care_export, classify, db, figures, fmt, foods, meds, questions
 
 RECENT_DAYS = 7
 CURRENT_COURSE_DAYS = 2
@@ -311,6 +311,8 @@ def day_events(rows: list[sqlite3.Row], show: str | None,
             amount = f"{fmt.comma(row['temp_c'])} °C"
         elif row["type"] == "weight" and row["weight_kg"]:
             amount = f"{fmt.comma(row['weight_kg'])} кг"
+        elif row["type"] == "toilet" and row["stool_score"]:
+            amount = questions.stool_label(row["stool_score"])
         elif row["type"] == "breathing" and row["breaths"]:
             amount = f"{fmt.comma(row['breaths'])}/мин" + (" во сне" if row["asleep"] == 1 else "")
         events.append(DayEvent(

@@ -89,6 +89,13 @@ def init() -> None:
                 after     TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_event_edits_event ON event_edits (event_id);
+            CREATE TABLE IF NOT EXISTS stool_questions (
+                chat_id     INTEGER NOT NULL,
+                question_id INTEGER NOT NULL,
+                message_id  INTEGER NOT NULL,
+                asked_at    TEXT NOT NULL,
+                PRIMARY KEY (chat_id, question_id)
+            );
             """
         )
         chat_columns = {row["name"] for row in conn.execute("PRAGMA table_info(chats)")}
@@ -120,7 +127,9 @@ def init() -> None:
             conn.execute("ALTER TABLE events ADD COLUMN liquid INTEGER")
         if "water_fraction" not in columns:
             conn.execute("ALTER TABLE events ADD COLUMN water_fraction REAL")
-        for column, kind in (("weight_kg", "REAL"), ("breaths", "REAL"), ("asleep", "INTEGER")):
+        for column, kind in (
+            ("weight_kg", "REAL"), ("breaths", "REAL"), ("asleep", "INTEGER"), ("stool_score", "INTEGER"),
+        ):
             if column not in columns:
                 conn.execute(f"ALTER TABLE events ADD COLUMN {column} {kind}")
         if "subject" not in columns:
@@ -295,6 +304,39 @@ def note_bot_report(chat_id: int, message_id: int, sent_at: datetime, marker: st
         )
 
 
+def last_message_at(chat_id: int) -> datetime | None:
+    with connect() as conn:
+        row = conn.execute("SELECT MAX(sent_at) AS at FROM messages WHERE chat_id = ?", (chat_id,)).fetchone()
+    return datetime.fromisoformat(row["at"]) if row["at"] else None
+
+
+def toilet_events(chat_id: int, message_id: int) -> list[sqlite3.Row]:
+    with connect() as conn:
+        return list(conn.execute(
+            "SELECT * FROM events WHERE chat_id = ? AND message_id = ? AND type = 'toilet' ORDER BY id",
+            (chat_id, message_id),
+        ))
+
+
+def note_stool_question(chat_id: int, question_id: int, message_id: int, asked_at: datetime) -> None:
+    with connect() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO stool_questions (chat_id, question_id, message_id, asked_at) "
+            "VALUES (?, ?, ?, ?)",
+            (chat_id, question_id, message_id, asked_at.isoformat()),
+        )
+
+
+def stool_question(chat_id: int, question_id: int) -> int | None:
+    """The message whose stool the bot asked about with this question."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT message_id FROM stool_questions WHERE chat_id = ? AND question_id = ?",
+            (chat_id, question_id),
+        ).fetchone()
+    return row["message_id"] if row else None
+
+
 def message_added_kcal(chat_id: int, message_id: int) -> bool:
     with connect() as conn:
         return conn.execute(
@@ -398,6 +440,7 @@ EDITABLE_COLUMNS = (
     "weight_kg",
     "breaths",
     "asleep",
+    "stool_score",
     "occurred_at",
     "day",
 )

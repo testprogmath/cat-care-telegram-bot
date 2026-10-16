@@ -53,13 +53,15 @@ example and the full list.
 | `/week` | four charts: water, calories, litter box, temperature |
 | `/meds` | medications for the last seven days as a grid of doses per day; `/meds all` for the whole diary, `/meds 2026-09-01 2026-09-30` for a period, both followed by a chart of doses over time |
 | `/profile` | which animal this chat keeps; `/profile <имя>` assigns a free one |
-| `/reminders` | whether water reminders and the daily summary run; `/reminders off`, `/reminders on` |
+| `/reminders` | whether water reminders, check-ins and the daily summary run; `/reminders off`, `/reminders on` |
 | `/help` | what the bot does and how it counts |
 
 A summary is posted at the start of each care day, midnight by default. Water reminders
 come every two hours between 09:00 and 23:00, only when the animal is behind the day's
-schedule, and say how far behind. [Animals, goals and reminders](docs/animals.md) has the
-rules, including the pause while a cat is in hospital.
+schedule, and say how far behind. A stool reported without its consistency gets a question
+for a score on a 1 to 5 scale, and a chat quiet for three hours between 09:00 and 22:00 gets
+a check-in. [Animals, goals and reminders](docs/animals.md) has the rules, including the
+pause while a cat is in hospital.
 
 The family also gets [web pages](docs/web.md) with the same diary: the week, every day by
 the hour, medications, foods and refusals.
