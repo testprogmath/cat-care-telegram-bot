@@ -80,6 +80,9 @@
 - description: a stool with no consistency named has no score, so the bot asks
   vars: {animal: skripa, text: "покакала",
          expected: [{type: toilet, stool_score: null}]}
+- description: Royal Canin Light Weight Care is a wet food at its label figures, even misspelt
+  vars: {animal: skripa, text: "Скушала 60 грам важного корма Royal canin light weight care",
+         expected: [{type: food, amount_ml: 60, kcal: 41.6, liquid: true, water_fraction: 0.82}]}
 - description: a counted toilet visit is that many events
   vars: {animal: skripa, text: "Ночью два раза пописала",
          expected: [{type: toilet}, {type: toilet}]}
