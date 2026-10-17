@@ -100,3 +100,19 @@ def test_the_same_product_named_more_or_less_fully_is_still_one_feeding(chat):
     message(chat, 2, "тоже съел", event("food", "тоже съел снек", name="Vitakraft", kcal=7.5,
                                         amount_ml=15.0, liquid=True), minute=1)
     assert [description for _, description in stored("food")] == ["съел снек"]
+
+
+def test_a_second_dry_portion_with_other_calories_is_a_second_feeding(chat):
+    message(chat, 1, "29 сухариков", event("food", "съела 29 сухариков Purina One", name="purina one",
+                                           kcal=13.4, liquid=False))
+    message(chat, 2, "и ещё 18 Zalm", event("food", "съела 18 сухариков Purina One zalm",
+                                            name="purina one zalm", kcal=11.6, liquid=False), minute=1)
+    assert [description for _, description in stored("food")] == [
+        "съела 29 сухариков Purina One", "съела 18 сухариков Purina One zalm",
+    ]
+
+
+def test_the_same_dry_portion_resent_is_still_one_feeding(chat):
+    message(chat, 1, "29 сухариков", event("food", "съела 29 сухариков", name="purina one", kcal=13.4))
+    message(chat, 2, "29 сухариков", event("food", "съела 29 сухариков", name="purina one", kcal=13.4), minute=1)
+    assert len(stored("food")) == 1
