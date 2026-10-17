@@ -14,7 +14,7 @@ Royal Canin Digestive Care (пауч 85 г, кусочки в соусе) — п
 Royal Canin Gastrointestinal, ветеринарный влажный (в чате — "Gastro Intestinal", "GI", тонкие \
 ломтики в соусе, пауч 85 г) — по этикетке 966 ккал/кг и влажность 79.8%: kcal = граммы × 0.966, \
 amount_ml равен граммам, liquid true, water_fraction 0.798.
-{royal_canin_sensory}Hill's Prescription Diet i/d Digestive Care, СУХОЙ — по этикетке 3934 ккал/кг: \
+{royal_canin_sensory}{royal_canin_light_weight}Hill's Prescription Diet i/d Digestive Care, СУХОЙ — по этикетке 3934 ккал/кг: \
 kcal = граммы × 3.934, liquid false, amount_ml и water_fraction не заполняй. Это тот самый мешок \
 сухого корма, который стоит дома: любое "Digestive Care", "GastroCare", "Intestinal Care", "i/d", \
 "айди" про СУХОЙ корм — всегда он, даже если в сообщении написано "Royal Canin". Название марки в \
