@@ -96,8 +96,12 @@ def _keeps_manual(rows: list[sqlite3.Row], kind: str, event) -> bool:
     return False
 
 
-def _is_separate_portion(existing_ml, new_ml) -> bool:
-    return existing_ml is not None and new_ml is not None and existing_ml != new_ml
+def _is_separate_portion(row: sqlite3.Row, event) -> bool:
+    if row["amount_ml"] is not None and event.amount_ml is not None:
+        return row["amount_ml"] != event.amount_ml
+    if row["amount_ml"] is None and event.amount_ml is None:
+        return row["kcal"] is not None and event.kcal is not None and row["kcal"] != event.kcal
+    return False
 
 
 def _name_words(name: str | None) -> frozenset[str]:
@@ -126,7 +130,7 @@ def _dedup_food(conn: sqlite3.Connection, chat_id: int, occurred_at: datetime, e
             (chat_id, lo, hi),
         )
         if _same_form(row, event)
-        and not _is_separate_portion(row["amount_ml"], event.amount_ml)
+        and not _is_separate_portion(row, event)
         and not _different_products(row["name"], event.name)
     ]
     if not existing:
