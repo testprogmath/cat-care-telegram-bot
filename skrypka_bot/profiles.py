@@ -87,7 +87,7 @@ SKRIPA = Profile(
     ),
     toilet_notes=texts.prompt("skripa/toilet.md"),
     water_goal_ml=_goal("skripa", "WATER_GOAL_ML", 340),
-    drinking_ml_per_second=0.275,
+    drinking_ml_per_second=0.19,
     tube=Tube(
         water_portion_ml=25.0,
         max_feed_ml=float(os.environ.get("TUBE_MAX_SINGLE_ML") or 100),
