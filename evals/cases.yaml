@@ -5,10 +5,10 @@
 
 - description: drinking time at the animal's own rate
   vars: {animal: skripa, text: "51сек пила водичку",
-         expected: [{type: water, feeding: self, water_ml: 14}]}
+         expected: [{type: water, feeding: self, water_ml: 9.5}]}
 - description: two drinking times are added
   vars: {animal: skripa, text: "Попила водичку 39+40секунд сама",
-         expected: [{type: water, feeding: self, water_ml: 21.5}]}
+         expected: [{type: water, feeding: self, water_ml: 15}]}
 - description: the other animal's rate
   vars: {animal: chipunya, text: "60 секунд пил водичку",
          expected: [{type: water, feeding: self, water_ml: 27}]}
