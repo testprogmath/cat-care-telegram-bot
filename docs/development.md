@@ -20,9 +20,10 @@ uv pip compile pyproject.toml --extra dev --generate-hashes --universal --python
 Dependabot proposes version bumps for both files.
 
 There is one Python version, the one in the image. `.python-version` names it, every CI job
-reads it from there, and the image smoke test fails when the `Dockerfile` runs another. When
-Dependabot moves the base image to a new Python, change `.python-version`, `requires-python`
-and ruff's `target-version` in the same pull request and regenerate the lock files.
+and the fuzzer build read it from there, and the image smoke test fails when the `Dockerfile`
+runs another. When Dependabot moves the base image to a new Python, change `.python-version`,
+`requires-python` and ruff's `target-version` in the same pull request and regenerate the
+lock files, the fuzzers' included.
 
 For the bot alone without Docker, run `skrypka-bot` with the variables from
 [configuration](configuration.md). The admin API is `care-api`, the site `care-web`.
@@ -75,7 +76,19 @@ boundary, whose result must be the local date or the day before. ClusterFuzzLite
 from `.clusterfuzzlite/` and runs them for two minutes on every pull request that changes
 `skrypka_bot/`, `fuzz/` or `.clusterfuzzlite/`, and for half an hour every Sunday night. The
 pull request gets one comment, updated on each run, with the result, the kind of crash if
-there was one, how many crashing inputs were saved and a link to the run. To run one by hand for a minute:
+there was one, how many crashing inputs were saved and a link to the run.
+
+The ClusterFuzzLite base image comes with its own Python 3.11, so `.clusterfuzzlite/Dockerfile`
+installs the version in `.python-version` with uv and builds the fuzzers in that Python, with
+atheris and pyinstaller from `.clusterfuzzlite/requirements.txt`. That file is locked with
+hashes like the others:
+
+```bash
+uv pip compile .clusterfuzzlite/requirements.in --generate-hashes --python-version 3.14 \
+  --python-platform x86_64-manylinux_2_17 -o .clusterfuzzlite/requirements.txt
+```
+
+To run one by hand for a minute:
 
 ```bash
 pip install atheris -e .

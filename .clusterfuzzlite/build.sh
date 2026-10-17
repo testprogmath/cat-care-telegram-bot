@@ -1,6 +1,6 @@
 #!/bin/bash -eu
-pip3 install --require-hashes -r requirements.txt
-pip3 install --no-deps -e .
+export PATH="$FUZZ_VENV/bin:$PATH"
+uv pip install --python "$FUZZ_VENV/bin/python" --no-deps .
 
 for fuzzer in "$SRC"/cat-care/fuzz/*_fuzzer.py; do
   fuzzer_basename=$(basename -s .py "$fuzzer")
