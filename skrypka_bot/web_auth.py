@@ -56,7 +56,7 @@ class Settings:
         return f"{self.base_url}/auth/callback"
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         secret = os.environ.get("WEB_SESSION_SECRET", "")
         if len(secret) < MIN_SECRET_LENGTH:
             raise SystemExit(

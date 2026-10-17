@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.12"
+          python-version-file: .python-version
       - run: pip install --require-hashes -r requirements-dev.txt
       - run: ruff check --output-format=github .
 
@@ -44,10 +44,6 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12"]
     permissions:
       contents: read
       pull-requests: write
@@ -60,14 +56,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version-file: .python-version
           cache: pip
       - run: pip install --require-hashes -r requirements-dev.txt
       - run: pip install --no-deps -e .
       - name: Run tests
         run: pytest -q --cov=skrypka_bot --cov-report=xml
-      - if: matrix.python-version == '3.12'
-        uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
+      - uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
         with:
           version: v0.83.2
           checksum: e8b0d48837ad56d35eec22a2f0f9e0bc7cbe0fc9ec4a8575bae7e4d52dd6f3d5
@@ -88,7 +83,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Smoke-test the image
-        run: docker run --rm -v "$PWD/tests/image_smoke.py:/smoke.py:ro" cat-care:ci python /smoke.py
+        run: docker run --rm -v "$PWD/tests/image_smoke.py:/smoke.py:ro" -e EXPECTED_PYTHON="$(cat .python-version)" cat-care:ci python /smoke.py
 
   release:
     needs: [lint, static, tests, build]

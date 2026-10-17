@@ -2,7 +2,7 @@
 name = "skrypka-telegram-bot"
 version = "0.1.0"
 description = "Telegram bot that collects daily pet care statistics from group messages"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "python-telegram-bot[job-queue]>=21.0",
     "openai>=1.100.0",
@@ -32,7 +32,7 @@ packages = ["skrypka_bot"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "S", "DTZ"]

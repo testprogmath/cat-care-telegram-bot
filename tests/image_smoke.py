@@ -2,12 +2,16 @@
 
 import os
 import pathlib
+import sys
 import tempfile
 from datetime import datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 os.environ.setdefault("OPENAI_API_KEY", "smoke")
+
+running = f"{sys.version_info.major}.{sys.version_info.minor}"
+assert running == os.environ["EXPECTED_PYTHON"], f"image runs Python {running}, .python-version says {os.environ['EXPECTED_PYTHON']}"
 
 from skrypka_bot import (  # noqa: E402, F401
               api,

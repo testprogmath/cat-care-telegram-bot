@@ -13,11 +13,16 @@ needs; the lock files say exactly which builds are installed, and pip refuses an
 hash differs. After changing a dependency in `pyproject.toml`, regenerate both:
 
 ```bash
-uv pip compile pyproject.toml --generate-hashes --universal --python-version 3.11 -o requirements.txt
-uv pip compile pyproject.toml --extra dev --generate-hashes --universal --python-version 3.11 -o requirements-dev.txt
+uv pip compile pyproject.toml --generate-hashes --universal --python-version 3.14 -o requirements.txt
+uv pip compile pyproject.toml --extra dev --generate-hashes --universal --python-version 3.14 -o requirements-dev.txt
 ```
 
 Dependabot proposes version bumps for both files.
+
+There is one Python version, the one in the image. `.python-version` names it, every CI job
+reads it from there, and the image smoke test fails when the `Dockerfile` runs another. When
+Dependabot moves the base image to a new Python, change `.python-version`, `requires-python`
+and ruff's `target-version` in the same pull request and regenerate the lock files.
 
 For the bot alone without Docker, run `skrypka-bot` with the variables from
 [configuration](configuration.md). The admin API is `care-api`, the site `care-web`.
@@ -82,15 +87,15 @@ python fuzz/text_fuzzer.py -max_total_time=60
 On every pull request and every push to `main`:
 
 - `lint`: `ruff check`. The rules and the few deliberate exceptions are in `pyproject.toml`.
-- `tests`: pytest on Python 3.11 and 3.12. On 3.12 octocov reads the coverage report and
+- `tests`: pytest. octocov reads the coverage report and
   comments on the pull request with coverage, the code to test ratio and the time of the
   test step, compared with `main`. On `main` it stores the report as a workflow artifact
   for that comparison. The settings are in `.octocov.yml`.
 - `static`: shellcheck on the deploy scripts, hadolint on the Dockerfile, actionlint and
   zizmor on the workflows, and gitleaks on the whole git history.
 - `build`: the Docker image, then `tests/image_smoke.py` inside it: every entry point imports,
-  a message writes two rows to a scratch database and reads them back, and the prompt files
-  are there. It catches a file left out of the image, which the tests run from source cannot.
+  the image runs the Python in `.python-version`, a message writes two rows to a scratch
+  database and reads them back, and the prompt files are there. It catches a file left out of the image, which the tests run from source cannot.
 
 The `Scorecard` workflow runs on every push to `main` and every Saturday. It rates the
 repository on the OpenSSF Scorecard checks (pinned dependencies, token permissions, branch

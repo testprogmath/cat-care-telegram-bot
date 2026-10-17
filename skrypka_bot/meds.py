@@ -78,7 +78,7 @@ def dose_amount(dose: str) -> float | None:
     return float(match.group(1)) if match else None
 
 
-def dose_unit(course: "Course") -> str | None:
+def dose_unit(course: Course) -> str | None:
     for dose, _ in course.doses.most_common():
         match = _AMOUNT_RE.match(dose)
         if match and match.group(2):
