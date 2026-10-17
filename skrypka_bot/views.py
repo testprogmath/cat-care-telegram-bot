@@ -118,7 +118,7 @@ class Share:
     second: float
 
     @classmethod
-    def of(cls, first: float, second: float, goal: float) -> "Share":
+    def of(cls, first: float, second: float, goal: float) -> Share:
         scale = max(goal, first + second, 1)
         return cls(round(first / scale * 100, 1), round(second / scale * 100, 1))
 
@@ -130,7 +130,7 @@ class Share3:
     widths: tuple[float, float, float]
 
     @classmethod
-    def of(cls, parts: tuple[float, float, float], goal: float) -> "Share3":
+    def of(cls, parts: tuple[float, float, float], goal: float) -> Share3:
         scale = max(goal, sum(parts), 1)
         return cls(tuple(round(p / scale * 100, 1) for p in parts))
 
