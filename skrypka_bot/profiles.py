@@ -74,6 +74,9 @@ _PURINA_ONE = texts.prompt("products/purina-one.md")
 _ROYAL_CANIN_LIGHT_WEIGHT = texts.prompt("products/royal-canin-light-weight.md")
 
 
+_ROYAL_CANIN_INSTINCTIVE = texts.prompt("products/royal-canin-instinctive.md")
+
+
 SKRIPA = Profile(
     key="skripa",
     subject_id="skripa",
@@ -87,7 +90,8 @@ SKRIPA = Profile(
     feeding_field=texts.prompt("skripa/feeding.md"),
     feeding_products=texts.prompt(
         "skripa/products.md", royal_canin_sensory=_ROYAL_CANIN_SENSORY,
-        royal_canin_light_weight=_ROYAL_CANIN_LIGHT_WEIGHT, purina_one=_PURINA_ONE
+        royal_canin_light_weight=_ROYAL_CANIN_LIGHT_WEIGHT,
+        royal_canin_instinctive=_ROYAL_CANIN_INSTINCTIVE, purina_one=_PURINA_ONE
     ),
     toilet_notes=texts.prompt("skripa/toilet.md"),
     water_goal_ml=_goal("skripa", "WATER_GOAL_ML", 340),
@@ -133,7 +137,8 @@ CHIPUNYA = Profile(
     feeding_field=texts.prompt("chipunya/feeding.md"),
     feeding_products=texts.prompt(
         "chipunya/products.md", royal_canin_sensory=_ROYAL_CANIN_SENSORY,
-        royal_canin_light_weight=_ROYAL_CANIN_LIGHT_WEIGHT, purina_one=_PURINA_ONE
+        royal_canin_light_weight=_ROYAL_CANIN_LIGHT_WEIGHT,
+        royal_canin_instinctive=_ROYAL_CANIN_INSTINCTIVE, purina_one=_PURINA_ONE
     ),
     toilet_notes="",
     water_goal_ml=_goal("chipunya", "WATER_GOAL_ML", 340),

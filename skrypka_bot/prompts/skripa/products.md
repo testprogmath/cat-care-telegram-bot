@@ -35,7 +35,7 @@ water — верни пустой список. Здесь названные г
 — нет, создай событие и оставь количество и kcal пустыми.
 Purina One Bifensis с лососем (zalm, "Purina One zalm", "Bifensis") — сухой корм, 3.87 ккал/г: kcal \
 = граммы × 3.87 по СЪЕДЕННОМУ количеству, liquid false, amount_ml и water_fraction не заполняй.
-{royal_canin_sensory}{royal_canin_light_weight}Hill's Prescription Diet i/d Digestive Care, СУХОЙ — по этикетке 3934 ккал/кг: \
+{royal_canin_sensory}{royal_canin_light_weight}{royal_canin_instinctive}Hill's Prescription Diet i/d Digestive Care, СУХОЙ — по этикетке 3934 ккал/кг: \
 kcal = граммы × 3.934, liquid false, amount_ml и water_fraction не заполняй. Любое "Digestive Care", \
 "GastroCare", "Intestinal Care", "i/d", "айди", "Hills" про СУХОЙ корм — всегда он, даже если в \
 сообщении написано "Royal Canin". Если количество названо ШТУКАМИ ("60 сухариков Hills", "съела штук \
