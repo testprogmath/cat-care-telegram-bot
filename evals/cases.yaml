@@ -83,6 +83,9 @@
 - description: Royal Canin Light Weight Care is a wet food at its label figures, even misspelt
   vars: {animal: skripa, text: "Скушала 60 грам важного корма Royal canin light weight care",
          expected: [{type: food, amount_ml: 60, kcal: 41.6, liquid: true, water_fraction: 0.82}]}
+- description: subcutaneous fluids are water given by people, for a cat without a tube too
+  vars: {animal: chipunya, text: "Дали подкожно 40мл лактата Рингера",
+         expected: [{type: water, water_ml: 40, feeding: tube}]}
 - description: a counted toilet visit is that many events
   vars: {animal: skripa, text: "Ночью два раза пописала",
          expected: [{type: toilet}, {type: toilet}]}
