@@ -88,3 +88,10 @@ def test_an_edit_of_a_message_waiting_for_retry_is_parsed_once(chat, parser):
     send(chat, "съела 41 г супчика", edited=True)
     assert stored()[:2] == ([(41.0, 17.4)], ("съела 41 г супчика", 1))
     assert not db.unparsed_messages()
+
+
+def test_an_edit_that_changes_no_figure_sends_no_second_progress(chat, parser):
+    parser["съела 31 г супчика"] = [soup(31.0)]
+    parser["съела 31 г супчика!"] = [soup(31.0)]
+    send(chat, "съела 31 г супчика")
+    assert send(chat, "съела 31 г супчика!", edited=True) == []

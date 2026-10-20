@@ -116,11 +116,18 @@ async def _suggest_tube_switch(bot, chat_id: int, message_id: int, profile: Prof
 
 async def _record_stool_answer(bot, chat_id: int, msg, text: str, sender: str, sent_at: datetime) -> bool:
     replied_to = msg.reply_to_message
-    source = db.stool_question(chat_id, replied_to.message_id) if replied_to else None
+    if replied_to is not None:
+        question = replied_to.message_id
+    elif questions.is_bare_score(text):
+        question = db.open_stool_question(chat_id, sent_at - questions.STOOL_ANSWER_WINDOW)
+    else:
+        question = None
+    source = db.stool_question(chat_id, question) if question is not None else None
     score = questions.score_from_reply(text) if source is not None else None
     if score is None:
         return False
     now = datetime.now(common.TIMEZONE)
+    db.mark_stool_answered(chat_id, question, now)
     for row in db.toilet_events(chat_id, source):
         if classify.toilet_kind(row["description"]) == "stool":
             db.update_event(row["id"], {"stool_score": score}, now)
@@ -211,9 +218,11 @@ async def _reparse_edited(bot, chat_id: int, msg, text: str) -> None:
     except Exception:
         logger.exception("Edited message %s could not be parsed, keeping its old events", msg.message_id)
         return
+    before = db.message_figures(chat_id, msg.message_id)
     ingest.replace_message_events(chat_id, msg.message_id, text, events, datetime.now(common.TIMEZONE))
     logger.info("Reparsed edited message %s: %d event(s)", msg.message_id, len(events))
-    if db.auto_left(chat_id) and db.message_added_kcal(chat_id, msg.message_id):
+    changed = db.message_figures(chat_id, msg.message_id) != before
+    if changed and db.auto_left(chat_id) and db.message_added_kcal(chat_id, msg.message_id):
         await common.send_progress(bot, chat_id, reply_to=msg.message_id)
 
 

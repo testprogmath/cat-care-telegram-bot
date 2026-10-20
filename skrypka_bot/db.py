@@ -111,6 +111,9 @@ def init() -> None:
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_chats_profile ON chats (profile) "
             "WHERE profile IS NOT NULL"
         )
+        question_columns = {row["name"] for row in conn.execute("PRAGMA table_info(stool_questions)")}
+        if "answered_at" not in question_columns:
+            conn.execute("ALTER TABLE stool_questions ADD COLUMN answered_at TEXT")
         message_columns = {row["name"] for row in conn.execute("PRAGMA table_info(messages)")}
         if "parsed" not in message_columns:
             conn.execute("ALTER TABLE messages ADD COLUMN parsed INTEGER")
@@ -325,6 +328,37 @@ def note_stool_question(chat_id: int, question_id: int, message_id: int, asked_a
             "VALUES (?, ?, ?, ?)",
             (chat_id, question_id, message_id, asked_at.isoformat()),
         )
+
+
+def open_stool_question(chat_id: int, since: datetime) -> int | None:
+    """The latest unanswered stool question asked since then, by its question id."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT question_id FROM stool_questions "
+            "WHERE chat_id = ? AND answered_at IS NULL AND asked_at >= ? "
+            "ORDER BY asked_at DESC LIMIT 1",
+            (chat_id, since.isoformat()),
+        ).fetchone()
+    return row["question_id"] if row else None
+
+
+def mark_stool_answered(chat_id: int, question_id: int, at: datetime) -> None:
+    with connect() as conn:
+        conn.execute(
+            "UPDATE stool_questions SET answered_at = ? WHERE chat_id = ? AND question_id = ?",
+            (at.isoformat(), chat_id, question_id),
+        )
+
+
+def message_figures(chat_id: int, message_id: int) -> list[tuple]:
+    """What a message adds to the day's totals, to tell whether an edit changed them."""
+    with connect() as conn:
+        return [tuple(row) for row in conn.execute(
+            "SELECT type, kcal, water_ml, amount_ml, water_fraction, liquid, feeding FROM events "
+            "WHERE chat_id = ? AND message_id = ? AND type IN ('food', 'water') "
+            "ORDER BY type, kcal, water_ml, amount_ml",
+            (chat_id, message_id),
+        )]
 
 
 def stool_question(chat_id: int, question_id: int) -> int | None:

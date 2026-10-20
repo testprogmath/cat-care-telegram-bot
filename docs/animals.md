@@ -63,7 +63,9 @@ it, litter included: 1 liquid, 2 slimy like pudding, 3 mushy, 4 formed and moist
 5 hard and dry. A stool with no consistency named gets a reply asking for the score. An
 answer to that question with one digit, or a word that names one point ("кашица",
 "норма"), scores every stool of the asked message without going through the model; any
-other answer is parsed as an ordinary message. The score shows next to the stool in the
+other answer is parsed as an ordinary message. A lone digit sent without replying counts as
+the answer too when a stool question in that chat is under 30 minutes old and still
+unanswered. The score shows next to the stool in the
 summary and on the day page.
 
 Between 09:00 and 22:00, when nothing has been written in a chat for three hours, the bot
