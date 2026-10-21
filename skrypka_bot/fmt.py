@@ -1,4 +1,8 @@
-"""Russian plural forms and the one-decimal numbers the messages use."""
+"""Russian plural forms, weekday names and the one-decimal numbers the messages and pages use."""
+
+from datetime import date
+
+WEEKDAYS = ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
 
 
 def plural(n: int, one: str, few: str, many: str) -> str:
@@ -17,3 +21,7 @@ def num(value: float) -> str:
 
 def comma(value: float) -> str:
     return f"{value:g}".replace(".", ",")
+
+
+def weekday(day: date) -> str:
+    return WEEKDAYS[day.weekday()]

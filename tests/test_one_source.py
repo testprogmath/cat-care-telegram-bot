@@ -4,7 +4,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import care_export, db, figures, ingest, profiles, summary, views
+from skrypka_bot import care_export, daily, db, figures, ingest, profiles, summary
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAY = date(2026, 10, 6)
@@ -26,7 +26,7 @@ def test_a_diary_moved_to_another_chat_keeps_one_set_of_figures(chat):
                     [event("food", kcal=12.0), event("water", water_ml=10.0)])
 
     bot = db.events_for_day("chipunya", DAY)
-    [site] = views.day_rows("chipunya", DAY, DAY)
+    [site] = daily.day_rows("chipunya", DAY, DAY)
     [export] = care_export.export("chipunya", DAY, DAY, now=datetime(2026, 10, 7, 12, 0, tzinfo=BERLIN))
 
     assert figures.kcal_total([e for e in bot if e["type"] == "food"]) == 52.0
@@ -43,7 +43,7 @@ def test_a_row_that_does_not_say_who_fed_counts_as_taken_alone_everywhere(chat):
     ])
     rows = db.events_for_day("chipunya", DAY)
     _, by_feeding, _, _ = summary._kcal_totals([e for e in rows if e["type"] == "food"])
-    [site] = views.day_rows("chipunya", DAY, DAY)
+    [site] = daily.day_rows("chipunya", DAY, DAY)
 
     assert by_feeding == {"tube": 10.0, "self": 30.0}
     assert (site.kcal_tube, site.kcal_self) == (10.0, 30.0)
