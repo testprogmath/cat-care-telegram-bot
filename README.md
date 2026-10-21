@@ -21,6 +21,19 @@ calories, refusals, litter box, body temperature, weight, breathing rate, genera
 Events land in SQLite. Commands and the daily summary read
 from there.
 
+```mermaid
+flowchart LR
+    chat["Family group chat"] -->|message| bot["Bot"]
+    bot -->|"text and the animal's prompt"| llm["OpenAI model,<br/>structured output"]
+    llm -->|typed events| checks["Checks in code:<br/>recaps, implausible feeds,<br/>repeats, known products"]
+    checks --> db[("SQLite")]
+    db --> replies["/left, /stats, daily summary,<br/>reminders, questions"]
+    replies --> chat
+    db --> web["Family site"]
+    db --> api["Admin API"]
+    db --> export["CareDay v1 export"]
+```
+
 The interesting part is everything the prompt has to get right, because a diary that
 silently miscounts is worse than no diary:
 
@@ -41,6 +54,32 @@ Each named product the cats actually eat is in the prompt with its label figures
 code then checks the answer before it is stored: it drops daily recaps, rejects
 implausible tube feeds and merges repeated reports. [The parser](docs/parser.md) has an
 example and the full list.
+
+## How it is checked
+
+A prompt edit can quietly start writing the wrong calories, and nobody notices until the
+vet asks why the numbers look odd. So the checks start with the prompt.
+
+- A promptfoo regression set of 43 kinds of real messages (count from `evals/cases.yaml`
+  on 22.10.2026), each with the events it must produce, runs through the bot's own parser
+  against the live model on every pull request that touches the parser, the prompts or the
+  profiles. Each failure shows in the job summary with the reason.
+- 363 pytest tests cover the deterministic part, at 86% line coverage (local run on
+  22.10.2026). octocov comments the change in coverage on each pull request.
+- Hypothesis hunts for counterexamples to rules that must hold for any input: every
+  instant of a care day's window belongs to that day, the nights the clocks change
+  included, and a resent report adds nothing.
+- ClusterFuzzLite runs Atheris fuzzers over the toilet classifier, product names, dose
+  normalisation and the care-day boundary for two minutes on each pull request that changes
+  the code and half an hour every Sunday, and posts the result on the pull request.
+- CI builds the Docker image and runs a smoke test inside it, which catches a prompt file
+  left out of the image and a Python version that drifted from `.python-version`.
+- Dependencies are locked by hash, actions pinned to commits and images to digests.
+  Releases are signed with Sigstore. CodeQL, zizmor and gitleaks run on every pull request, and
+  the repository holds an [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/testprogmath/cat-care-telegram-bot)
+  of 8.1 (21.10.2026) and the OpenSSF Best Practices passing badge.
+
+[Development](docs/development.md) has the commands and how each check is wired.
 
 ## Commands
 
@@ -102,8 +141,10 @@ migrations framework.
 
 ## Limits
 
-- The classification rules live in the prompt, so they are model judgements. No automated
-  test checks that a given message produces the right events.
+- The classification rules live in the prompt, so they are model judgements. The
+  regression set checks 43 messages against the live model, but the model is not
+  deterministic: a green run is evidence, not proof, and a message unlike every case can
+  still be misread.
 - Parsing is written for Russian-language chats. Messages in other languages are handled
   only as far as the model follows the prompt.
 - One animal per chat, one running instance, one SQLite file.
