@@ -103,7 +103,8 @@ On every pull request and every push to `main`:
 - `tests`: pytest. octocov reads the coverage report and
   comments on the pull request with coverage, the code to test ratio and the time of the
   test step, compared with `main`. On `main` it stores the report as a workflow artifact
-  for that comparison. The settings are in `.octocov.yml`.
+  for that comparison, and the `coverage-badge` job puts the coverage badge on the
+  `badges` branch, where the README reads it. The settings are in `.octocov.yml`.
 - `static`: shellcheck on the deploy scripts, hadolint on the Dockerfile, actionlint and
   zizmor on the workflows, and gitleaks on the whole git history.
 - `build`: the Docker image, then `tests/image_smoke.py` inside it: every entry point imports,
