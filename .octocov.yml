@@ -1,6 +1,8 @@
 coverage:
   paths:
     - coverage.xml
+  badge:
+    path: badges/coverage.svg
 codeToTestRatio:
   code:
     - "skrypka_bot/**/*.py"

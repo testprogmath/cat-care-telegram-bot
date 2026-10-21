@@ -66,7 +66,11 @@ names of people, places, clinics or sums of money from the chats.
 The `Prompt eval` workflow runs the set on every pull request that changes `parser.py`, the prompts in `prompts/`,
 `profiles.py` or `evals/`, with `OPENAI_API_KEY` from the `prompt-eval` environment. Each run
 writes a table of every case to the job's summary, with the reason next to each failure, and
-keeps `results.json` as an artifact for 30 days.
+keeps `results.json` as an artifact for 30 days. It also runs after a merge to `main` that
+changes the same files, and every Monday at 04:00 UTC, because the model behind the same name
+can change without a commit here. Those runs put the table on the `badges` branch as
+[prompt-eval.md](https://github.com/testprogmath/cat-care-telegram-bot/blob/badges/prompt-eval.md),
+with the passed count for the README badge next to it.
 
 ## Fuzzing
 
@@ -103,7 +107,8 @@ On every pull request and every push to `main`:
 - `tests`: pytest. octocov reads the coverage report and
   comments on the pull request with coverage, the code to test ratio and the time of the
   test step, compared with `main`. On `main` it stores the report as a workflow artifact
-  for that comparison. The settings are in `.octocov.yml`.
+  for that comparison, and the `coverage-badge` job puts the coverage badge on the
+  `badges` branch, where the README reads it. The settings are in `.octocov.yml`.
 - `static`: shellcheck on the deploy scripts, hadolint on the Dockerfile, actionlint and
   zizmor on the workflows, and gitleaks on the whole git history.
 - `build`: the Docker image, then `tests/image_smoke.py` inside it: every entry point imports,
