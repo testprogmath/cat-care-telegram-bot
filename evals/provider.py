@@ -7,16 +7,24 @@ from dataclasses import replace
 from skrypka_bot import foods, parser, profiles
 
 
+async def _parse(test, profile):
+    """Parse in this call's event loop and close the client in it, before the loop ends."""
+    parser.client.cache_clear()
+    try:
+        return await parser.parse_message(
+            test["text"], test.get("history", []), test.get("reply_to"), bool(test.get("report_shown")), profile,
+        )
+    finally:
+        await parser.client().close()
+
+
 def call_api(prompt, options, context):
     test = context["vars"]
     profile = profiles.get(test["animal"])
     if test.get("tube") == "out":
         profile = replace(profile, tube=None)
-    parser.client.cache_clear()
     try:
-        events = asyncio.run(parser.parse_message(
-            test["text"], test.get("history", []), test.get("reply_to"), bool(test.get("report_shown")), profile,
-        ))
+        events = asyncio.run(_parse(test, profile))
     except (parser.ParseFailed, parser.ParseRefused) as failure:
         return {"error": f"{type(failure).__name__}: {failure}"}
     for event in events:
