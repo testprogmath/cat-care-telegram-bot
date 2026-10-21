@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass
 
 from . import texts
@@ -40,9 +41,11 @@ class Profile:
     key: str
     subject_id: str
     name: str
+    name_genitive: str
     name_en: str
     title_markers: tuple[str, ...]
     aliases: tuple[str, ...]
+    mention: re.Pattern[str]
     self_label: str
     verb_received: str
     subject: str
@@ -81,9 +84,11 @@ SKRIPA = Profile(
     key="skripa",
     subject_id="skripa",
     name="Скрипа",
+    name_genitive="Скрипы",
     name_en="Skripa",
     title_markers=("скрип", "скрып"),
     aliases=("скрипа", "скрипка", "скрыпка"),
+    mention=re.compile(r"\bскр[иы]пк?[аеуыо]\w*", re.IGNORECASE),
     self_label="сама",
     verb_received="получила",
     subject=texts.prompt("skripa/subject.md"),
@@ -128,9 +133,11 @@ CHIPUNYA = Profile(
     key="chipunya",
     subject_id="chipunya",
     name="Чипуня",
+    name_genitive="Чипуни",
     name_en="Chipunya",
     title_markers=("чипун", "чип"),
     aliases=("чипуня", "чип", "чипун"),
+    mention=re.compile(r"\bчипун\w*", re.IGNORECASE),
     self_label="сам",
     verb_received="получил",
     subject=texts.prompt("chipunya/subject.md"),
@@ -167,6 +174,16 @@ def resolve(name: str) -> Profile | None:
         if low == profile.key or low in profile.aliases:
             return profile
     return None
+
+
+def named_instead(profile: Profile, text: str) -> Profile | None:
+    """Another animal the text names, when it does not name this one."""
+    if profile.mention.search(text):
+        return None
+    return next(
+        (other for other in PROFILES.values() if other.key != profile.key and other.mention.search(text)),
+        None,
+    )
 
 
 def names() -> str:

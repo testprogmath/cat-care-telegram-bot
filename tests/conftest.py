@@ -1,3 +1,4 @@
+import re
 import sqlite3
 
 import pytest
@@ -49,7 +50,8 @@ def chat(tmp_path, monkeypatch):
 def animal(key="murka", tube=None, **overrides) -> profiles.Profile:
     """A profile that is no real cat, for tests of rules that must not depend on which cat."""
     fields = dict(
-        key=key, subject_id=key, name="Мурка", name_en="Murka", title_markers=(key,), aliases=(key,),
+        key=key, subject_id=key, name="Мурка", name_genitive="Мурки", name_en="Murka", title_markers=(key,),
+        aliases=(key,), mention=re.compile(rf"\b{key}\w*", re.IGNORECASE),
         self_label="сама", verb_received="получила", subject="Мурка", feeding_field="",
         feeding_products="", toilet_notes="", water_goal_ml=340.0, kcal_goal=250.0, tube=tube,
     )
