@@ -69,6 +69,12 @@
 - description: a whole pouch of Heerlijke Reepjes, spelt Streepjes
   vars: {animal: chipunya, text: "съел весь пауч Felix Heerlijke Streepjes с уткой",
          expected: [{type: food, amount_ml: 85, kcal: 75.9, water_fraction: 0.786}]}
+- description: wet Purina One Junior by weight, not the dry Purina One
+  vars: {animal: chipunya, text: "съел 14 г Purina One Kitten с курицей",
+         expected: [{type: food, amount_ml: 14, kcal: 12.2, water_fraction: 0.78}]}
+- description: the salmon Purina One Junior counts like the chicken one
+  vars: {animal: skripa, text: "съела 34 г Purina One Junior с лососем и морковью",
+         expected: [{type: food, amount_ml: 34, kcal: 29.6, water_fraction: 0.78}]}
 - description: food put down and not eaten is a refusal, not a feeding
   vars: {animal: skripa, text: "насыпала 12 г, не ест", expected: [{type: refusal}]}
 - description: a described stool gets its point on the scale
