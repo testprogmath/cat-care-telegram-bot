@@ -66,7 +66,11 @@ names of people, places, clinics or sums of money from the chats.
 The `Prompt eval` workflow runs the set on every pull request that changes `parser.py`, the prompts in `prompts/`,
 `profiles.py` or `evals/`, with `OPENAI_API_KEY` from the `prompt-eval` environment. Each run
 writes a table of every case to the job's summary, with the reason next to each failure, and
-keeps `results.json` as an artifact for 30 days.
+keeps `results.json` as an artifact for 30 days. It also runs after a merge to `main` that
+changes the same files, and every Monday at 04:00 UTC, because the model behind the same name
+can change without a commit here. Those runs put the table on the `badges` branch as
+[prompt-eval.md](https://github.com/testprogmath/cat-care-telegram-bot/blob/badges/prompt-eval.md),
+with the passed count for the README badge next to it.
 
 ## Fuzzing
 

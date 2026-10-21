@@ -7,6 +7,15 @@ on:
       - skrypka_bot/prompts/**
       - skrypka_bot/profiles.py
       - evals/**
+  push:
+    branches: [main]
+    paths:
+      - skrypka_bot/parser.py
+      - skrypka_bot/prompts/**
+      - skrypka_bot/profiles.py
+      - evals/**
+  schedule:
+    - cron: "0 4 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -48,3 +57,48 @@ jobs:
           name: prompt-eval-results
           path: evals/results.json
           retention-days: 30
+      - name: Write the page and badge for main
+        if: ${{ !cancelled() && hashFiles('evals/results.json') != '' && github.ref == 'refs/heads/main' }}
+        run: |
+          mkdir -p published
+          {
+            python evals/summary.py evals/results.json
+            echo
+            echo "Commit ${GITHUB_SHA::7}, $(date -u +%Y-%m-%d), [the run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
+          } > published/prompt-eval.md
+          python evals/summary.py --badge evals/results.json > published/prompt-eval.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() && hashFiles('published/prompt-eval.json') != '' }}
+        with:
+          name: prompt-eval-page
+          path: published/
+          retention-days: 1
+
+  publish:
+    needs: eval
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.eval.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: badges
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: prompt-eval-page
+          path: page
+      - name: Publish the page and badge on the badges branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone -q --depth 1 --branch badges "$remote" published || git init -q -b badges published
+          cp page/prompt-eval.md page/prompt-eval.json published/
+          cd published
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prompt-eval.md prompt-eval.json
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Prompt eval for ${GITHUB_SHA}"
+          git push -q "$remote" badges

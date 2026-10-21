@@ -3,6 +3,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/testprogmath/cat-care-telegram-bot/badge)](https://scorecard.dev/viewer/?uri=github.com/testprogmath/cat-care-telegram-bot)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15454/badge)](https://www.bestpractices.dev/projects/15454)
 [![Coverage](https://raw.githubusercontent.com/testprogmath/cat-care-telegram-bot/badges/coverage.svg)](https://github.com/testprogmath/cat-care-telegram-bot/actions/workflows/ci.yml?query=branch%3Amain)
+[![Prompt eval](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftestprogmath%2Fcat-care-telegram-bot%2Fbadges%2Fprompt-eval.json)](https://github.com/testprogmath/cat-care-telegram-bot/blob/badges/prompt-eval.md)
 
 A care diary for a seriously ill cat, kept by the people who live with her.
 
