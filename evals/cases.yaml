@@ -18,6 +18,9 @@
 - description: water given by people
   vars: {animal: skripa, text: "дала 10 мл воды",
          expected: [{type: water, feeding: tube, water_ml: 10}]}
+- description: a subcutaneous infusion is water given by people
+  vars: {animal: chipunya, text: "Ввели подкожно 32мл лактата рингера",
+         expected: [{type: water, feeding: tube, water_ml: 32}]}
 - description: a tube feed and the water after it
   vars: {animal: skripa, text: "Дала 18мл Royal Canin Recovery Liquid и 12мл воды",
          expected: [{type: food, feeding: tube, amount_ml: 18, kcal: 18},
