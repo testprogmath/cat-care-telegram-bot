@@ -69,6 +69,12 @@
 - description: a whole pouch of Heerlijke Reepjes, spelt Streepjes
   vars: {animal: chipunya, text: "съел весь пауч Felix Heerlijke Streepjes с уткой",
          expected: [{type: food, amount_ml: 85, kcal: 75.9, water_fraction: 0.786}]}
+- description: Royal Canin Sensible by weight, not the unnamed dry food's 3.7 kcal/g
+  vars: {animal: chipunya, text: "съел 3 г сухариков Royal Canin Sensible",
+         expected: [{type: food, kcal: 12.9}]}
+- description: Royal Canin Sensible counted in kibbles of 0.2 g
+  vars: {animal: chipunya, text: "съел 20 сухариков Royal Canin Sensible 33",
+         expected: [{type: food, kcal: 17.2}]}
 - description: wet Purina One Junior by weight, not the dry Purina One
   vars: {animal: chipunya, text: "съел 14 г Purina One Kitten с курицей",
          expected: [{type: food, amount_ml: 14, kcal: 12.2, water_fraction: 0.78}]}
