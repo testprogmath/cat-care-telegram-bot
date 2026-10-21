@@ -25,6 +25,10 @@ STOOL_QUESTION = (
 
 _SCORE_DIGIT_RE = re.compile(r"(?<![\d.,])([1-5])(?![\d.,])")
 
+_BARE_SCORE_RE = re.compile(r"^\s*[1-5](?:\s*/\s*5)?\s*[.!]?\s*$")
+
+STOOL_ANSWER_WINDOW = timedelta(minutes=30)
+
 _SCORE_WORDS = (
     (1, re.compile(r"жидк|водянист|понос", re.IGNORECASE)),
     (2, re.compile(r"слиз|пудинг|лужиц", re.IGNORECASE)),
@@ -51,6 +55,11 @@ def score_from_reply(text: str) -> int | None:
         return int(digits.pop()) if len(digits) == 1 else None
     named = {score for score, pattern in _SCORE_WORDS if pattern.search(text)}
     return named.pop() if len(named) == 1 else None
+
+
+def is_bare_score(text: str) -> bool:
+    """A message that is nothing but a point of the scale, which answers the question even unreplied."""
+    return bool(_BARE_SCORE_RE.match(text))
 
 
 def needs_stool_score(row) -> bool:

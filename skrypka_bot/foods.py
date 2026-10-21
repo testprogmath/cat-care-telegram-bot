@@ -17,6 +17,7 @@ _PRODUCTS: list[tuple[str, str, str | None]] = [
     ("Felix Sauce", r"felix|феликс", r"sauce|соус|gravy|подлив"),
     ("Felix Soup", r"felix|феликс", None),
     ("Gourmet soup", r"gourmet|гурме", None),
+    ("Purina One Junior, wet", _PURINA, r"junior|kitten|юниор|котят"),
     ("Purina One salmon", _PURINA, r"zalm|лосос|залм|salmon"),
     ("Purina One chicken", _PURINA, r"кур|chicken"),
     ("Purina One beef", _PURINA, None),

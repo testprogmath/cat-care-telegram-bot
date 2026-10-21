@@ -333,6 +333,8 @@ def test_a_callback_without_its_login_attempt_is_refused(settings):
 @pytest.mark.parametrize(
     ("text", "liquid", "expected"),
     [("purina one zalm", False, "Purina One salmon"), ("purina one", False, "Purina One beef"),
+     ("purina one junior с лососем и морковью", True, "Purina One Junior, wet"),
+     ("purina one kitten", True, "Purina One Junior, wet"),
      ("felix sauce", True, "Felix Sauce"), ("felix soup", True, "Felix Soup"),
      ("felix sensations sauces eend/wortel", True, "Felix Sensations"),
      ("felix heerlijke reepjes kip", True, "Felix Heerlijke Reepjes"),

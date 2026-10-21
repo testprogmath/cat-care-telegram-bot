@@ -101,6 +101,40 @@ def test_the_answer_to_the_question_scores_the_stool_without_parsing(chat, monke
     assert db.message_seen(chat, 2)
 
 
+def test_a_bare_score_sent_without_replying_answers_the_open_question(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "покакал", [toilet("покакал")], monkeypatch, bot)
+    parsed = receive(chat, 2, "4", [toilet("покакал, стул 4", 4)], monkeypatch, bot)
+    assert parsed == []
+    assert stools(chat, 1) == [4]
+    assert stools(chat, 2) == []
+
+
+def test_an_answered_question_takes_no_second_bare_score(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "покакал", [toilet("покакал")], monkeypatch, bot)
+    receive(chat, 2, "4", [], monkeypatch, bot)
+    parsed = receive(chat, 3, "3", [], monkeypatch, bot)
+    assert parsed == ["3"]
+    assert stools(chat, 1) == [4]
+
+
+def test_a_bare_score_long_after_the_question_is_parsed_as_any_message(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "покакал", [toilet("покакал")], monkeypatch, bot)
+    with db.connect() as conn:
+        conn.execute("UPDATE stool_questions SET asked_at = ?",
+                     ((datetime.now(BERLIN) - timedelta(minutes=31)).isoformat(),))
+    assert receive(chat, 2, "4", [], monkeypatch, bot) == ["4"]
+    assert stools(chat, 1) == [None]
+
+
+@pytest.mark.parametrize(("text", "bare"), [("4", True), (" 3/5 ", True), ("2.", True), ("кашица", False),
+                                            ("покакал, 4", False), ("45", False)])
+def test_only_a_lone_digit_counts_as_an_unreplied_answer(text, bare):
+    assert questions.is_bare_score(text) is bare
+
+
 def test_an_answer_without_a_score_is_parsed_as_any_message(chat, monkeypatch):
     bot = Bot()
     receive(chat, 1, "покакал", [toilet("покакал")], monkeypatch, bot)
