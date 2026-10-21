@@ -49,6 +49,9 @@ TUBE_OUT_HINT = (
 TUBE_IN_HINT = "Похоже, трубку поставили. Если так, напишите /tube on."
 
 
+_DIGIT_RE = re.compile(r"\d")
+
+
 PARSE_WARNING_INTERVAL = timedelta(hours=2)
 
 
@@ -139,6 +142,18 @@ async def _record_stool_answer(bot, chat_id: int, msg, text: str, sender: str, s
     return True
 
 
+async def _note_other_animal(bot, chat_id: int, message_id: int, profile: Profile, text: str) -> None:
+    other = profiles.named_instead(profile, text)
+    if other is None or not _DIGIT_RE.search(text):
+        return
+    await bot.send_message(
+        chat_id,
+        f"Здесь {other.pick('названа', 'назван')} {other.name}, "
+        f"в дневник {profile.name_genitive} ничего не записал.",
+        reply_parameters=ReplyParameters(message_id, allow_sending_without_reply=True),
+    )
+
+
 async def _ask_about_stool(bot, chat_id: int, message_id: int) -> None:
     if not any(questions.needs_stool_score(row) for row in db.toilet_events(chat_id, message_id)):
         return
@@ -200,6 +215,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     ingest.save_message(chat.id, msg.message_id, sender, sent_at, text, events)
     if events:
         logger.info("Saved %d event(s) from message %s", len(events), msg.message_id)
+    else:
+        await _note_other_animal(context.bot, chat.id, msg.message_id, profile, text)
     if db.auto_left(chat.id) and db.message_added_kcal(chat.id, msg.message_id):
         await common.send_progress(context.bot, chat.id, reply_to=msg.message_id)
     await _ask_about_stool(context.bot, chat.id, msg.message_id)
