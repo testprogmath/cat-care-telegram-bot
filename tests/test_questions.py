@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import db, foods, jobs, messages, questions, summary
+from skrypka_bot import db, foods, ingest, jobs, messages, questions, summary
 
 BERLIN = ZoneInfo("Europe/Berlin")
 _ids = iter(range(5000, 6000))
@@ -265,3 +265,18 @@ def test_sensations_are_asked_about_with_their_own_wording(chat, monkeypatch):
             monkeypatch, bot)
     receive(chat, 2, "все", [], monkeypatch, bot, reply_to=bot.sent[-1][0])
     assert feeding(chat, 1) == (31.5, 0.842, "all")
+
+
+@pytest.mark.parametrize(
+    ("text", "model_said", "kept"),
+    [
+        ("Скушала 36 грамм феликс супчик с тунцом", "none", None),
+        ("выпил бульон из супчика, кусочки оставил", "none", "none"),
+        ("съела 40 г Sensations, обычная смесь", "all", "all"),
+        ("выпила весь супчик", "none", "none"),
+        ("съела половину пауча", "some", "some"),
+    ],
+)
+def test_the_models_pieces_count_only_when_the_message_speaks_of_them(text, model_said, kept):
+    event = SimpleNamespace(type="food", pieces=model_said)
+    assert ingest.known_pieces(event, text) == kept

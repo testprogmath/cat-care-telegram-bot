@@ -82,9 +82,12 @@ def _backfill_amount_ml(event) -> None:
         event.amount_ml = float(match.group(1).replace(",", "."))
 
 
-def _pieces(event) -> str | None:
+def known_pieces(event, text: str) -> str | None:
+    """The model's pieces when the message speaks of them; the model fills in its default otherwise."""
     pieces = getattr(event, "pieces", None)
-    return pieces if event.type == "food" and pieces in foods.PIECES else None
+    if event.type != "food" or pieces not in foods.PIECES:
+        return None
+    return pieces if classify.mentions_pieces(text) else None
 
 
 def _stool_score(event) -> int | None:
@@ -379,7 +382,7 @@ def _insert_events(
                 getattr(event, "breaths_per_min", None),
                 {True: 1, False: 0}.get(getattr(event, "asleep", None)),
                 _stool_score(event),
-                _pieces(event),
+                known_pieces(event, text),
                 event.description,
             ),
         )
