@@ -1,4 +1,4 @@
-### Prompt eval: 44 of 44 passed
+### Prompt eval: 45 of 45 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
@@ -14,6 +14,7 @@
 | ✅ | two soups in one message, broth only | Съел (15+29)г двух разных супчиков Felix, без кусочков |  |
 | ✅ | soup with nothing said about the bits is broth | Поел 17г супчика Феликс с курицей |  |
 | ✅ | a whole soup | съел весь супчик Felix с бифом |  |
+| ✅ | the whole soup drunk is the whole broth, not the pieces | Выпила весь супчик из Феликс суп с курицей |  |
 | ✅ | soup offered is not soup eaten | дала супчик Felix |  |
 | ✅ | gravy of food with pieces, no volume | полизал подливку от Monge, кусочки не ел |  |
 | ✅ | Felix Sauce with water and a leftover | выпила Felix sauce с 20 мл воды, осталось 10г |  |
@@ -47,4 +48,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit 3db9b76, 2026-10-22, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/39772681466).
+Commit dd71dfe, 2026-10-22, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/39774732718).
