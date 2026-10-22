@@ -41,6 +41,9 @@
 - description: a whole soup
   vars: {animal: chipunya, text: "съел весь супчик Felix с бифом",
          expected: [{type: food, amount_ml: 48, kcal: 23, water_fraction: 0.875}]}
+- description: the whole soup drunk is the whole broth, not the pieces
+  vars: {animal: skripa, text: "Выпила весь супчик из Феликс суп с курицей",
+         expected: [{type: food, amount_ml: 40, kcal: 17, water_fraction: 0.95}]}
 - description: soup offered is not soup eaten
   vars: {animal: chipunya, text: "дала супчик Felix", expected: []}
 - description: gravy of food with pieces, no volume
