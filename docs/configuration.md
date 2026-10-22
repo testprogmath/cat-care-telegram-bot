@@ -26,7 +26,7 @@ ignores and deploys leave in place. `.env.example` lists the ones a new install 
 | `DEPLOY_HOST` `DEPLOY_KEY` `DEPLOY_DIR` | none | read by `deploy.sh` on your machine only |
 
 The goal variables are named after the profile `key`, as `<KEY>_WATER_GOAL_ML` and
-`<KEY>_KCAL_GOAL`.
+`<KEY>_KCAL_GOAL`. They are defaults: a goal set in the chat with `/limit` wins over them.
 
 ## Web
 

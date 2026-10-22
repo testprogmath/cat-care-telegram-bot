@@ -48,6 +48,7 @@ def main() -> None:
     app.add_handler(CommandHandler("profile", commands.profile_command))
     app.add_handler(CommandHandler("reminders", commands.for_known_chat(commands.reminders_command)))
     app.add_handler(CommandHandler("tube", commands.for_known_chat(commands.tube_command)))
+    app.add_handler(CommandHandler("limit", commands.for_known_chat(commands.limit_command)))
     app.add_handler(CommandHandler(["help", "start"], commands.for_known_chat(commands.help_command)))
     app.add_handler(
         MessageHandler((filters.TEXT | filters.CAPTION) & ~filters.COMMAND, messages.handle_message)

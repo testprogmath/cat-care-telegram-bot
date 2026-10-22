@@ -1,6 +1,6 @@
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from . import texts
 
@@ -59,9 +59,26 @@ class Profile:
     tube: Tube | None = None
     drinking_ml_per_second: float = 0.45
 
+    def with_goals(self, kcal: float | None = None, water_ml: float | None = None) -> Profile:
+        """This animal with the goals a chat set; a band whose target is the goal moves with it."""
+        changed = self
+        if kcal is not None:
+            changed = replace(changed, kcal_goal=kcal,
+                              kcal_bands=_retarget(changed.kcal_bands, changed.kcal_goal, kcal))
+        if water_ml is not None:
+            changed = replace(changed, water_goal_ml=water_ml,
+                              water_bands=_retarget(changed.water_bands, changed.water_goal_ml, water_ml))
+        return changed
+
     def pick(self, she: str, he: str) -> str:
         """The word that agrees with this animal: Скрипа is a she, Чипуня a he."""
         return she if self.self_label == "сама" else he
+
+
+def _retarget(bands: Bands | None, goal: float, new_goal: float) -> Bands | None:
+    if bands is None or not bands.target_low == bands.target_high == goal:
+        return bands
+    return replace(bands, target_low=new_goal, target_high=new_goal)
 
 
 def _goal(key: str, field: str, default: float) -> float:

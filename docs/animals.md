@@ -30,9 +30,15 @@ implausible-feed check applies only to one.
 
 ## Goals and thresholds
 
-Daily water and calorie goals are per profile and can be changed with
-[environment variables](configuration.md). Water from wet food counts toward the water
-goal at each product's moisture fraction.
+Daily water and calorie goals are per profile, with defaults from
+[environment variables](configuration.md). A chat changes its own with `/limit food 225` or
+`/limit water 340`, and `/limit food default` goes back to the configured one; the value is
+kept on the chat, so it survives restarts and deploys. `/left`, the water reminders, the
+daily assessment and the site all count from it, the site's past days included, since the
+goal is applied when a page is drawn and not stored with the records. A threshold band
+whose target is the goal itself, such as the first cat's calorie target, moves with it;
+the alarm levels do not. Water from wet food counts toward the water goal at each
+product's moisture fraction.
 
 Alarm thresholds are per animal too, derived from body weight and diagnosis. Below a
 threshold the daily summary says so in plain language. The second cat has none, because

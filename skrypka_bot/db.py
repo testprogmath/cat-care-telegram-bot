@@ -55,14 +55,16 @@ def init() -> None:
         schema.apply(conn)
 
 
-_CHAT_ANIMAL = "SELECT chat_id, profile, tube_out_at FROM chats WHERE chat_id = ?"
+_CHAT_ANIMAL = "SELECT chat_id, profile, tube_out_at, kcal_goal, water_goal_ml FROM chats WHERE chat_id = ?"
 
 
 def _animal(row: sqlite3.Row | None) -> profiles.Profile | None:
     profile = profiles.get(row["profile"]) if row else None
-    if profile is not None and profile.tube and row["tube_out_at"]:
-        return replace(profile, tube=None)
-    return profile
+    if profile is None:
+        return None
+    if profile.tube and row["tube_out_at"]:
+        profile = replace(profile, tube=None)
+    return profile.with_goals(kcal=row["kcal_goal"], water_ml=row["water_goal_ml"])
 
 
 class ProfileTaken(Exception):
@@ -126,14 +128,14 @@ def _with_profiles(rows) -> list[tuple[int, profiles.Profile]]:
 
 def all_chats() -> list[tuple[int, profiles.Profile]]:
     with connect() as conn:
-        return _with_profiles(conn.execute("SELECT chat_id, profile, tube_out_at FROM chats"))
+        return _with_profiles(conn.execute("SELECT chat_id, profile, tube_out_at, kcal_goal, water_goal_ml FROM chats"))
 
 
 def active_chats() -> list[tuple[int, profiles.Profile]]:
     with connect() as conn:
         return _with_profiles(
             conn.execute(
-                "SELECT chat_id, profile, tube_out_at FROM chats WHERE paused_at IS NULL"
+                "SELECT chat_id, profile, tube_out_at, kcal_goal, water_goal_ml FROM chats WHERE paused_at IS NULL"
             )
         )
 
@@ -152,6 +154,15 @@ def set_tube_out(chat_id: int, at: datetime | None) -> None:
             "UPDATE chats SET tube_out_at = ? WHERE chat_id = ?",
             (at.isoformat() if at else None, chat_id),
         )
+
+
+GOAL_COLUMNS = {"food": "kcal_goal", "water": "water_goal_ml"}
+
+
+def set_goal(chat_id: int, kind: str, value: float | None) -> None:
+    """A chat's own goal for food or water; None goes back to the animal's configured one."""
+    with connect() as conn:
+        conn.execute(f"UPDATE chats SET {GOAL_COLUMNS[kind]} = ? WHERE chat_id = ?", (value, chat_id))
 
 
 def paused_since(chat_id: int) -> datetime | None:
