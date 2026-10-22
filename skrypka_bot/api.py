@@ -2,7 +2,7 @@ import json
 import os
 import secrets
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
 import uvicorn
@@ -16,6 +16,8 @@ from .parser import EventType
 MIN_TOKEN_LENGTH = 32
 
 StoolScore = Annotated[int, Field(ge=1, le=5)]
+
+Pieces = Literal["none", "some", "all"]
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -80,6 +82,7 @@ class Event(EventSummary):
     breaths: float | None = None
     asleep: bool | None = None
     stool_score: StoolScore | None = None
+    pieces: Pieces | None = None
     message_text: str | None
 
 
@@ -100,6 +103,7 @@ class EventPatch(BaseModel):
     breaths: float | None = None
     asleep: bool | None = None
     stool_score: StoolScore | None = None
+    pieces: Pieces | None = None
     occurred_at: datetime | None = None
 
 
@@ -122,6 +126,7 @@ class EventCreate(BaseModel):
     breaths: float | None = None
     asleep: bool | None = None
     stool_score: StoolScore | None = None
+    pieces: Pieces | None = None
 
 
 class Edit(BaseModel):

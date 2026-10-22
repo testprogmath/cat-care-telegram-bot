@@ -9,7 +9,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from . import classify, common, db, ingest, profiles, questions
+from . import classify, common, db, foods, ingest, profiles, questions
 from .parser import ParseFailed, ParseRefused, parse_message
 from .profiles import Profile
 
@@ -154,6 +154,37 @@ async def _note_other_animal(bot, chat_id: int, message_id: int, profile: Profil
     )
 
 
+async def _record_pieces_answer(bot, chat_id: int, msg, text: str, sender: str, sent_at: datetime) -> bool:
+    replied_to = msg.reply_to_message
+    event_id = db.pieces_question(chat_id, replied_to.message_id) if replied_to else None
+    pieces = questions.pieces_from_reply(text) if event_id is not None else None
+    row = db.event_by_id(event_id) if pieces is not None else None
+    food = foods.pieces_product(row) if row is not None and row["amount_ml"] else None
+    if food is None:
+        return False
+    kcal, water_fraction = foods.with_pieces(food, row["amount_ml"], pieces)
+    db.update_event(event_id, {"pieces": pieces, "kcal": kcal, "water_fraction": water_fraction},
+                    datetime.now(common.TIMEZONE))
+    ingest.save_message(chat_id, msg.message_id, sender, sent_at, text, [])
+    await bot.send_message(
+        chat_id, questions.pieces_confirmation(pieces, kcal),
+        reply_parameters=ReplyParameters(msg.message_id, allow_sending_without_reply=True),
+    )
+    return True
+
+
+async def _ask_about_pieces(bot, chat_id: int, message_id: int) -> None:
+    for row in db.food_events(chat_id, message_id):
+        food = foods.pieces_product(row)
+        if food is None or row["pieces"] is not None or not row["amount_ml"]:
+            continue
+        sent = await bot.send_message(
+            chat_id, questions.PIECES_QUESTION[food],
+            reply_parameters=ReplyParameters(message_id, allow_sending_without_reply=True),
+        )
+        db.note_pieces_question(chat_id, sent.message_id, row["id"], sent.date.astimezone(common.TIMEZONE))
+
+
 async def _ask_about_stool(bot, chat_id: int, message_id: int) -> None:
     if not any(questions.needs_stool_score(row) for row in db.toilet_events(chat_id, message_id)):
         return
@@ -188,6 +219,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     sender = msg.from_user.full_name if msg.from_user else ""
     if await _record_stool_answer(context.bot, chat.id, msg, text, sender, sent_at):
         return
+    if await _record_pieces_answer(context.bot, chat.id, msg, text, sender, sent_at):
+        return
     replied_to = msg.reply_to_message
     reply_text = (replied_to.text or replied_to.caption) if replied_to else None
     history, report_shown = _history(chat.id, sent_at)
@@ -220,6 +253,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if db.auto_left(chat.id) and db.message_added_kcal(chat.id, msg.message_id):
         await common.send_progress(context.bot, chat.id, reply_to=msg.message_id)
     await _ask_about_stool(context.bot, chat.id, msg.message_id)
+    await _ask_about_pieces(context.bot, chat.id, msg.message_id)
 
 
 async def _reparse_edited(bot, chat_id: int, msg, text: str) -> None:

@@ -82,6 +82,11 @@ def _backfill_amount_ml(event) -> None:
         event.amount_ml = float(match.group(1).replace(",", "."))
 
 
+def _pieces(event) -> str | None:
+    pieces = getattr(event, "pieces", None)
+    return pieces if event.type == "food" and pieces in foods.PIECES else None
+
+
 def _stool_score(event) -> int | None:
     score = getattr(event, "stool_score", None)
     if event.type != "toilet" or score not in range(1, 6):
@@ -352,8 +357,8 @@ def _insert_events(
                 continue
         conn.execute(
             "INSERT INTO events "
-            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, weight_kg, breaths, asleep, stool_score, description) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, weight_kg, breaths, asleep, stool_score, pieces, description) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 chat_id,
                 subject,
@@ -374,6 +379,7 @@ def _insert_events(
                 getattr(event, "breaths_per_min", None),
                 {True: 1, False: 0}.get(getattr(event, "asleep", None)),
                 _stool_score(event),
+                _pieces(event),
                 event.description,
             ),
         )

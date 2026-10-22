@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import db, jobs, messages, questions, summary
+from skrypka_bot import db, foods, jobs, messages, questions, summary
 
 BERLIN = ZoneInfo("Europe/Berlin")
 _ids = iter(range(5000, 6000))
@@ -202,3 +202,66 @@ def test_a_paused_chat_gets_no_check_in(chat, monkeypatch):
     bot = Bot()
     asyncio.run(jobs.checkin(SimpleNamespace(bot=bot)))
     assert bot.sent == []
+
+
+def soup(description, grams, pieces=None, name="felix soup"):
+    return SimpleNamespace(
+        type="food", name=name, dose=None, water_ml=None, kcal=round(grams * 0.425, 1), feeding="self",
+        amount_ml=grams, temp_c=None, liquid=True, water_fraction=0.95, time=None, pieces=pieces,
+        description=description,
+    )
+
+
+def feeding(chat_id, message_id):
+    [row] = db.food_events(chat_id, message_id)
+    return row["kcal"], row["water_fraction"], row["pieces"]
+
+
+@pytest.mark.parametrize(
+    ("answer", "pieces"),
+    [("нет", "none"), ("только бульон", "none"), ("половину", "some"), ("немного", "some"),
+     ("все", "all"), ("всё съела", "all"), ("2", "all"), ("не все", "some"), ("не помню", None), ("нет, все", None)],
+)
+def test_an_answer_names_how_many_pieces_or_none(answer, pieces):
+    assert questions.pieces_from_reply(answer) == pieces
+
+
+@pytest.mark.parametrize(
+    ("food", "pieces", "figures"),
+    [("Felix Soup", "none", (15.3, 0.95)), ("Felix Soup", "some", (16.7, 0.95)), ("Felix Soup", "all", (17.2, 0.875)),
+     ("Felix Sensations", "none", (12.0, 0.88)), ("Felix Sensations", "some", (16.0, 0.867)),
+     ("Felix Sensations", "all", (31.5, 0.842))],
+)
+def test_the_pieces_set_the_calories_and_water_of_the_grams_eaten(food, pieces, figures):
+    grams = 36 if food == "Felix Soup" else {"none": 30, "some": 30, "all": 40}[pieces]
+    assert foods.with_pieces(food, grams, pieces) == figures
+
+
+def test_a_soup_without_a_word_on_the_pieces_is_asked_about(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "скушал 36 г супчика", [soup("36 г супчика", 36)], monkeypatch, bot)
+    assert [(text, reply_to) for _, text, reply_to in bot.sent][-1] == (questions.PIECES_QUESTION["Felix Soup"], 1)
+
+
+def test_a_soup_whose_pieces_are_named_is_not_asked_about(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "выпил бульон, кусочки оставил", [soup("бульон", 36, pieces="none")], monkeypatch, bot)
+    assert all(text != questions.PIECES_QUESTION["Felix Soup"] for _, text, _ in bot.sent)
+
+
+def test_the_answer_recounts_the_feeding_without_parsing(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "скушал 36 г супчика", [soup("36 г супчика", 36)], monkeypatch, bot)
+    question = bot.sent[-1][0]
+    parsed = receive(chat, 2, "половину", [], monkeypatch, bot, reply_to=question)
+    assert parsed == []
+    assert feeding(chat, 1) == (16.7, 0.95, "some")
+    assert bot.sent[-1][1:] == ("Записал: с частью кусочков, 16.7 ккал.", 2)
+
+
+def test_sensations_are_asked_about_with_their_own_wording(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "съел 40 г Sensations", [soup("40 г Felix Sensations", 40, name="felix sensations утка")],
+            monkeypatch, bot)
+    receive(chat, 2, "все", [], monkeypatch, bot, reply_to=bot.sent[-1][0])
+    assert feeding(chat, 1) == (31.5, 0.842, "all")

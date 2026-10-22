@@ -43,6 +43,7 @@ class Event(BaseModel):
     breaths_per_min: float | None = None
     asleep: bool | None = None
     stool_score: int | None = None
+    pieces: Literal["none", "some", "all"] | None = None
     description: str
 
 

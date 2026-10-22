@@ -41,6 +41,13 @@ def apply(conn: sqlite3.Connection) -> None:
             after     TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_event_edits_event ON event_edits (event_id);
+        CREATE TABLE IF NOT EXISTS pieces_questions (
+            chat_id     INTEGER NOT NULL,
+            question_id INTEGER NOT NULL,
+            event_id    INTEGER NOT NULL,
+            asked_at    TEXT NOT NULL,
+            PRIMARY KEY (chat_id, question_id)
+        );
         CREATE TABLE IF NOT EXISTS stool_questions (
             chat_id     INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
@@ -84,6 +91,7 @@ def apply(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE events ADD COLUMN water_fraction REAL")
     for column, kind in (
         ("weight_kg", "REAL"), ("breaths", "REAL"), ("asleep", "INTEGER"), ("stool_score", "INTEGER"),
+        ("pieces", "TEXT"),
     ):
         if column not in columns:
             conn.execute(f"ALTER TABLE events ADD COLUMN {column} {kind}")

@@ -44,6 +44,15 @@
 - description: the whole soup drunk is the whole broth, not the pieces
   vars: {animal: skripa, text: "Выпила весь супчик из Феликс суп с курицей",
          expected: [{type: food, amount_ml: 40, kcal: 17, water_fraction: 0.95}]}
+- description: a soup with no word on the pieces leaves them open, so the bot asks
+  vars: {animal: skripa, text: "Скушала 36 грамм феликс супчик с тунцом",
+         expected: [{type: food, amount_ml: 36, pieces: null}]}
+- description: pieces left are none
+  vars: {animal: chipunya, text: "выпил бульон из супчика Felix, кусочки оставил",
+         expected: [{type: food, pieces: none}]}
+- description: the usual Sensations mix is all the pieces
+  vars: {animal: skripa, text: "съела 40 г Felix Sensations утка, обычная смесь",
+         expected: [{type: food, amount_ml: 40, kcal: 31.5, pieces: all}]}
 - description: soup offered is not soup eaten
   vars: {animal: chipunya, text: "дала супчик Felix", expected: []}
 - description: gravy of food with pieces, no volume
