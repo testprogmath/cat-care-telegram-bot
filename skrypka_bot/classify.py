@@ -16,8 +16,17 @@ _NO_RESULT_RE = re.compile(
 )
 _ATTEMPT_RE = re.compile(r"пыта|попыт|пробует|пробовал|тужит|тужил|покопал", re.IGNORECASE)
 _DONE_RE = re.compile(r"пописал|покакал|помочил|наделал|какашк|сходил\S* в (?:туалет|лоток|горшок)", re.IGNORECASE)
+_MISSED_ENTRY_RE = re.compile(
+    r"забыл\w*|не (?:за)?писал\w*|не отметил\w*|пропустил\w*|дописыва\w*|задним числом|vergeten|forgot",
+    re.IGNORECASE,
+)
 _VOMIT_RE = re.compile(r"\bвырвало\b|\bрвот\w*|\bстошнил\w*|\bсрыгну\w*", re.IGNORECASE)
 _NO_VOMIT_RE = re.compile(r"без рвоты|не вырвало|не стошнил\w*|рвоты (?:не было|нет)", re.IGNORECASE)
+
+
+def says_entry_was_missed(text: str) -> bool:
+    """The writer says an earlier event went unrecorded: "забыла написать", "не записали"."""
+    return bool(_MISSED_ENTRY_RE.search(text))
 
 
 def is_recap(text: str) -> bool:

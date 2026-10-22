@@ -32,3 +32,20 @@ SENT = datetime(2026, 10, 6, 22, 45, tzinfo=BERLIN)
 def test_the_event_lands_on_the_day_the_message_names(fields, sent, expected):
     event = SimpleNamespace(**{"time": None, "date": None, "days_ago": None, **fields})
     assert ingest._event_time(sent, event) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "fields", "retold"),
+    [
+        ("вчера дала серению", {"days_ago": 1}, True),
+        ("04.10 дала миратаз", {"date": "04.10"}, True),
+        ("вчера в 23:30 дала серению 6 мг", {"days_ago": 1, "time": "23:30"}, False),
+        ("забыла написать: вчера дала серению 6 мг", {"days_ago": 1}, False),
+        ("вчера не записали серению", {"days_ago": 1}, False),
+        ("дала серению", {}, False),
+    ],
+    ids=["told", "told with a date", "with its time", "said to be missed", "said not written", "today"],
+)
+def test_a_past_dose_is_an_entry_only_with_its_time_or_a_missed_entry(text, fields, retold):
+    event = SimpleNamespace(**{"type": "medication", "time": None, "date": None, "days_ago": None, **fields})
+    assert ingest.is_retold_past_dose(event, text) is retold
