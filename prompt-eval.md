@@ -1,8 +1,7 @@
-### Prompt eval: 42 of 43 passed
+### Prompt eval: 44 of 44 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
-| ❌ | soup with nothing said about the bits is broth | Поел 17г супчика Феликс с курицей | no event matches {'type': 'food', 'amount_ml': 17, 'kcal': 7.2, 'water_fraction': 0.95}; got [{'type': 'food', 'name': 'felix soup', 'kcal': 8.1, 'feeding': 'self', 'amount_ml': 17.0, 'liquid': True, 'water_fraction': 0.875, 'description': 'Поел 17 г супчика Феликс с курицей'}] |
 | ✅ | drinking time at the animal's own rate | 51сек пила водичку |  |
 | ✅ | two drinking times are added | Попила водичку 39+40секунд сама |  |
 | ✅ | the other animal's rate | 60 секунд пил водичку |  |
@@ -13,6 +12,7 @@
 | ✅ | given by syringe while the tube is out | дала 20 мл Recovery Liquid |  |
 | ✅ | dry food by weight | съела 5 г сухариков PurinaOne |  |
 | ✅ | two soups in one message, broth only | Съел (15+29)г двух разных супчиков Felix, без кусочков |  |
+| ✅ | soup with nothing said about the bits is broth | Поел 17г супчика Феликс с курицей |  |
 | ✅ | a whole soup | съел весь супчик Felix с бифом |  |
 | ✅ | soup offered is not soup eaten | дала супчик Felix |  |
 | ✅ | gravy of food with pieces, no volume | полизал подливку от Monge, кусочки не ел |  |
@@ -27,6 +27,7 @@
 | ✅ | a whole pouch of Heerlijke Reepjes, spelt Streepjes | съел весь пауч Felix Heerlijke Streepjes с уткой |  |
 | ✅ | Royal Canin Sensible by weight, not the unnamed dry food's 3.7 kcal/g | съел 3 г сухариков Royal Canin Sensible |  |
 | ✅ | Royal Canin Sensible counted in kibbles of 0.2 g | съел 20 сухариков Royal Canin Sensible 33 |  |
+| ✅ | Royal Canin Indoor counted in kibbles of 0.182 g | Съел 45 сухариков Royal Canin Indoor |  |
 | ✅ | wet Purina One Junior by weight, not the dry Purina One | съел 14 г Purina One Kitten с курицей |  |
 | ✅ | the salmon Purina One Junior counts like the chicken one | съела 34 г Purina One Junior с лососем и морковью |  |
 | ✅ | food put down and not eaten is a refusal, not a feeding | насыпала 12 г, не ест |  |
@@ -46,4 +47,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit cdfc59c, 2026-10-22, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/39698155729).
+Commit 3db9b76, 2026-10-22, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/39772681466).
