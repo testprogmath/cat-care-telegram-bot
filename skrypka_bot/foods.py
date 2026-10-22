@@ -30,6 +30,7 @@ _PRODUCTS: list[tuple[str, str, str | None]] = [
     ("Trovet", r"trovet", None),
     ("Churu", r"churu|чуру", None),
     ("RC Sensible, dry", r"sensible", None),
+    ("RC Indoor, dry", r"indoor|индор", None),
     ("RC Recovery Liquid", r"recovery", None),
     ("RC Kitten", r"kitten|котят|котяч", None),
     ("RC Gastrointestinal", r"gastro", None),
