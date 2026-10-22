@@ -34,6 +34,10 @@ The model's answer is not stored blindly. Before events reach the diary:
   so a real feed written as "за день первый раз съела 5 г" is discarded too.
 - For an animal with a tube, a single tube feed above the tube's limit (100 ml by default)
   is rejected as implausible.
+- A dose on an earlier day is kept only when the message gives its time or says it was
+  not written down ("забыла написать", "не записали"). "вчера дала серению" is a story about
+  yesterday, and the model sometimes records it anyway; stored, it would show the vet two
+  doses where there was one.
 - A repeated report replaces or yields to what is stored. Within five minutes, a more
   detailed feeding replaces a less detailed one, an exact water volume replaces an
   estimate such as "попила немного", and a longer description of the same toilet visit

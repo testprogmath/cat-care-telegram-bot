@@ -44,6 +44,14 @@ def _event_day(sent_at: datetime, event) -> date | None:
     return None
 
 
+def is_retold_past_dose(event, text: str) -> bool:
+    """A dose on an earlier day with no time and no word that it went unrecorded: a story, not an entry."""
+    if event.type != "medication" or getattr(event, "time", None):
+        return False
+    earlier = getattr(event, "date", None) or getattr(event, "days_ago", None)
+    return bool(earlier) and not classify.says_entry_was_missed(text)
+
+
 def _event_time(sent_at: datetime, event) -> datetime:
     day = _event_day(sent_at, event)
     base = sent_at if day is None else sent_at.replace(year=day.year, month=day.month, day=day.day)
@@ -337,6 +345,9 @@ def _insert_events(
             if not _dedup_toilet(conn, chat_id, message_id, occurred_at, event):
                 continue
         elif event.type == "medication":
+            if is_retold_past_dose(event, text):
+                logger.info("Skipping a past dose told without a time or a missed entry: %r", event.description)
+                continue
             if not _dedup_medication(conn, chat_id, occurred_at, event):
                 continue
         conn.execute(
