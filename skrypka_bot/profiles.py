@@ -80,6 +80,9 @@ _ROYAL_CANIN_LIGHT_WEIGHT = texts.prompt("products/royal-canin-light-weight.md")
 _ROYAL_CANIN_INSTINCTIVE = texts.prompt("products/royal-canin-instinctive.md")
 
 
+_SKRIPA_KCAL_GOAL = _goal("skripa", "KCAL_GOAL", 225)
+
+
 SKRIPA = Profile(
     key="skripa",
     subject_id="skripa",
@@ -106,11 +109,11 @@ SKRIPA = Profile(
         max_feed_ml=float(os.environ.get("TUBE_MAX_SINGLE_ML") or 100),
         feeding_field=texts.prompt("skripa/feeding-tube.md"),
     ),
-    kcal_goal=_goal("skripa", "KCAL_GOAL", 250),
+    kcal_goal=_SKRIPA_KCAL_GOAL,
     kcal_bands=Bands(
         unit="ккал",
-        target_low=250,
-        target_high=250,
+        target_low=_SKRIPA_KCAL_GOAL,
+        target_high=_SKRIPA_KCAL_GOAL,
         alarm=200,
         severe=150,
         critical=110,
@@ -149,7 +152,7 @@ CHIPUNYA = Profile(
     ),
     toilet_notes="",
     water_goal_ml=_goal("chipunya", "WATER_GOAL_ML", 340),
-    kcal_goal=_goal("chipunya", "KCAL_GOAL", 295),
+    kcal_goal=_goal("chipunya", "KCAL_GOAL", 270),
 )
 
 
