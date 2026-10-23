@@ -40,6 +40,7 @@ def help_text(profile: Profile) -> str:
         "/meds 2026-09-01 2026-09-30 — лекарства за период, с графиком\n"
         "/profile — чей дневник ведётся в этом чате\n"
         "/reminders — напоминания и автосводка: пауза или работа\n"
+        "/limit — цели по еде и воде на сутки; /limit food 225, /limit water 340\n"
         + ("/tube off — трубка выпала, /tube on — трубку поставили\n" if profiles.get(profile.key).tube else "")
         + "\n"
         f"Каждый день в {db.DAY_START} я сам присылаю сводку за прошедшие сутки.\n"
@@ -58,6 +59,7 @@ def help_text(profile: Profile) -> str:
 BOT_COMMANDS = [
     ("left", "Вода и калории: сколько уже и сколько осталось"),
     ("autoleft", "Сводка /left после записи еды: вкл или выкл"),
+    ("limit", "Цели по еде и воде на сутки"),
     ("stats", "Сводка за текущие сутки"),
     ("risk", "Прогноз на конец суток: еда и жидкость против порогов"),
     ("week", "Графики за неделю: вода, калории, туалет, температура"),
@@ -302,6 +304,60 @@ async def reminders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             "Вернуть: /reminders on или сообщение о возвращении домой."
         )
     await context.bot.send_message(chat.id, text)
+
+
+GOAL_KINDS = {
+    "food": "food", "еда": "food", "корм": "food", "калории": "food", "kcal": "food",
+    "water": "water", "вода": "water",
+}
+
+GOAL_RANGES = {"food": (50.0, 600.0), "water": (50.0, 800.0)}
+
+GOAL_FORMAT = "Формат: /limit, /limit food 225, /limit water 340, /limit food default"
+
+
+def _goals_line(profile: Profile) -> str:
+    return f"еда {profile.kcal_goal:g} ккал, вода {profile.water_goal_ml:g} мл"
+
+
+async def limit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat = update.effective_chat
+    if chat is None:
+        return
+    before = db.profile_for(chat.id)
+    args = [a.lower() for a in context.args or []]
+    if not args:
+        await context.bot.send_message(
+            chat.id, f"Цели {before.name_genitive} на сутки: {_goals_line(before)}.\n{GOAL_FORMAT}"
+        )
+        return
+    kind = GOAL_KINDS.get(args[0])
+    if kind is None or len(args) != 2:
+        await context.bot.send_message(chat.id, GOAL_FORMAT)
+        return
+    if args[1] in ("default", "сброс"):
+        value = None
+    else:
+        try:
+            value = float(args[1].replace(",", "."))
+        except ValueError:
+            await context.bot.send_message(chat.id, GOAL_FORMAT)
+            return
+        low, high = GOAL_RANGES[kind]
+        if not low <= value <= high:
+            await context.bot.send_message(
+                chat.id, f"Цель должна быть от {low:g} до {high:g}. Ничего не поменял."
+            )
+            return
+    db.set_goal(chat.id, kind, value)
+    after = db.profile_for(chat.id)
+    logger.info("Chat %s set the %s goal to %s", chat.id, kind, value)
+    await context.bot.send_message(
+        chat.id,
+        f"Цели {after.name_genitive} на сутки: {_goals_line(after)} (было: {_goals_line(before)}).\n"
+        "От них теперь считаются /left, напоминания о воде и оценка суток, а на сайте "
+        "проценты от цели за прошлые дни тоже.",
+    )
 
 
 async def tube_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

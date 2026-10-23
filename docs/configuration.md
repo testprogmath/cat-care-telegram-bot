@@ -15,8 +15,8 @@ ignores and deploys leave in place. `.env.example` lists the ones a new install 
 | `TIMEZONE` | `Europe/Berlin` | the zone the care day and all times are read in |
 | `DAY_START` | `00:00` | where one care day ends and the next begins, and when the daily summary is posted |
 | `DB_PATH` | `data/skrypka.db` | |
-| `SKRIPA_WATER_GOAL_ML` `SKRIPA_KCAL_GOAL` | `340` `250` | daily goals, first cat |
-| `CHIPUNYA_WATER_GOAL_ML` `CHIPUNYA_KCAL_GOAL` | `340` `295` | daily goals, second cat |
+| `SKRIPA_WATER_GOAL_ML` `SKRIPA_KCAL_GOAL` | `340` `225` | daily goals, first cat; the calorie goal is also the target of her daily assessment |
+| `CHIPUNYA_WATER_GOAL_ML` `CHIPUNYA_KCAL_GOAL` | `340` `270` | daily goals, second cat |
 | `TUBE_MAX_SINGLE_ML` | `100` | a single tube feed above this is rejected as implausible |
 | `LIQUID_FOOD_WATER_FRACTION` | `0.85` | water fraction for a liquid food stored without its own |
 | `WEB_BASE_URL` | none | when set, `/stats` and `/left` end with a link to that day on the site |
@@ -26,7 +26,7 @@ ignores and deploys leave in place. `.env.example` lists the ones a new install 
 | `DEPLOY_HOST` `DEPLOY_KEY` `DEPLOY_DIR` | none | read by `deploy.sh` on your machine only |
 
 The goal variables are named after the profile `key`, as `<KEY>_WATER_GOAL_ML` and
-`<KEY>_KCAL_GOAL`.
+`<KEY>_KCAL_GOAL`. They are defaults: a goal set in the chat with `/limit` wins over them.
 
 ## Web
 

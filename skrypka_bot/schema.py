@@ -66,6 +66,9 @@ def apply(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE chats ADD COLUMN auto_left INTEGER NOT NULL DEFAULT 1")
     if "tube_out_at" not in chat_columns:
         conn.execute("ALTER TABLE chats ADD COLUMN tube_out_at TEXT")
+    for column in ("kcal_goal", "water_goal_ml"):
+        if column not in chat_columns:
+            conn.execute(f"ALTER TABLE chats ADD COLUMN {column} REAL")
     conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_chats_profile ON chats (profile) "
         "WHERE profile IS NOT NULL"

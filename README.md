@@ -94,6 +94,7 @@ vet asks why the numbers look odd. So the checks start with the prompt.
 | `/week` | four charts: water, calories, litter box, temperature |
 | `/meds` | medications for the last seven days as a grid of doses per day; `/meds all` for the whole diary, `/meds 2026-09-01 2026-09-30` for a period, both followed by a chart of doses over time |
 | `/profile` | which animal this chat keeps; `/profile <имя>` assigns a free one |
+| `/limit` | the daily food and water goals; `/limit food 225`, `/limit water 340`, `/limit food default` |
 | `/reminders` | whether water reminders, check-ins and the daily summary run; `/reminders off`, `/reminders on` |
 | `/help` | what the bot does and how it counts |
 
