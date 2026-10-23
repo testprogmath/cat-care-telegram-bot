@@ -81,6 +81,31 @@ def fill_gravy(event) -> None:
         event.water_fraction = water_fraction
 
 
+PIECES = ("none", "some", "all")
+
+_SOUP_PER_GRAM = {"none": (0.425, 0.95), "some": (0.464, 0.95), "all": (0.479, 0.875)}
+
+_SENSATIONS_SHARE = {"none": 0.0, "some": 0.10, "all": 0.294}
+
+
+def pieces_product(row) -> str | None:
+    """Felix Soup or Felix Sensations, the foods whose figures depend on how many pieces were eaten."""
+    if not row["liquid"]:
+        return None
+    found = product(f"{row['name'] or ''} {row['description'] or ''}", True)
+    return found if found in ("Felix Soup", "Felix Sensations") else None
+
+
+def with_pieces(food: str, grams: float, pieces: str) -> tuple[float, float]:
+    """Calories and water fraction of so many grams of the food, eaten with none, some or all of its pieces."""
+    if food == "Felix Soup":
+        per_gram, water_fraction = _SOUP_PER_GRAM[pieces]
+    else:
+        share = _SENSATIONS_SHARE[pieces]
+        per_gram, water_fraction = 0.40 + 1.32 * share, round(0.88 - 0.13 * share, 3)
+    return round(grams * per_gram, 1), water_fraction
+
+
 def refused_products(row: sqlite3.Row) -> list[str]:
     name = row["name"]
     if not name:

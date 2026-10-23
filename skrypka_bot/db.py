@@ -273,6 +273,33 @@ def message_figures(chat_id: int, message_id: int) -> list[tuple]:
         )]
 
 
+def food_events(chat_id: int, message_id: int) -> list[sqlite3.Row]:
+    with connect() as conn:
+        return list(conn.execute(
+            "SELECT * FROM events WHERE chat_id = ? AND message_id = ? AND type = 'food' ORDER BY id",
+            (chat_id, message_id),
+        ))
+
+
+def note_pieces_question(chat_id: int, question_id: int, event_id: int, asked_at: datetime) -> None:
+    with connect() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO pieces_questions (chat_id, question_id, event_id, asked_at) "
+            "VALUES (?, ?, ?, ?)",
+            (chat_id, question_id, event_id, asked_at.isoformat()),
+        )
+
+
+def pieces_question(chat_id: int, question_id: int) -> int | None:
+    """The feeding the bot asked about the pieces of with this question."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT event_id FROM pieces_questions WHERE chat_id = ? AND question_id = ?",
+            (chat_id, question_id),
+        ).fetchone()
+    return row["event_id"] if row else None
+
+
 def stool_question(chat_id: int, question_id: int) -> int | None:
     """The message whose stool the bot asked about with this question."""
     with connect() as conn:
@@ -387,6 +414,7 @@ EDITABLE_COLUMNS = (
     "breaths",
     "asleep",
     "stool_score",
+    "pieces",
     "occurred_at",
     "day",
 )

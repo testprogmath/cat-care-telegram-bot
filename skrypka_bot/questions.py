@@ -37,6 +37,19 @@ _SCORE_WORDS = (
     (5, re.compile(r"тв[её]рд|сух|камуш|камен", re.IGNORECASE)),
 )
 
+PIECES_QUESTION = {
+    "Felix Soup": "Кусочки из супчика ели? Ответьте на это сообщение: нет, половину или все.",
+    "Felix Sensations": "Кусочки из Sensations ели? Ответьте на это сообщение: нет, немного или все.",
+}
+
+PIECES_LABEL = {"none": "без кусочков", "some": "с частью кусочков", "all": "с кусочками"}
+
+_PIECES_WORDS = (
+    ("none", re.compile(r"^\s*(?:нет|0)\b|не ел|не стал|только (?:бульон|подлив|соус)", re.IGNORECASE)),
+    ("some", re.compile(r"немного|половин|чуть|часть|не вс[её]\b|^\s*1\b", re.IGNORECASE)),
+    ("all", re.compile(r"(?<!не )\bвс[её]\b|^\s*2\b|целиком|полностью|обычн", re.IGNORECASE)),
+)
+
 CHECKIN_MARKER = "[бот спросил, как дела]"
 
 CHECKIN_START_HOUR = 9
@@ -55,6 +68,16 @@ def score_from_reply(text: str) -> int | None:
         return int(digits.pop()) if len(digits) == 1 else None
     named = {score for score, pattern in _SCORE_WORDS if pattern.search(text)}
     return named.pop() if len(named) == 1 else None
+
+
+def pieces_from_reply(text: str) -> str | None:
+    """How many pieces an answer to the pieces question names, or None when it names none or several."""
+    named = {pieces for pieces, pattern in _PIECES_WORDS if pattern.search(text)}
+    return named.pop() if len(named) == 1 else None
+
+
+def pieces_confirmation(pieces: str, kcal: float) -> str:
+    return f"Записал: {PIECES_LABEL[pieces]}, {kcal:g} ккал."
 
 
 def is_bare_score(text: str) -> bool:

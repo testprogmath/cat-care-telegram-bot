@@ -31,4 +31,5 @@ def call_api(prompt, options, context):
     for event in events:
         if event.type == "food":
             foods.fill_gravy(event)
+            event.pieces = ingest.known_pieces(event, test["text"])
     return {"output": json.dumps([e.model_dump(exclude_none=True) for e in events], ensure_ascii=False)}

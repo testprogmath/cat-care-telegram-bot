@@ -72,6 +72,12 @@ Between 09:00 and 22:00, when nothing has been written in a chat for three hours
 asks how the animal is doing. Its question counts as a message, so the next one waits
 another three hours. The answer is parsed like any message.
 
+A Felix Soup or Felix Sensations feeding whose message says nothing about the pieces is
+counted by the default, broth or gravy only for soup and the usual mix for Sensations, and
+gets a reply asking whether the pieces were eaten. An answer to that question ("нет",
+"половину", "все") sets how many and recounts the feeding's calories and water from its
+grams in code, without the model.
+
 ## Hospital pause
 
 While the cat is admitted, nobody at home can offer her water, so reminders become noise.

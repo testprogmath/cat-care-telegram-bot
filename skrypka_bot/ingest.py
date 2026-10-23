@@ -82,6 +82,14 @@ def _backfill_amount_ml(event) -> None:
         event.amount_ml = float(match.group(1).replace(",", "."))
 
 
+def known_pieces(event, text: str) -> str | None:
+    """The model's pieces when the message speaks of them; the model fills in its default otherwise."""
+    pieces = getattr(event, "pieces", None)
+    if event.type != "food" or pieces not in foods.PIECES:
+        return None
+    return pieces if classify.mentions_pieces(text) else None
+
+
 def _stool_score(event) -> int | None:
     score = getattr(event, "stool_score", None)
     if event.type != "toilet" or score not in range(1, 6):
@@ -352,8 +360,8 @@ def _insert_events(
                 continue
         conn.execute(
             "INSERT INTO events "
-            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, weight_kg, breaths, asleep, stool_score, description) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(chat_id, subject, message_id, occurred_at, day, type, name, dose, water_ml, kcal, feeding, amount_ml, temp_c, liquid, water_fraction, weight_kg, breaths, asleep, stool_score, pieces, description) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 chat_id,
                 subject,
@@ -374,6 +382,7 @@ def _insert_events(
                 getattr(event, "breaths_per_min", None),
                 {True: 1, False: 0}.get(getattr(event, "asleep", None)),
                 _stool_score(event),
+                known_pieces(event, text),
                 event.description,
             ),
         )

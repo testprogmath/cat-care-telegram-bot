@@ -20,8 +20,17 @@ _MISSED_ENTRY_RE = re.compile(
     r"забыл\w*|не (?:за)?писал\w*|не отметил\w*|пропустил\w*|дописыва\w*|задним числом|vergeten|forgot",
     re.IGNORECASE,
 )
+_PIECES_RE = re.compile(
+    r"кусоч|бульон|подлив|жидкост|смес|\bвс[её]\b|\bвесь\b|\bвсю\b|целиком|полностью|половин|немного|только",
+    re.IGNORECASE,
+)
 _VOMIT_RE = re.compile(r"\bвырвало\b|\bрвот\w*|\bстошнил\w*|\bсрыгну\w*", re.IGNORECASE)
 _NO_VOMIT_RE = re.compile(r"без рвоты|не вырвало|не стошнил\w*|рвоты (?:не было|нет)", re.IGNORECASE)
+
+
+def mentions_pieces(text: str) -> bool:
+    """The message says something about the pieces of a soup or a pouch, or how much of it was eaten."""
+    return bool(_PIECES_RE.search(text))
 
 
 def says_entry_was_missed(text: str) -> bool:
