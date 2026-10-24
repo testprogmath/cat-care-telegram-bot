@@ -1,0 +1,41 @@
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  automerge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'testprogmath/cat-care-telegram-bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      - name: Auto-merge updates that never reach production
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          ECOSYSTEM: ${{ steps.metadata.outputs.package-ecosystem }}
+          DIRECTORY: ${{ steps.metadata.outputs.directory }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          NAMES: ${{ steps.metadata.outputs.dependency-names }}
+        run: |
+          case "$UPDATE_TYPE" in
+            version-update:semver-patch|version-update:semver-minor) ;;
+            *) echo "Not auto-merged: $UPDATE_TYPE needs a person."; exit 0 ;;
+          esac
+          dev_only=true
+          for name in ${NAMES//,/ }; do
+            case "$name" in ruff|pytest|pytest-cov|hypothesis) ;; *) dev_only=false ;; esac
+          done
+          if [ "$ECOSYSTEM" = github_actions ] || [ "$DIRECTORY" = /.clusterfuzzlite ] \
+             || { [ "$ECOSYSTEM" = uv ] && [ "$dev_only" = true ]; }; then
+            gh pr merge --auto --squash "$PR_URL"
+          else
+            echo "Not auto-merged: $NAMES in $ECOSYSTEM $DIRECTORY reaches production and needs a person."
+          fi

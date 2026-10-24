@@ -12,6 +12,8 @@ updates:
       - "release:patch"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "github-actions"
     directory: "/"
     labels:
@@ -19,6 +21,8 @@ updates:
       - "release:skip"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "docker"
     directory: "/"
     labels:
@@ -26,6 +30,8 @@ updates:
       - "release:patch"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "pip"
     directory: "/.clusterfuzzlite"
     labels:
@@ -33,6 +39,8 @@ updates:
       - "release:skip"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "docker"
     directory: "/.clusterfuzzlite"
     labels:
@@ -40,3 +48,5 @@ updates:
       - "release:skip"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7

@@ -7,6 +7,7 @@ on:
       - skrypka_bot/prompts/**
       - skrypka_bot/profiles.py
       - evals/**
+      - uv.lock
   push:
     branches: [main]
     paths:
@@ -14,6 +15,7 @@ on:
       - skrypka_bot/prompts/**
       - skrypka_bot/profiles.py
       - evals/**
+      - uv.lock
   schedule:
     - cron: "0 4 * * 1"
   workflow_dispatch:
