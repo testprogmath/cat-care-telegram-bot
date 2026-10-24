@@ -26,6 +26,7 @@ from . import (
     foods_view,
     meds,
     meds_view,
+    questions,
     timeline,
     web_auth,
     week_view,
@@ -123,6 +124,7 @@ def page(request: Request, template: str, person: Viewer, current: Animal | None
         {"viewer": person, "current": current, "animals": visible_animals(person),
          "section": "week" if section in ("day", "") else section.removesuffix(".png"),
          "weekday": fmt.weekday, "today": today(), "timedelta_days": lambda n: timedelta(days=n),
+         "stool_legend": questions.STOOL_LEGEND,
          **context},
     )
 

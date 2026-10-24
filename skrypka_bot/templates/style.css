@@ -2,13 +2,13 @@
   --bg: #F3F4F1; --card: #FFFFFF; --fg: #17201D; --muted: #5E6863; --line: #E4E7E2; --soft: #ECEEEA;
   --accent: #3F3AA8; --ink-button: #17201D;
   --tube: #6B5CE0; --self: #E3A836; --drink: #3D8FDF; --foodwater: #7CC48A;
-  --ate: #2E8B57; --refused: #C9563F; --tag-bg: #FBE9E4; --tag-fg: #8E2F1D;
+  --ate: #2E8B57; --refused: #C9563F; --tag-bg: #FBE9E4; --tag-fg: #8E2F1D; --amber: #A86A12;
   --meds: #0F7B6C; --toilet: #5B8DB8; --state: #8A938E; --stool: #9A6A3A;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #141816; --card: #1C211F; --fg: #E8ECE9; --muted: #A2ACA7; --line: #2C3330; --soft: #262D2A;
-    --accent: #A9A5FF; --ink-button: #E8ECE9; --tag-bg: #3A2420; --tag-fg: #F2B4A5;
+    --accent: #A9A5FF; --ink-button: #E8ECE9; --tag-bg: #3A2420; --tag-fg: #F2B4A5; --amber: #E0B25A;
   }
 }
 * { box-sizing: border-box; }
@@ -90,6 +90,8 @@ details.card > summary { cursor: pointer; font-weight: 600; min-height: 28px; }
 .mini .goal { stroke: var(--refused); stroke-width: 1; stroke-dasharray: 4 3; }
 .mini text { font-size: 8px; fill: var(--muted); text-anchor: middle; }
 .mini text.total { fill: var(--fg); font-weight: 600; }
+.mini text.score { font-weight: 700; } .mini text.score.ok { fill: var(--fg); }
+.mini text.score.warn { fill: var(--amber); } .mini text.score.bad { fill: var(--refused); }
 
 .day-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .day-cards a { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 14px; border-radius: 16px;

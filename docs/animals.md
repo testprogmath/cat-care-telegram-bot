@@ -72,7 +72,9 @@ answer to that question with one digit, or a word that names one point ("каш�
 other answer is parsed as an ordinary message. A lone digit sent without replying counts as
 the answer too when a stool question in that chat is under 30 minutes old and still
 unanswered. The score shows next to the stool in the
-summary and on the day page.
+summary and on the day page, and every score of a day is printed under that day on the
+week page's toilet chart and in the stool bar of `/week`, coloured by how far it is from a
+formed 4.
 
 Between 09:00 and 22:00, when nothing has been written in a chat for three hours, the bot
 asks how the animal is doing. Its question counts as a message, so the next one waits

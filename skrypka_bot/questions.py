@@ -89,6 +89,14 @@ def needs_stool_score(row) -> bool:
     return row["stool_score"] is None and classify.toilet_kind(row["description"]) == "stool"
 
 
+STOOL_LEGEND = " · ".join(f"{score} {word}" for score, word in STOOL_SCALE.items())
+
+
+def stool_tone(score: int) -> str:
+    """How far a score is from the formed stool of 4: ok, warn for 3 and 5, bad for 1 and 2."""
+    return "ok" if score == 4 else "warn" if score in (3, 5) else "bad"
+
+
 def stool_label(score: int) -> str:
     return f"стул {score}/5, {STOOL_SCALE[score]}"
 

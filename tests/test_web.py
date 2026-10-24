@@ -367,3 +367,12 @@ def test_the_days_water_says_given_only_when_someone_gave_water(settings, member
     record(chat, 12, type="water", feeding="tube", water_ml=15.0, description="дала шприцем")
     page = client(MEMBER).get("/chipunya/day/2026-10-06").text
     assert water_detail(page) == "пил сам 2 раз, 30 мл · дали 1 раз, 15 мл · из корма 34 мл"
+
+
+def test_the_week_shows_each_stool_score_under_its_day_with_a_legend(settings, members, today, chat):
+    record(chat, 7, day=date(2026, 10, 6), type="toilet", description="покакал", stool_score=4)
+    record(chat, 19, day=date(2026, 10, 6), type="toilet", description="покакал", stool_score=1)
+    page = client(MEMBER).get("/chipunya/week?from=2026-09-30&to=2026-10-06").text
+    assert 'class="score ok">4</text>' in page
+    assert 'class="score bad">1</text>' in page
+    assert "Балл стула под днём: 1 жидкий · 2 слизистый · 3 кашица · 4 норма · 5 твёрдый" in page
