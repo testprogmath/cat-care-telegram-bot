@@ -10,9 +10,14 @@ permissions:
 jobs:
   release-label:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     steps:
-      - run: |
-          labels=$(jq -r '.pull_request.labels[].name | select(test("^release:(major|minor|patch|skip)$"))' "$GITHUB_EVENT_PATH")
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          labels=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/labels" --jq '.[].name | select(test("^release:(major|minor|patch|skip)$"))')
           count=$(grep -c . <<<"$labels" || true)
           if [ "$count" -ne 1 ]; then
             echo "::error::Set exactly one label: release:major, release:minor, release:patch or release:skip. Found: ${labels:-none}"
