@@ -126,4 +126,7 @@ advice, not approval: it never approves a pull request by itself.
 Every action is pinned to a commit and every tool image to a digest. The octocov binary
 is pinned by version and checksum as well, because its action otherwise downloads the
 latest release. Dependabot proposes updates for pip, GitHub Actions and the base image
-every week.
+every week, and labels each pull request for the release check: `release:patch` for the
+bot's own dependencies and base image, since they change what is deployed, and
+`release:skip` for actions and the fuzzing image, which do not. httpx2 and httpcore2 move
+in one pull request, because each release of httpx2 requires its own httpcore2.
