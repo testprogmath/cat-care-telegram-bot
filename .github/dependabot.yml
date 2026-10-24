@@ -5,18 +5,13 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pip"
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "uv"
+    directory: "/"
     labels:
       - "dependencies"
       - "release:patch"
     schedule:
       interval: "weekly"
-    groups:
-      httpx2:
-        patterns:
-          - "httpx2"
-          - "httpcore2"
   - package-ecosystem: "github-actions"
     directory: "/"
     labels:

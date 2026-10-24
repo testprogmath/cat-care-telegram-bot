@@ -18,10 +18,9 @@ Issues and pull requests are in English or Russian.
 2. Make the change with tests (see below), then run what CI runs:
 
    ```bash
-   pip install --require-hashes -r requirements-dev.txt
-   pip install --no-deps -e .
-   OPENAI_API_KEY=dummy pytest -q
-   ruff check .
+   uv sync --locked --extra dev
+   OPENAI_API_KEY=dummy uv run pytest -q
+   uv run ruff check .
    ```
 
 3. Open a pull request against `main` that says what changed and why, and give it one
