@@ -9,6 +9,11 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    groups:
+      httpx2:
+        patterns:
+          - "httpx2"
+          - "httpcore2"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
