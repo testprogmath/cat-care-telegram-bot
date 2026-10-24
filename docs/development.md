@@ -1,29 +1,21 @@
 # Development
 
 ```bash
-pip install --require-hashes -r requirements-dev.txt
-pip install --no-deps -e .
-OPENAI_API_KEY=dummy pytest -q
-ruff check .
+uv sync --locked --extra dev
+OPENAI_API_KEY=dummy uv run pytest -q
+uv run ruff check .
 ```
 
-Every dependency is locked with its hashes: `requirements.txt` for the image and the bot,
-`requirements-dev.txt` for tests and linting. `pyproject.toml` still says what the project
-needs; the lock files say exactly which builds are installed, and pip refuses anything whose
-hash differs. After changing a dependency in `pyproject.toml`, regenerate both:
-
-```bash
-uv pip compile pyproject.toml --generate-hashes --universal --python-version 3.14 -o requirements.txt
-uv pip compile pyproject.toml --extra dev --generate-hashes --universal --python-version 3.14 -o requirements-dev.txt
-```
-
-Dependabot proposes version bumps for both files.
+Every dependency is locked with its hashes in `uv.lock`. `pyproject.toml` says what the
+project needs; the lock says exactly which builds are installed, and `uv sync --locked`
+refuses to run when the two disagree. The image installs the same lock without the `dev`
+extra. After changing a dependency in `pyproject.toml`, run `uv lock` and commit both files.
 
 There is one Python version, the one in the image. `.python-version` names it, every CI job
 and the fuzzer build read it from there, and the image smoke test fails when the `Dockerfile`
 runs another. When Dependabot moves the base image to a new Python, change `.python-version`,
-`requires-python` and ruff's `target-version` in the same pull request and regenerate the
-lock files, the fuzzers' included.
+`requires-python` and ruff's `target-version` in the same pull request and regenerate
+`uv.lock` and the fuzzers' lock file.
 
 For the bot alone without Docker, run `skrypka-bot` with the variables from
 [configuration](configuration.md). The admin API is `care-api`, the site `care-web`.
@@ -52,10 +44,9 @@ what reaches the diary; `evals/assert_events.py` compares only the fields a case
 within 1% or 0.05. It calls OpenAI, so it costs a little and needs the key:
 
 ```bash
-pip install --require-hashes -r requirements.txt
-pip install --no-deps -e .
+uv sync --locked
 cd evals
-OPENAI_API_KEY=... PYTHONPATH=.. PROMPTFOO_PYTHON=$(which python) \
+OPENAI_API_KEY=... PYTHONPATH=.. PROMPTFOO_PYTHON=../.venv/bin/python \
   npx -y promptfoo@0.124.1 eval -c promptfooconfig.yaml --no-cache
 ```
 
@@ -125,8 +116,8 @@ advice, not approval: it never approves a pull request by itself.
 
 Every action is pinned to a commit and every tool image to a digest. The octocov binary
 is pinned by version and checksum as well, because its action otherwise downloads the
-latest release. Dependabot proposes updates for pip, GitHub Actions and the base image
+latest release. Dependabot proposes updates for `uv.lock`, GitHub Actions and the base image
 every week, and labels each pull request for the release check: `release:patch` for the
 bot's own dependencies and base image, since they change what is deployed, and
-`release:skip` for actions and the fuzzing image, which do not. httpx2 and httpcore2 move
-in one pull request, because each release of httpx2 requires its own httpcore2.
+`release:skip` for actions and the fuzzing image, which do not. It updates the lock through
+uv, so a package and the exact version another package requires move together.
