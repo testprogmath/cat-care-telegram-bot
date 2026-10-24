@@ -1,6 +1,6 @@
 """Each care day's figures from the diary, the base of the week, day and medication pages."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from . import care_export, db, figures
@@ -22,6 +22,7 @@ class DayRow:
     drank_times: int = 0
     drank_ml: float = 0.0
     given_ml: float = 0.0
+    stool_scores: list[int] = field(default_factory=list)
 
     @property
     def kcal(self) -> float:
@@ -54,6 +55,7 @@ def day_rows(subject: str, start: date, end: date) -> list[DayRow]:
             drank_times=len(drank),
             drank_ml=sum(e["water_ml"] or 0 for e in drank),
             given_ml=sum(e["water_ml"] or 0 for e in given),
+            stool_scores=[e["stool_score"] for e in that_day if e["type"] == "toilet" and e["stool_score"]],
         ))
     return rows
 

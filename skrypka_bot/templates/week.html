@@ -70,12 +70,15 @@
 <section class="card" aria-labelledby="toilet-h">
     <h2 id="toilet-h" class="eyebrow">Моча и стул по дням</h2>
     <p class="legend"><span class="key urine"></span>моча <span class="key stool"></span>стул</p>
-    <svg class="mini" viewBox="0 0 {{ chart.width }} {{ chart.toilet_height + 12 }}" role="img" aria-label="Моча и стул по дням">
+    {% if chart.score_rows %}<p class="legend">Балл стула под днём: {{ stool_legend }}</p>{% endif %}
+    {% set score_space = chart.score_rows * 9 + 2 if chart.labelled and chart.score_rows else 0 %}
+    <svg class="mini" viewBox="0 0 {{ chart.width }} {{ chart.toilet_height + 12 + score_space }}" role="img" aria-label="Моча и стул по дням">
       {% for t in chart.toilet %}
       <rect x="{{ t.urine_x }}" y="{{ t.urine_y }}" width="{{ t.w }}" height="{{ t.urine_h }}" class="urine"></rect>
       <rect x="{{ t.stool_x }}" y="{{ t.stool_y }}" width="{{ t.w }}" height="{{ t.stool_h }}" class="stool"></rect>
       {% if chart.labelled and t.urine %}<text x="{{ t.urine_x + t.w / 2 }}" y="{{ t.urine_y - 3 }}" class="total">{{ t.urine }}</text>{% endif %}
       {% if chart.labelled and t.stool %}<text x="{{ t.stool_x + t.w / 2 }}" y="{{ t.stool_y - 3 }}" class="total">{{ t.stool }}</text>{% endif %}
+      {% if chart.labelled %}{% for score, tone in t.scores %}<text x="{{ t.stool_x + t.w / 2 }}" y="{{ chart.toilet_height + 20 + loop.index0 * 9 }}" class="score {{ tone }}">{{ score }}</text>{% endfor %}{% endif %}
       {% endfor %}
       {% for b in chart.bars %}{% if chart.labelled %}<text x="{{ b.x + b.w / 2 }}" y="{{ chart.toilet_height + 10 }}" class="day">{{ b.label[:2] }}</text>{% endif %}{% endfor %}
     </svg>

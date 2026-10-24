@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-from . import classify, db
+from . import classify, db, questions
 from .daily import DayRow
 from .meds_view import Mark
 
@@ -68,6 +68,7 @@ class ToiletBar:
     stool_h: float
     urine: int | None
     stool: int | None
+    scores: list[tuple[int, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -79,6 +80,7 @@ class MiniChart:
     labelled: bool
     toilet: list[ToiletBar] = field(default_factory=list)
     toilet_height: int = 0
+    score_rows: int = 0
 
 
 def mini_chart(rows: list, goal: float) -> MiniChart | None:
@@ -111,8 +113,10 @@ def mini_chart(rows: list, goal: float) -> MiniChart | None:
             w=bar, urine_y=round(base - urine_h, 1), urine_h=round(urine_h, 1),
             stool_y=round(base - stool_h, 1), stool_h=round(stool_h, 1),
             urine=r.urinations, stool=r.stools,
+            scores=[(score, questions.stool_tone(score)) for score in getattr(r, "stool_scores", [])],
         ))
     return MiniChart(toilet=toilet, toilet_height=int(toilet_top + toilet_height),
+                     score_rows=max((len(t.scores) for t in toilet), default=0),
                      width=width, height=int(top + height), goal_y=round(top + height - goal * scale, 1),
                      bars=bars, labelled=len(rows) <= 14)
 

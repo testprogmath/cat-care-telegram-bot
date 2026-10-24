@@ -10,12 +10,14 @@ import matplotlib.dates as mdates  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.ticker import MaxNLocator  # noqa: E402
 
-from . import classify, db, figures, meds  # noqa: E402
+from . import classify, db, figures, meds, questions  # noqa: E402
 from .profiles import Profile  # noqa: E402
 
 WEEK_DAYS = 7
 SEGMENT_LABEL_DAYS = 14
 TOTAL_LABEL_DAYS = 31
+
+STOOL_TONES = {"ok": "#3B7A57", "warn": "#C08A1E", "bad": "#C9563F"}
 TICKS_PER_CHART = 14
 
 
@@ -64,6 +66,7 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
     kcal_self = {d: 0.0 for d in days}
     urine = {d: 0 for d in days}
     stool = {d: 0 for d in days}
+    scores: dict[date, list[int]] = {d: [] for d in days}
     temps: list[tuple[datetime, float]] = []
 
     for r in rows:
@@ -83,6 +86,8 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
             kind = classify.toilet_kind(r["description"])
             if kind == "stool":
                 stool[d] += 1
+                if r["stool_score"]:
+                    scores[d].append(r["stool_score"])
             elif kind == "urine":
                 urine[d] += 1
         elif t == "temperature" and r["temp_c"] is not None:
@@ -129,7 +134,15 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
         bars = ax.bar([i + offset for i in x], counts, w, label=label, color=color)
         if len(days) <= TOTAL_LABEL_DAYS:
             ax.bar_label(bars, labels=[str(n) if n else "" for n in counts], padding=2, fontsize=8)
-    ax.set_title("Litter box, times per day")
+    if len(days) <= TOTAL_LABEL_DAYS:
+        for i, d in enumerate(days):
+            for row, score in enumerate(scores[d]):
+                ax.text(i + w / 2, 0.15 + row * 0.45, str(score), ha="center", va="bottom", fontsize=8,
+                        fontweight="bold", color="white",
+                        bbox={"boxstyle": "round,pad=0.2", "fc": STOOL_TONES[questions.stool_tone(score)], "ec": "white", "lw": 1.2})
+    has_scores = any(scores.values())
+    ax.set_title("Litter box, times per day"
+                 + ("; stool score in the stool bar: 1 liquid · 2 slimy · 3 mushy · 4 normal · 5 hard" if has_scores else ""))
     _day_axis(ax, x, labels)
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
