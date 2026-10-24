@@ -120,4 +120,16 @@ latest release. Dependabot proposes updates for `uv.lock`, GitHub Actions and th
 every week, and labels each pull request for the release check: `release:patch` for the
 bot's own dependencies and base image, since they change what is deployed, and
 `release:skip` for actions and the fuzzing image, which do not. It updates the lock through
-uv, so a package and the exact version another package requires move together.
+uv, so a package and the exact version another package requires move together. A version is
+proposed only once it is seven days old, so a release pulled for being compromised is usually
+gone before Dependabot sees it.
+
+The `Dependabot auto-merge` workflow turns on GitHub's auto-merge for the updates that never
+reach production: GitHub Actions, the fuzzing image and its lock, and ruff, pytest,
+pytest-cov and hypothesis, each only as a patch or minor release. GitHub merges once the
+required checks pass. The bot's own dependencies, its base image and every major release
+wait for a person, for two reasons: they go to the server that holds the chat tokens and the
+diary, and a merge made with the workflow's `GITHUB_TOKEN` starts no further workflows, so
+it would land on `main` without a release or a deploy. A change to `uv.lock` runs the prompt
+regression set too, so an update of the OpenAI SDK or pydantic is checked against the live
+model before it is merged.
