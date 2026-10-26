@@ -50,8 +50,59 @@ def test_water_drunk_and_water_given_are_separate_parts_of_the_bar(chat, monkeyp
 
     water_bars = dict(bars[:3])
     assert water_bars["drank"][-1] == 30.0
-    assert water_bars["given (tube or syringe)"][-1] == 25.0
+    assert water_bars["given by mouth or tube"][-1] == 25.0
     assert water_bars["from wet food"][-1] == 0.0
+
+
+def test_an_infusion_is_its_own_part_of_the_water_bar(chat, monkeypatch):
+    water = dict(type="water", name=None, dose=None, kcal=None, amount_ml=None, temp_c=None,
+                 liquid=None, water_fraction=None, time=None, feeding="tube")
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "дала", [
+        SimpleNamespace(**water, water_ml=25.0, description="дала 25 мл воды")])
+    ingest.save_message(chat, 2, "owner", datetime(2026, 10, 6, 20, 0, tzinfo=BERLIN), "подкожно", [
+        SimpleNamespace(**water, water_ml=60.0, description="подкожно лактат Рингера, 60 мл")])
+    bars = []
+    original = charts.plt.Axes.bar
+
+    def record(ax, x, height, *args, label=None, **kwargs):
+        bars.append((label, list(height)))
+        return original(ax, x, height, *args, label=label, **kwargs)
+
+    monkeypatch.setattr(charts.plt.Axes, "bar", record)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+
+    water_bars = dict(bars[:4])
+    assert water_bars["given by mouth or tube"][-1] == 25.0
+    assert water_bars["infusion (under the skin or IV)"][-1] == 60.0
+
+
+def _panel_titles(monkeypatch):
+    titles = []
+    original = charts.plt.Axes.set_title
+
+    def record(ax, label, *args, **kwargs):
+        titles.append(label)
+        return original(ax, label, *args, **kwargs)
+
+    monkeypatch.setattr(charts.plt.Axes, "set_title", record)
+    return titles
+
+
+def test_a_week_without_temperature_has_no_temperature_panel(chat, monkeypatch):
+    titles = _panel_titles(monkeypatch)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+    assert "Temperature, °C" not in titles
+    assert len(titles) == 3
+
+
+def test_a_week_with_a_temperature_reading_shows_it(chat, monkeypatch):
+    reading = dict(type="temperature", name=None, dose=None, water_ml=None, kcal=None, feeding=None,
+                   amount_ml=None, liquid=None, water_fraction=None, time=None, description="38.6")
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 9, 0, tzinfo=BERLIN), "38.6",
+                        [SimpleNamespace(**reading, temp_c=38.6)])
+    titles = _panel_titles(monkeypatch)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+    assert "Temperature, °C" in titles
 
 
 def _stools(chat_id, *scores):

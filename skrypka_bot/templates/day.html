@@ -84,7 +84,7 @@
     <div class="body">
       <span class="kind"><span class="dot water"></span>вода</span>
       <span class="title">Вода: {{ water.count }} раз, {{ '%.0f' % water.ml }} мл</span>
-      <span class="detail">{{ current.profile.pick('пила сама', 'пил сам') }} {{ water.drank_count }} раз{% if water.drank_count %}, {{ '%.0f' % water.drank_ml }} мл{% endif %}{% if water.count > water.drank_count %} · дали {{ water.count - water.drank_count }} раз, {{ '%.0f' % (water.ml - water.drank_ml) }} мл{% endif %}{% if totals.from_food_ml %} · из корма {{ '%.0f' % totals.from_food_ml }} мл{% endif %}</span>
+      <span class="detail">{{ current.profile.pick('пила сама', 'пил сам') }} {{ water.drank_count }} раз{% if water.drank_count %}, {{ '%.0f' % water.drank_ml }} мл{% endif %}{% if water.count > water.drank_count + water.infused_count %} · дали {{ water.count - water.drank_count - water.infused_count }} раз, {{ '%.0f' % (water.ml - water.drank_ml - water.infused_ml) }} мл{% endif %}{% if water.infused_count %} · инфузия {{ water.infused_count }} раз, {{ '%.0f' % water.infused_ml }} мл{% endif %}{% if totals.from_food_ml %} · из корма {{ '%.0f' % totals.from_food_ml }} мл{% endif %}</span>
     </div>
   </li>
   {% endif %}

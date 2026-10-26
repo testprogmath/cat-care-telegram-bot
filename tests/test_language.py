@@ -42,6 +42,24 @@ def test_other_toilet_wording_is_not_stool(description):
 
 
 @pytest.mark.parametrize(
+    "description",
+    ["подкожно лактат Рингера, 60 мл", "дали 60 мл лактата рингера", "Подкожно, у врача",
+     "подкожная инфузия лактата Рингера 75 мл", "в больнице получила около 218 мл внутривенно (капельница)",
+     "в/в 50 мл", "40 мл физраствора", "60 мл под кожу"],
+)
+def test_fluids_under_the_skin_or_into_a_vein_are_an_infusion(description):
+    assert classify.is_infusion(description)
+
+
+@pytest.mark.parametrize(
+    "description",
+    ["дала 25 мл воды", "дала 95 мл жидкости за полчаса", "промывка зонда 10 мл", "попила водичку 30 сек", ""],
+)
+def test_water_by_mouth_or_tube_is_not_an_infusion(description):
+    assert not classify.is_infusion(description)
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "Кошка выпила 96 мл воды. Если считать ещё 116 мл через зонд, всего минимум 212 мл",

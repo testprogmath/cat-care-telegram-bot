@@ -2,11 +2,17 @@
 
 import json
 
+from skrypka_bot import classify
+
 TOLERANCE = 0.05
 
 
 def _matches(expected: dict, actual: dict) -> bool:
     for key, want in expected.items():
+        if key == "infusion":
+            if classify.is_infusion(actual.get("description")) != want:
+                return False
+            continue
         got = actual.get(key)
         if isinstance(want, (int, float)) and not isinstance(want, bool):
             if not isinstance(got, (int, float)) or abs(got - want) > max(TOLERANCE, abs(want) * 0.01):

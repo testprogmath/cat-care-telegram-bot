@@ -1,7 +1,7 @@
 :root {
   --bg: #F3F4F1; --card: #FFFFFF; --fg: #17201D; --muted: #5E6863; --line: #E4E7E2; --soft: #ECEEEA;
   --accent: #3F3AA8; --ink-button: #17201D;
-  --tube: #6B5CE0; --self: #E3A836; --drink: #3D8FDF; --foodwater: #7CC48A;
+  --tube: #6B5CE0; --self: #E3A836; --drink: #3D8FDF; --foodwater: #7CC48A; --infusion: #A77BCA;
   --ate: #2E8B57; --refused: #C9563F; --tag-bg: #FBE9E4; --tag-fg: #8E2F1D; --amber: #A86A12;
   --meds: #0F7B6C; --toilet: #5B8DB8; --state: #8A938E; --stool: #9A6A3A;
 }
@@ -74,12 +74,12 @@ details.card > summary { cursor: pointer; font-weight: 600; min-height: 28px; }
 .share { width: 100%; height: 10px; border-radius: 999px; display: block; }
 .share.thin { height: 6px; }
 .track { fill: var(--soft); }
-.tube { fill: var(--tube); } .self { fill: var(--self); } .drink { fill: var(--drink); } .foodwater { fill: var(--foodwater); }
+.tube { fill: var(--tube); } .self { fill: var(--self); } .drink { fill: var(--drink); } .foodwater { fill: var(--foodwater); } .infusion { fill: var(--infusion); }
 .ate { fill: var(--ate); } .refused { fill: var(--refused); }
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 0.85rem; color: var(--muted); }
 .key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: -8px; }
 .key.tube { background: var(--tube); } .key.self { background: var(--self); } .key.drink { background: var(--drink); }
-.key.foodwater { background: var(--foodwater); } .key.ate { background: var(--ate); } .key.refused { background: var(--refused); }
+.key.foodwater { background: var(--foodwater); } .key.infusion { background: var(--infusion); } .key.ate { background: var(--ate); } .key.refused { background: var(--refused); }
 .trio, .tiles { display: grid; gap: 8px; padding-top: 12px; }
 .trio { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .trio p, .tiles p { display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem; }

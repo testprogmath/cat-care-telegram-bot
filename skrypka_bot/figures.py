@@ -3,12 +3,22 @@
 import os
 import sqlite3
 
+from . import classify
+
 LIQUID_FOOD_WATER_FRACTION = float(os.environ.get("LIQUID_FOOD_WATER_FRACTION", "0.85"))
 
 
 def is_given(row: sqlite3.Row) -> bool:
     """People gave it, through the tube or by syringe; anything else the animal took itself."""
     return row["feeding"] == "tube"
+
+
+def water_source(row: sqlite3.Row) -> str:
+    """Where a water row's millilitres went in: "infusion" under the skin or into a vein,
+    "given" by mouth or tube, or "drank" by the animal itself."""
+    if classify.is_infusion(row["description"]):
+        return "infusion"
+    return "given" if is_given(row) else "drank"
 
 
 def is_liquid_food(row: sqlite3.Row) -> bool:
