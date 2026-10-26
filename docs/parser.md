@@ -32,6 +32,14 @@ The model's answer is not stored blindly. Before events reach the diary:
 - Food and water from a message that reads like a daily recap are discarded. The test is
   a word list (`is_recap` in `classify.py`: "за сутки", "за день", "в сумме" and a few more),
   so a real feed written as "за день первый раз съела 5 г" is discarded too.
+- Water given by people is either a drink by mouth or tube, or an infusion under the skin or
+  into a vein; both are stored as water with `feeding: "tube"`. The charts, the site and the
+  day's summary tell them apart by a word list (`is_infusion` in `classify.py`: "Рингер",
+  "подкожно", "под кожу", "инфузия", "капельница", "внутривенно", "в/в", "физраствор") run
+  on the description the model wrote. The prompt asks the model to name the solution and
+  the route there, and eval cases with `infusion: true` or `false` run the same word list
+  on the model's answer, so a model that drops the words fails the eval. An infusion
+  described with none of the words still counts in the day's water, as water given by mouth.
 - For an animal with a tube, a single tube feed above the tube's limit (100 ml by default)
   is rejected as implausible.
 - A dose on an earlier day is kept only when the message gives its time or says it was

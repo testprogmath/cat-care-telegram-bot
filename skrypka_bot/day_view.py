@@ -44,6 +44,8 @@ class WaterLine:
     ml: float
     drank_count: int = 0
     drank_ml: float = 0.0
+    infused_count: int = 0
+    infused_ml: float = 0.0
 
 
 def _kind(row: sqlite3.Row) -> str:
@@ -71,9 +73,13 @@ def day_events(rows: list[sqlite3.Row], show: str | None,
         if kind == "water":
             water.count += 1
             water.ml += row["water_ml"] or 0
-            if not figures.is_given(row):
+            source = figures.water_source(row)
+            if source == "drank":
                 water.drank_count += 1
                 water.drank_ml += row["water_ml"] or 0
+            elif source == "infusion":
+                water.infused_count += 1
+                water.infused_ml += row["water_ml"] or 0
             continue
         if wanted is not None and kind not in wanted:
             continue

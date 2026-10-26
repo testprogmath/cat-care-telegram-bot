@@ -222,8 +222,9 @@ def week(request: Request, person: Annotated[Viewer, Depends(viewer)],
     stool = week_view.last_stool(current.subject, today())
     return page(request, "week.html", person, current, start=start, end=last, rows=rows, mean=mean,
                 kcal_share=mean and week_view.Share.of(mean.kcal_tube, mean.kcal_self, profile.kcal_goal),
-                water_share=mean and week_view.Share3.of(
-                    (mean.drank_ml, max(mean.drinking_ml - mean.drank_ml, 0), mean.from_food_ml),
+                water_share=mean and week_view.Shares.of(
+                    (mean.drank_ml, max(mean.drinking_ml - mean.drank_ml - mean.infused_ml, 0),
+                     mean.from_food_ml, mean.infused_ml),
                     profile.water_goal_ml),
                 weight=week_view.weight_summary(current.subject, start, last, today()),
                 trend=week_view.appetite_trend(trend_rows, start, last, profile.kcal_goal, marks),
