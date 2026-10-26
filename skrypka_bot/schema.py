@@ -76,6 +76,9 @@ def apply(conn: sqlite3.Connection) -> None:
     question_columns = {row["name"] for row in conn.execute("PRAGMA table_info(stool_questions)")}
     if "answered_at" not in question_columns:
         conn.execute("ALTER TABLE stool_questions ADD COLUMN answered_at TEXT")
+    pieces_columns = {row["name"] for row in conn.execute("PRAGMA table_info(pieces_questions)")}
+    if "answered_at" not in pieces_columns:
+        conn.execute("ALTER TABLE pieces_questions ADD COLUMN answered_at TEXT")
     message_columns = {row["name"] for row in conn.execute("PRAGMA table_info(messages)")}
     if "parsed" not in message_columns:
         conn.execute("ALTER TABLE messages ADD COLUMN parsed INTEGER")

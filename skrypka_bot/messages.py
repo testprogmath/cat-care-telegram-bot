@@ -156,15 +156,22 @@ async def _note_other_animal(bot, chat_id: int, message_id: int, profile: Profil
 
 async def _record_pieces_answer(bot, chat_id: int, msg, text: str, sender: str, sent_at: datetime) -> bool:
     replied_to = msg.reply_to_message
-    event_id = db.pieces_question(chat_id, replied_to.message_id) if replied_to else None
+    if replied_to is not None:
+        question = replied_to.message_id
+    elif questions.is_bare_pieces(text):
+        question = db.open_pieces_question(chat_id, sent_at - questions.PIECES_ANSWER_WINDOW)
+    else:
+        question = None
+    event_id = db.pieces_question(chat_id, question) if question is not None else None
     pieces = questions.pieces_from_reply(text) if event_id is not None else None
     row = db.event_by_id(event_id) if pieces is not None else None
     food = foods.pieces_product(row) if row is not None and row["amount_ml"] else None
     if food is None:
         return False
     kcal, water_fraction = foods.with_pieces(food, row["amount_ml"], pieces)
-    db.update_event(event_id, {"pieces": pieces, "kcal": kcal, "water_fraction": water_fraction},
-                    datetime.now(common.TIMEZONE))
+    now = datetime.now(common.TIMEZONE)
+    db.mark_pieces_answered(chat_id, question, now)
+    db.update_event(event_id, {"pieces": pieces, "kcal": kcal, "water_fraction": water_fraction}, now)
     ingest.save_message(chat_id, msg.message_id, sender, sent_at, text, [])
     await bot.send_message(
         chat_id, questions.pieces_confirmation(pieces, kcal),
