@@ -84,7 +84,10 @@ A Felix Soup or Felix Sensations feeding whose message says nothing about the pi
 counted by the default, broth or gravy only for soup and the usual mix for Sensations, and
 gets a reply asking whether the pieces were eaten. An answer to that question ("нет",
 "половину", "все") sets how many and recounts the feeding's calories and water from its
-grams in code, without the model.
+grams in code, without the model. A message that is nothing but such an answer counts
+without replying too, when exactly one pieces question in that chat is under 30 minutes old
+and still unanswered. With two open, as after a soup and a pouch in one message, the bot
+cannot tell which one is meant and waits for a reply.
 
 ## Hospital pause
 

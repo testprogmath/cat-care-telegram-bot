@@ -259,6 +259,49 @@ def test_the_answer_recounts_the_feeding_without_parsing(chat, monkeypatch):
     assert bot.sent[-1][1:] == ("Записал: с частью кусочков, 16.7 ккал.", 2)
 
 
+def test_a_bare_answer_sent_without_replying_answers_the_open_pieces_question(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "выпил 36 г супчика", [soup("36 г супчика", 36)], monkeypatch, bot)
+    parsed = receive(chat, 2, "Нет", [], monkeypatch, bot)
+    assert parsed == []
+    assert feeding(chat, 1) == (15.3, 0.95, "none")
+    assert bot.sent[-1][1:] == ("Записал: без кусочков, 15.3 ккал.", 2)
+
+
+def test_an_answered_pieces_question_takes_no_second_bare_answer(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "выпил 36 г супчика", [soup("36 г супчика", 36)], monkeypatch, bot)
+    receive(chat, 2, "нет", [], monkeypatch, bot, reply_to=bot.sent[-1][0])
+    assert receive(chat, 3, "все", [], monkeypatch, bot) == ["все"]
+    assert feeding(chat, 1) == (15.3, 0.95, "none")
+
+
+def test_a_bare_answer_long_after_the_pieces_question_is_parsed_as_any_message(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "выпил 36 г супчика", [soup("36 г супчика", 36)], monkeypatch, bot)
+    with db.connect() as conn:
+        conn.execute("UPDATE pieces_questions SET asked_at = ?",
+                     ((datetime.now(BERLIN) - timedelta(minutes=31)).isoformat(),))
+    assert receive(chat, 2, "нет", [], monkeypatch, bot) == ["нет"]
+    assert feeding(chat, 1)[2] is None
+
+
+def test_with_two_pieces_questions_open_a_bare_answer_waits_for_a_reply(chat, monkeypatch):
+    bot = Bot()
+    receive(chat, 1, "выпил 36 г супчика и 40 г Sensations",
+            [soup("36 г супчика", 36), soup("40 г Felix Sensations", 40, name="felix sensations утка")],
+            monkeypatch, bot)
+    assert receive(chat, 2, "нет", [], monkeypatch, bot) == ["нет"]
+    assert [row["pieces"] for row in db.food_events(chat, 1)] == [None, None]
+
+
+@pytest.mark.parametrize(("text", "bare"), [("Нет", True), ("половину", True), ("всё съела", True),
+                                            ("не ел", True), ("нет, все", False), ("2", False),
+                                            ("нет, не давали лекарство", False), ("Отказалась от супчика", False)])
+def test_only_a_short_answer_counts_as_an_unreplied_pieces_answer(text, bare):
+    assert questions.is_bare_pieces(text) is bare
+
+
 def test_sensations_are_asked_about_with_their_own_wording(chat, monkeypatch):
     bot = Bot()
     receive(chat, 1, "съел 40 г Sensations", [soup("40 г Felix Sensations", 40, name="felix sensations утка")],

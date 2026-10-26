@@ -311,6 +311,25 @@ def pieces_question(chat_id: int, question_id: int) -> int | None:
     return row["event_id"] if row else None
 
 
+def open_pieces_question(chat_id: int, since: datetime) -> int | None:
+    """The one unanswered pieces question asked since then; None when there are none or several."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT question_id FROM pieces_questions "
+            "WHERE chat_id = ? AND answered_at IS NULL AND asked_at >= ? LIMIT 2",
+            (chat_id, since.isoformat()),
+        ).fetchall()
+    return rows[0]["question_id"] if len(rows) == 1 else None
+
+
+def mark_pieces_answered(chat_id: int, question_id: int, at: datetime) -> None:
+    with connect() as conn:
+        conn.execute(
+            "UPDATE pieces_questions SET answered_at = ? WHERE chat_id = ? AND question_id = ?",
+            (at.isoformat(), chat_id, question_id),
+        )
+
+
 def stool_question(chat_id: int, question_id: int) -> int | None:
     """The message whose stool the bot asked about with this question."""
     with connect() as conn:

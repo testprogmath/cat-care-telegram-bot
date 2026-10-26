@@ -42,6 +42,14 @@ PIECES_QUESTION = {
     "Felix Sensations": "Кусочки из Sensations ели? Ответьте на это сообщение: нет, немного или все.",
 }
 
+PIECES_ANSWER_WINDOW = timedelta(minutes=30)
+
+_BARE_PIECES_RE = re.compile(
+    r"^\s*(?:нет|не ел[аи]?|половин[уа]|немного|чуть|часть|вс[её]|целиком|полностью)"
+    r"(?:\s+(?:съел[аи]?|ел[аи]?))?\s*[.!]?\s*$",
+    re.IGNORECASE,
+)
+
 PIECES_LABEL = {"none": "без кусочков", "some": "с частью кусочков", "all": "с кусочками"}
 
 _PIECES_WORDS = (
@@ -74,6 +82,11 @@ def pieces_from_reply(text: str) -> str | None:
     """How many pieces an answer to the pieces question names, or None when it names none or several."""
     named = {pieces for pieces, pattern in _PIECES_WORDS if pattern.search(text)}
     return named.pop() if len(named) == 1 else None
+
+
+def is_bare_pieces(text: str) -> bool:
+    """The whole message is an answer to the pieces question: "нет", "половину", "всё съела"."""
+    return bool(_BARE_PIECES_RE.match(text))
 
 
 def pieces_confirmation(pieces: str, kcal: float) -> str:
