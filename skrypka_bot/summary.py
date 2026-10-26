@@ -98,6 +98,15 @@ def _kcal_details(
     return ", ".join(p for p in parts if p)
 
 
+def _infused_ml(water: list[sqlite3.Row]) -> float:
+    return sum(e["water_ml"] or 0 for e in water if figures.water_source(e) == "infusion")
+
+
+def _water_parts(by_mouth: float, infused: float, from_food: float) -> str:
+    infusion = f" + инфузия {fmt.num(infused)}" if infused else ""
+    return f"питьё {fmt.num(by_mouth)}{infusion} + из корма {fmt.num(from_food)}"
+
+
 def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) -> str:
     header = f"📈 {profile.name} — итог на {now.strftime('%H:%M')} (сутки с {db.DAY_START})"
     if not events:
@@ -106,14 +115,16 @@ def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) 
     water_goal = profile.water_goal_ml
     kcal_goal = profile.kcal_goal
     food = [e for e in events if e["type"] == "food"]
-    drink = sum(e["water_ml"] or 0 for e in events if e["type"] == "water")
+    water_rows = [e for e in events if e["type"] == "water"]
+    drink = sum(e["water_ml"] or 0 for e in water_rows)
+    infused = _infused_ml(water_rows)
     water = figures.effective_water(events)
     total_kcal, kcal_by_feeding, unquantified, gravy = _kcal_totals(food)
 
     lines = [
         header,
         f"\n💧 Вода: {fmt.num(water)} из {water_goal:g} мл — {_remaining(water_goal - water)}",
-        f"  питьё {fmt.num(drink)} + из корма {fmt.num(water - drink)}",
+        f"  {_water_parts(drink - infused, infused, water - drink)}",
     ]
     missed_wet = figures.uncounted_wet(events)
     if missed_wet:
@@ -330,24 +341,27 @@ async def render_summary(
     missed_wet = figures.uncounted_wet(events)
     if water or food_water or missed_wet:
         total = drink + food_water
+        infused = _infused_ml(water)
         lines.append(
             f"\n💧 Вода: {fmt.num(total)} мл из {water_goal:g} "
-            f"(питьё {fmt.num(drink)} + из корма {fmt.num(food_water)})"
+            f"({_water_parts(drink - infused, infused, food_water)})"
         )
         if missed_wet:
             lines.append(_wet_note(missed_wet))
-        drank = [e for e in water if not figures.is_given(e)]
-        given = [e for e in water if figures.is_given(e)]
-        if drank or given:
+        drank = [e for e in water if figures.water_source(e) == "drank"]
+        given = [e for e in water if figures.water_source(e) == "given"]
+        if drank or given or infused:
             parts = [f"{profile.pick('пила сама', 'пил сам')} {len(drank)} {fmt.plural(len(drank), 'раз', 'раза', 'раз')}"
                      f" ({fmt.num(sum(e['water_ml'] or 0 for e in drank))} мл)"]
             if given:
                 parts.append(f"дали {fmt.num(sum(e['water_ml'] or 0 for e in given))} мл")
+            if infused:
+                parts.append(f"инфузия {fmt.num(infused)} мл")
             lines.append("  " + ", ".join(parts))
+        sources = {"drank": f" ({profile.self_label})", "given": " (дали)", "infusion": " (инфузия)"}
         for e in water:
             ml = f"{e['water_ml']:g} мл" if e["water_ml"] else e["description"]
-            source = " (дали)" if figures.is_given(e) else f" ({profile.self_label})"
-            lines.append(f"  {_time_of(e)} — {ml}{source}")
+            lines.append(f"  {_time_of(e)} — {ml}{sources[figures.water_source(e)]}")
 
     if food:
         lines.append("\n🍗 Еда:")

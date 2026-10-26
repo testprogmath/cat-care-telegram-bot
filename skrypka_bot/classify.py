@@ -1,4 +1,4 @@
-"""What a diary text says about the toilet, vomiting and whether it is a recap of the day."""
+"""What a diary text says about the toilet, vomiting, fluids under the skin and whether it is a recap of the day."""
 
 import re
 
@@ -26,6 +26,7 @@ _PIECES_RE = re.compile(
 )
 _VOMIT_RE = re.compile(r"\bвырвало\b|\bрвот\w*|\bстошнил\w*|\bсрыгну\w*", re.IGNORECASE)
 _NO_VOMIT_RE = re.compile(r"без рвоты|не вырвало|не стошнил\w*|рвоты (?:не было|нет)", re.IGNORECASE)
+_INFUSION_RE = re.compile(r"ринг|под\s?кож|инфуз|капельн|внутривен|в/в|физраств", re.IGNORECASE)
 
 
 def mentions_pieces(text: str) -> bool:
@@ -40,6 +41,11 @@ def says_entry_was_missed(text: str) -> bool:
 
 def is_recap(text: str) -> bool:
     return bool(_RECAP_RE.search(text))
+
+
+def is_infusion(description: str) -> bool:
+    """Fluids put under the skin or into a vein, which the animal did not drink."""
+    return bool(_INFUSION_RE.search(description or ""))
 
 
 def is_stool(description: str) -> bool:

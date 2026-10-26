@@ -1,10 +1,11 @@
 """The bot, the site and the export read one animal's diary, whichever chat each row came from."""
 
+import asyncio
 from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from skrypka_bot import care_export, daily, db, figures, ingest, profiles, summary
+from skrypka_bot import care_export, daily, day_view, db, figures, ingest, profiles, summary
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAY = date(2026, 10, 6)
@@ -48,3 +49,50 @@ def test_a_row_that_does_not_say_who_fed_counts_as_taken_alone_everywhere(chat):
     assert by_feeding == {"tube": 10.0, "self": 30.0}
     assert (site.kcal_tube, site.kcal_self) == (10.0, 30.0)
     assert (site.drank_ml, site.given_ml) == (20.0, 5.0)
+
+
+def _water_by_three_routes(chat):
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 9, 0, tzinfo=BERLIN), "записи", [
+        event("water", water_ml=20.0, description="попил 20 мл"),
+        event("water", water_ml=5.0, feeding="tube", description="дала 5 мл воды"),
+        event("water", water_ml=40.0, feeding="tube", description="подкожно лактат Рингера, 40 мл"),
+    ])
+    return db.events_for_day("chipunya", DAY)
+
+
+def test_an_infusion_is_apart_from_water_given_by_mouth_everywhere(chat):
+    rows = _water_by_three_routes(chat)
+    [site] = daily.day_rows("chipunya", DAY, DAY)
+    _, line = day_view.day_events(rows, None)
+
+    assert (site.drank_ml, site.given_ml, site.infused_ml) == (20.0, 5.0, 40.0)
+    assert site.drinking_ml == 65.0
+    assert (line.drank_ml, line.infused_count, line.infused_ml) == (20.0, 1, 40.0)
+
+
+def test_the_day_summary_names_the_infusion(chat):
+    rows = _water_by_three_routes(chat)
+    text = asyncio.run(summary.render_summary(DAY, rows, profiles.CHIPUNYA, complete=False))
+    lines = text.splitlines()
+    goal = profiles.CHIPUNYA.water_goal_ml
+    start = lines.index(f"💧 Вода: 65 мл из {goal:g} (питьё 25 + инфузия 40 + из корма 0)")
+    assert lines[start + 1 : start + 5] == [
+        "  пил сам 1 раз (20 мл), дали 5 мл, инфузия 40 мл",
+        "  09:00 — 20 мл (сам)",
+        "  09:00 — 5 мл (дали)",
+        "  09:00 — 40 мл (инфузия)",
+    ]
+
+
+def test_the_progress_line_names_the_infusion(chat):
+    rows = _water_by_three_routes(chat)
+    text = summary.render_progress(rows, datetime(2026, 10, 6, 12, 0), profiles.CHIPUNYA)
+    assert "  питьё 25 + инфузия 40 + из корма 0" in text.splitlines()
+
+
+def test_a_day_without_an_infusion_reads_as_before(chat):
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 9, 0, tzinfo=BERLIN), "попил",
+                        [event("water", water_ml=20.0, description="попил 20 мл")])
+    rows = db.events_for_day("chipunya", DAY)
+    text = summary.render_progress(rows, datetime(2026, 10, 6, 12, 0), profiles.CHIPUNYA)
+    assert "  питьё 20 + из корма 0" in text.splitlines()

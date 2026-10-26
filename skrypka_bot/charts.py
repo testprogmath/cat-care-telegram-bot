@@ -61,6 +61,7 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
 
     drank = {d: 0.0 for d in days}
     given = {d: 0.0 for d in days}
+    infused = {d: 0.0 for d in days}
     liquid_water = {d: 0.0 for d in days}
     kcal_tube = {d: 0.0 for d in days}
     kcal_self = {d: 0.0 for d in days}
@@ -75,7 +76,8 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
             continue
         t = r["type"]
         if t == "water":
-            (given if figures.is_given(r) else drank)[d] += r["water_ml"] or 0
+            parts = {"drank": drank, "given": given, "infusion": infused}
+            parts[figures.water_source(r)][d] += r["water_ml"] or 0
         elif t == "food":
             liquid_water[d] += figures.food_water_ml(r)
             if figures.is_given(r):
@@ -98,7 +100,9 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
     labels = [d.strftime("%d.%m") for d in days]
     x = list(range(len(days)))
 
-    fig, axes = plt.subplots(4, 1, figsize=(min(18, max(9, len(days) * 0.3)), 13), constrained_layout=True)
+    panels = 4 if temps else 3
+    fig, axes = plt.subplots(panels, 1, figsize=(min(18, max(9, len(days) * 0.3)), 3.25 * panels),
+                             constrained_layout=True)
     fig.suptitle(
         title or f"{profile.name_en}: {start.strftime('%d.%m')}–{end_day.strftime('%d.%m.%Y')}",
         fontsize=15,
@@ -108,13 +112,14 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
     ax = axes[0]
     _stack(ax, x, [
         ([drank[d] for d in days], "drank", "#4C9BE8"),
-        ([given[d] for d in days], "given (tube or syringe)", "#2B5F9E"),
+        ([given[d] for d in days], "given by mouth or tube", "#2B5F9E"),
         ([liquid_water[d] for d in days], "from wet food", "#9BD1A0"),
+        ([infused[d] for d in days], "infusion (under the skin or IV)", "#A77BCA"),
     ])
     ax.axhline(water_goal, ls="--", color="#E8635C", label=f"goal {water_goal:g} ml")
     ax.set_title("Water per day, ml")
     _day_axis(ax, x, labels)
-    ax.legend(fontsize=8, loc="upper left", ncol=4, frameon=False)
+    ax.legend(fontsize=8, loc="upper left", ncol=5, frameon=False)
 
     ax = axes[1]
     _stack(ax, x, [
@@ -147,9 +152,9 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
 
-    ax = axes[3]
-    ax.set_title("Temperature, °C")
     if temps:
+        ax = axes[3]
+        ax.set_title("Temperature, °C")
         temps.sort()
         home = [(t, v) for t, v, d in temps if "клиник" not in d]
         clinic = [(t, v) for t, v, d in temps if "клиник" in d]
@@ -167,11 +172,9 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
             datetime.combine(end_day, datetime.max.time()),
         )
         ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
-    else:
-        ax.text(0.5, 0.5, "no temperature readings", ha="center", va="center", transform=ax.transAxes)
-        ax.set_yticks([])
 
-    axes[0].set_ylim(0, max(max(drank[d] + given[d] + liquid_water[d] for d in days), water_goal) * 1.3)
+    water_top = max(drank[d] + given[d] + liquid_water[d] + infused[d] for d in days)
+    axes[0].set_ylim(0, max(water_top, water_goal) * 1.3)
     axes[1].set_ylim(0, max(max(kcal_tube[d] + kcal_self[d] for d in days), 1) * 1.3)
     axes[2].set_ylim(0, max((max(urine[d], stool[d]) for d in days), default=0) * 1.3 + 1)
 

@@ -29,20 +29,23 @@ class Share:
 
 
 @dataclass
-class Share3:
-    """Three parts of one total on a bar 100 units wide, with where each part starts."""
+class Shares:
+    """Parts of one total on a bar 100 units wide, with where each part starts."""
 
-    widths: tuple[float, float, float]
+    widths: tuple[float, ...]
 
     @classmethod
-    def of(cls, parts: tuple[float, float, float], goal: float) -> Share3:
+    def of(cls, parts: tuple[float, ...], goal: float) -> Shares:
         scale = max(goal, sum(parts), 1)
         return cls(tuple(round(p / scale * 100, 1) for p in parts))
 
     @property
-    def starts(self) -> tuple[float, float, float]:
-        a, b, _ = self.widths
-        return (0.0, a, round(a + b, 1))
+    def starts(self) -> tuple[float, ...]:
+        starts, edge = [], 0.0
+        for width in self.widths:
+            starts.append(round(edge, 1))
+            edge += width
+        return tuple(starts)
 
 
 @dataclass

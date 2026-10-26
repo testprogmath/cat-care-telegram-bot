@@ -22,6 +22,7 @@ class DayRow:
     drank_times: int = 0
     drank_ml: float = 0.0
     given_ml: float = 0.0
+    infused_ml: float = 0.0
     stool_scores: list[int] = field(default_factory=list)
 
     @property
@@ -37,8 +38,9 @@ def day_rows(subject: str, start: date, end: date) -> list[DayRow]:
         day = start + timedelta(days=offset)
         that_day = [e for e in events if e["day"] == day.isoformat()]
         food = [e for e in that_day if e["type"] == "food"]
-        drank = [e for e in that_day if e["type"] == "water" and not figures.is_given(e)]
-        given = [e for e in that_day if e["type"] == "water" and figures.is_given(e)]
+        water = [e for e in that_day if e["type"] == "water"]
+        drank, given, infused = ([e for e in water if figures.water_source(e) == source]
+                                 for source in ("drank", "given", "infusion"))
         record = exported[day]
         rows.append(DayRow(
             day=day,
@@ -55,6 +57,7 @@ def day_rows(subject: str, start: date, end: date) -> list[DayRow]:
             drank_times=len(drank),
             drank_ml=sum(e["water_ml"] or 0 for e in drank),
             given_ml=sum(e["water_ml"] or 0 for e in given),
+            infused_ml=sum(e["water_ml"] or 0 for e in infused),
             stool_scores=[e["stool_score"] for e in that_day if e["type"] == "toilet" and e["stool_score"]],
         ))
     return rows
@@ -73,6 +76,7 @@ class Averages:
     drank_times: float = 0.0
     drank_ml: float = 0.0
     given_ml: float = 0.0
+    infused_ml: float = 0.0
 
 
 def averages(rows: list[DayRow]) -> Averages | None:
@@ -97,4 +101,5 @@ def averages(rows: list[DayRow]) -> Averages | None:
         drank_times=mean(r.drank_times for r in recorded),
         drank_ml=mean(r.drank_ml for r in recorded),
         given_ml=mean(r.given_ml for r in recorded),
+        infused_ml=mean(r.infused_ml for r in recorded),
     )

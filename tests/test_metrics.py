@@ -102,6 +102,6 @@ def test_breathing_above_thirty_is_flagged_only_in_sleep(chat):
 
 
 def test_water_splits_into_drank_given_and_from_food():
-    share = week_view.Share3.of((20.0, 100.0, 180.0), 340)
+    share = week_view.Shares.of((20.0, 100.0, 180.0), 340)
     assert share.widths == (5.9, 29.4, 52.9)
     assert share.starts == (0.0, 5.9, 35.3)

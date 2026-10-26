@@ -1,5 +1,6 @@
 # Each case: the animal ("skripa" or "chipunya"), optionally tube: out, the message, and the
 # events it must produce. Only the listed fields are compared; numbers within 1% or 0.05.
+# infusion: true or false is not a field: the bot's own keyword check runs on the description.
 # Messages are written for this set or reduced from the chats to the words that matter:
 # no names of people, places or sums of money.
 
@@ -17,10 +18,13 @@
          expected: [{type: water, feeding: self, water_ml: 1}]}
 - description: water given by people
   vars: {animal: skripa, text: "дала 10 мл воды",
-         expected: [{type: water, feeding: tube, water_ml: 10}]}
+         expected: [{type: water, feeding: tube, water_ml: 10, infusion: false}]}
 - description: a subcutaneous infusion is water given by people
   vars: {animal: chipunya, text: "Ввели подкожно 32мл лактата рингера",
-         expected: [{type: water, feeding: tube, water_ml: 32}]}
+         expected: [{type: water, feeding: tube, water_ml: 32, infusion: true}]}
+- description: an infusion told without the usual words still reads as one
+  vars: {animal: skripa, text: "Вкололи 60 мл раствора под кожу в холку",
+         expected: [{type: water, feeding: tube, water_ml: 60, infusion: true}]}
 - description: a tube feed and the water after it
   vars: {animal: skripa, text: "Дала 18мл Royal Canin Recovery Liquid и 12мл воды",
          expected: [{type: food, feeding: tube, amount_ml: 18, kcal: 18},
@@ -118,7 +122,7 @@
          expected: [{type: food, amount_ml: 60, kcal: 41.6, liquid: true, water_fraction: 0.82}]}
 - description: subcutaneous fluids are water given by people, for a cat without a tube too
   vars: {animal: chipunya, text: "Дали подкожно 40мл лактата Рингера",
-         expected: [{type: water, water_ml: 40, feeding: tube}]}
+         expected: [{type: water, water_ml: 40, feeding: tube, infusion: true}]}
 - description: adult Royal Canin Instinctive at its label figures, even misheard
   vars: {animal: skripa, text: "Съела 43 грамма жидкого корма Royal Canin Insertive",
          expected: [{type: food, amount_ml: 43, kcal: 33.4, liquid: true, water_fraction: 0.795}]}
