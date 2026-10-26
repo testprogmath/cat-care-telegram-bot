@@ -1,14 +1,14 @@
-### Prompt eval: 48 of 49 passed
+### Prompt eval: 50 of 50 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
-| ❌ | the usual Sensations mix is all the pieces | съела 40 г Felix Sensations утка, обычная смесь | no event matches {'type': 'food', 'amount_ml': 40, 'kcal': 31.5, 'pieces': 'all'}; got [{'type': 'food', 'name': 'felix sensations sauces утка', 'kcal': 31.5, 'feeding': 'self', 'amount_ml': 40.0, 'liquid': True, 'water_fraction': 0.842, 'description': 'Felix Sensations утка — 40 г, обычная смесь'}] |
 | ✅ | drinking time at the animal's own rate | 51сек пила водичку |  |
 | ✅ | two drinking times are added | Попила водичку 39+40секунд сама |  |
 | ✅ | the other animal's rate | 60 секунд пил водичку |  |
 | ✅ | a worded estimate of drinking | немного попила |  |
 | ✅ | water given by people | дала 10 мл воды |  |
 | ✅ | a subcutaneous infusion is water given by people | Ввели подкожно 32мл лактата рингера |  |
+| ✅ | an infusion told without the usual words still reads as one | Вкололи 60 мл раствора под кожу в холку |  |
 | ✅ | a tube feed and the water after it | Дала 18мл Royal Canin Recovery Liquid и 12мл воды |  |
 | ✅ | given by syringe while the tube is out | дала 20 мл Recovery Liquid |  |
 | ✅ | dry food by weight | съела 5 г сухариков PurinaOne |  |
@@ -18,6 +18,7 @@
 | ✅ | the whole soup drunk is the whole broth, not the pieces | Выпила весь супчик из Феликс суп с курицей |  |
 | ✅ | a soup with no word on the pieces leaves them open, so the bot asks | Скушала 36 грамм феликс супчик с тунцом |  |
 | ✅ | pieces left are none | выпил бульон из супчика Felix, кусочки оставил |  |
+| ✅ | the usual Sensations mix is all the pieces | съела 40 г Felix Sensations утка, обычная смесь |  |
 | ✅ | soup offered is not soup eaten | дала супчик Felix |  |
 | ✅ | gravy of food with pieces, no volume | полизал подливку от Monge, кусочки не ел |  |
 | ✅ | Felix Sauce with water and a leftover | выпила Felix sauce с 20 мл воды, осталось 10г |  |
@@ -52,4 +53,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit 1423250, 2026-10-26, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/40303748224).
+Commit 345565a, 2026-10-26, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/40308935792).
