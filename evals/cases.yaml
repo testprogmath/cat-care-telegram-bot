@@ -100,6 +100,9 @@
 - description: dry Royal Canin Hair & Skin Care counted in kibbles of 0.2 g
   vars: {animal: chipunya, text: "Съел 35 сухариков Royal Canin Hair & Skin Care",
          expected: [{type: food, kcal: 27.9}]}
+- description: wet Royal Canin Hair & Skin Care by weight, not the dry one
+  vars: {animal: skripa, text: "Съела 46г жидкого корма Royal Canin Skin&Hair Care",
+         expected: [{type: food, amount_ml: 46, kcal: 40.7, water_fraction: 0.79}]}
 - description: wet Purina One Junior by weight, not the dry Purina One
   vars: {animal: chipunya, text: "съел 14 г Purina One Kitten с курицей",
          expected: [{type: food, amount_ml: 14, kcal: 12.2, water_fraction: 0.78}]}
