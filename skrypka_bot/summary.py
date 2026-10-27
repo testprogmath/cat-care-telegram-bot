@@ -18,18 +18,18 @@ def _kcal_totals(food: list[sqlite3.Row]) -> tuple[float, dict[str, float], int,
     total = 0.0
     by_feeding = {"tube": 0.0, "self": 0.0}
     unquantified = 0
-    gravy = 0
+    wet = 0
     for e in food:
         kcal = e["kcal"]
         if not kcal:
             if e["liquid"] and e["amount_ml"]:
-                gravy += 1
+                wet += 1
             else:
                 unquantified += 1
             continue
         total += kcal
         by_feeding["tube" if figures.is_given(e) else "self"] += kcal
-    return total, by_feeding, unquantified, gravy
+    return total, by_feeding, unquantified, wet
 
 
 def _kcal_split(by_feeding: dict[str, float], labels: dict[str, str]) -> str:
@@ -85,16 +85,17 @@ def _uncounted_note(count: int) -> str:
     return f"плюс {count} {_plural_episodes(count)} без количества"
 
 
-def _gravy_note(count: int) -> str:
+def _wet_note(count: int) -> str:
     if not count:
         return ""
-    return f"плюс {count} {fmt.plural(count, 'подливка', 'подливки', 'подливок')} без калорий, вода зачтена"
+    records = fmt.plural(count, "запись", "записи", "записей")
+    return f"плюс {count} {records} жидкого корма без калорий, вода зачтена"
 
 
 def _kcal_details(
-    by_feeding: dict[str, float], unquantified: int, gravy: int, labels: dict[str, str]
+    by_feeding: dict[str, float], unquantified: int, wet: int, labels: dict[str, str]
 ) -> str:
-    parts = (_kcal_split(by_feeding, labels), _uncounted_note(unquantified), _gravy_note(gravy))
+    parts = (_kcal_split(by_feeding, labels), _uncounted_note(unquantified), _wet_note(wet))
     return ", ".join(p for p in parts if p)
 
 
@@ -119,7 +120,7 @@ def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) 
     drink = sum(e["water_ml"] or 0 for e in water_rows)
     infused = _infused_ml(water_rows)
     water = figures.effective_water(events)
-    total_kcal, kcal_by_feeding, unquantified, gravy = _kcal_totals(food)
+    total_kcal, kcal_by_feeding, unquantified, wet = _kcal_totals(food)
 
     lines = [
         header,
@@ -133,7 +134,7 @@ def render_progress(events: list[sqlite3.Row], now: datetime, profile: Profile) 
         f"\n🍗 Калории: ~{fmt.num(total_kcal)} из {kcal_goal:g} — "
         f"{_remaining(kcal_goal - total_kcal)}",
     ]
-    details = _kcal_details(kcal_by_feeding, unquantified, gravy, _feeding_labels(profile))
+    details = _kcal_details(kcal_by_feeding, unquantified, wet, _feeding_labels(profile))
     if details:
         lines.append(f"  {details}")
     return "\n".join(lines)
@@ -371,13 +372,13 @@ async def render_summary(
             label = f" [{labels[feeding]}]" if feeding in labels else ""
             description = _strip_kcal(e["description"])
             lines.append(f"  {_time_of(e)} — {description}{kcal_note}{label}")
-        total_kcal, kcal_by_feeding, unquantified, gravy = _kcal_totals(food)
+        total_kcal, kcal_by_feeding, unquantified, wet = _kcal_totals(food)
         if total_kcal:
             lines.append(
                 f"  Итого: ~{fmt.num(total_kcal)} из {kcal_goal:g} ккал — "
                 f"{_remaining(kcal_goal - total_kcal)}"
             )
-            details = _kcal_details(kcal_by_feeding, unquantified, gravy, labels)
+            details = _kcal_details(kcal_by_feeding, unquantified, wet, labels)
             if details:
                 lines.append(f"  {details}")
 

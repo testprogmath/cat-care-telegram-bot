@@ -11,7 +11,7 @@ def _progress(rows):
     return summary.render_progress(rows, NOW, profiles.CHIPUNYA)
 
 
-def test_gravy_with_a_volume_is_not_an_episode_without_quantity(row):
+def test_wet_food_with_a_volume_is_not_an_episode_without_quantity(row):
     text = _progress(
         [
             row(type="food", feeding="self", kcal=14.3, liquid=1, amount_ml=15.0, water_fraction=0.782),
@@ -19,7 +19,7 @@ def test_gravy_with_a_volume_is_not_an_episode_without_quantity(row):
             row(type="food", feeding="self", liquid=1, amount_ml=5.0, water_fraction=0.782),
         ]
     )
-    assert "  сам ~14.3, плюс 2 подливки без калорий, вода зачтена" in text
+    assert "  сам ~14.3, плюс 2 записи жидкого корма без калорий, вода зачтена" in text
     assert "без количества" not in text
 
 
@@ -42,7 +42,7 @@ def test_both_kinds_are_listed_apart(row):
             row(type="food", feeding="self", liquid=1, amount_ml=20.0, water_fraction=0.79),
         ]
     )
-    assert "  сам ~10, плюс 1 эпизод без количества, плюс 1 подливка без калорий, вода зачтена" in text
+    assert "  сам ~10, плюс 1 эпизод без количества, плюс 1 запись жидкого корма без калорий, вода зачтена" in text
 
 
 def test_dry_food_without_a_number_stays_without_quantity(row):
