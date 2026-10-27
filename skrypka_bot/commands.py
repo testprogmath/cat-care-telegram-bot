@@ -296,12 +296,12 @@ async def reminders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     paused_at = db.paused_since(chat.id)
     if paused_at is None:
         text = (
-            "▶️ Напоминания о воде и ежедневная сводка работают.\n"
+            "▶️ Напоминания о воде и еде, ежедневная сводка работают.\n"
             "Поставить на паузу: /reminders off или слово «opname» в чате."
         )
     else:
         text = (
-            f"⏸ Напоминания о воде и ежедневная сводка на паузе с "
+            f"⏸ Напоминания о воде и еде, ежедневная сводка на паузе с "
             f"{paused_at.strftime('%d.%m %H:%M')}.\n"
             "Вернуть: /reminders on или сообщение о возвращении домой."
         )
