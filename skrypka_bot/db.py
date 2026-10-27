@@ -236,6 +236,15 @@ def last_message_at(chat_id: int) -> datetime | None:
     return datetime.fromisoformat(row["at"]) if row["at"] else None
 
 
+def last_bot_report_at(chat_id: int, marker: str) -> datetime | None:
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT MAX(sent_at) AS at FROM messages WHERE chat_id = ? AND sender = 'bot' AND text = ?",
+            (chat_id, marker),
+        ).fetchone()
+    return datetime.fromisoformat(row["at"]) if row["at"] else None
+
+
 def toilet_events(chat_id: int, message_id: int) -> list[sqlite3.Row]:
     with connect() as conn:
         return list(conn.execute(

@@ -3,7 +3,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import date
 
-from . import figures
+from . import classify, figures
 
 UNNAMED_DRY = "сухой, неизвестно какой"
 UNNAMED_WET = "жидкий, неизвестно какой"
@@ -66,6 +66,17 @@ def product(text: str, liquid: bool | None = None, named: bool = True) -> str:
     if re.search(r"снек|снэк|snack", t):
         return UNNAMED_SNACK
     return text.strip() if named and text.strip() else UNNAMED
+
+
+def is_meal(row: sqlite3.Row) -> bool:
+    """Food with calories in it, unlike a soup drunk without its pieces or a sauce."""
+    if row["type"] != "food":
+        return False
+    if row["pieces"]:
+        return row["pieces"] != "none"
+    if product(row["name"] or row["description"] or "", True) == "Felix Sauce":
+        return False
+    return not classify.is_broth_only(row["description"])
 
 
 GRAVY_PER_GRAM = {"Felix Heerlijke Reepjes": (0.30, 0.9), "Felix Sensations": (0.40, 0.88)}
