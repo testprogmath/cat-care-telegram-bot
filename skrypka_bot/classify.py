@@ -1,4 +1,5 @@
-"""What a diary text says about the toilet, vomiting, fluids under the skin and whether it is a recap of the day."""
+"""What a diary text says about the toilet, vomiting, fluids under the skin, broth without pieces
+and whether it is a recap of the day."""
 
 import re
 
@@ -27,6 +28,11 @@ _PIECES_RE = re.compile(
 _VOMIT_RE = re.compile(r"\bвырвало\b|\bрвот\w*|\bстошнил\w*|\bсрыгну\w*", re.IGNORECASE)
 _NO_VOMIT_RE = re.compile(r"без рвоты|не вырвало|не стошнил\w*|рвоты (?:не было|нет)", re.IGNORECASE)
 _INFUSION_RE = re.compile(r"ринг|под\s?кож|инфуз|капельн|внутривен|в/в|физраств", re.IGNORECASE)
+_BROTH_ONLY_RE = re.compile(
+    r"без\s+кусоч|только\s+(?:бульон|соус|подлив)|кусоч\w*\s+не\s+(?:ел|ест|трог|тронул)"
+    r"|не\s+(?:ел\w*|трог\w*|тронул\w*)\s+кусоч",
+    re.IGNORECASE,
+)
 
 
 def mentions_pieces(text: str) -> bool:
@@ -46,6 +52,11 @@ def is_recap(text: str) -> bool:
 def is_infusion(description: str) -> bool:
     """Fluids put under the skin or into a vein, which the animal did not drink."""
     return bool(_INFUSION_RE.search(description or ""))
+
+
+def is_broth_only(description: str) -> bool:
+    """The broth, sauce or gravy of a pouch was taken and its pieces were left."""
+    return bool(_BROTH_ONLY_RE.search(description or ""))
 
 
 def is_stool(description: str) -> bool:

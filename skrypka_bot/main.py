@@ -62,6 +62,10 @@ def main() -> None:
 
     app.job_queue.run_repeating(jobs.checkin, interval=questions.CHECKIN_INTERVAL, first=timedelta(minutes=1))
 
+    app.job_queue.run_repeating(
+        jobs.feeding_reminder, interval=jobs.FEEDING_REMINDER_CHECK, first=timedelta(minutes=1)
+    )
+
     for reminder_hour in range(
         jobs.WATER_REMINDER_START_HOUR, jobs.WATER_REMINDER_END_HOUR + 1, jobs.WATER_REMINDER_STEP_HOURS
     ):

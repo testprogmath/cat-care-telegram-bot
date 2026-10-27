@@ -60,6 +60,24 @@ by now and how much is missing. For an animal with a tube it also splits what is
 the goal into portions no larger than the tube takes, for example "примерно 9 раз по ~24 мл
 (не больше 25 мл за раз)".
 
+## Feeding reminders
+
+Between 07:00 and 23:00 the bot writes "🍗 Пора предложить еду" when an animal has had no meal
+for an hour and a half. The wait starts at the first entry of the day at or after 07:00, of
+any kind, so a quiet morning brings no reminder before someone is up and writing. A meal
+starts the wait again, and so does a reminder, so an ignored reminder repeats every hour
+and a half rather than every check. The job checks every five minutes.
+
+A soup drunk without its pieces and a sauce are not meals: they bring water and few
+calories. `foods.is_meal` decides. A pieces answer settles it when there is one ("нет" is not
+a meal, "половину" is). Otherwise a Felix Sauce product is not a meal, and nor is a
+description that says the pieces were left ("без кусочков", "только бульон", "кусочки не
+тронул"). On the week to 27.10 this set aside 52 of 199 food rows in both chats, every one of
+them a sauce or a broth. A refusal is not a meal either. An entry dated in the future does
+not count until its time comes.
+
+The reminder says when the last meal was and how many calories the care day has so far.
+
 ## Stool score and check-ins
 
 A stool whose consistency the message describes gets a score on the 1 to 5 Feline Fecal
@@ -92,6 +110,6 @@ cannot tell which one is meant and waits for a reply.
 ## Hospital pause
 
 While the cat is admitted, nobody at home can offer her water, so reminders become noise.
-The word *opname* (or *опнаме*) in any message pauses water reminders, check-ins and the
+The word *opname* (or *опнаме*) in any message pauses water and feeding reminders, check-ins and the
 daily summary. A message about coming home ("забрали", "домой", "выписали", "ontslag", "naar
 huis") or `/reminders on` resumes them. Parsing and commands keep working throughout.
