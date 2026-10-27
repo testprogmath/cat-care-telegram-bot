@@ -1,4 +1,4 @@
-### Prompt eval: 50 of 50 passed
+### Prompt eval: 51 of 51 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
@@ -34,6 +34,7 @@
 | ✅ | Royal Canin Sensible counted in kibbles of 0.2 g | съел 20 сухариков Royal Canin Sensible 33 |  |
 | ✅ | Royal Canin Indoor counted in kibbles of 0.182 g | Съел 45 сухариков Royal Canin Indoor |  |
 | ✅ | dry Royal Canin Hair & Skin Care counted in kibbles of 0.2 g | Съел 35 сухариков Royal Canin Hair & Skin Care |  |
+| ✅ | wet Royal Canin Hair & Skin Care by weight, not the dry one | Съела 46г жидкого корма Royal Canin Skin&Hair Care |  |
 | ✅ | wet Purina One Junior by weight, not the dry Purina One | съел 14 г Purina One Kitten с курицей |  |
 | ✅ | the salmon Purina One Junior counts like the chicken one | съела 34 г Purina One Junior с лососем и морковью |  |
 | ✅ | food put down and not eaten is a refusal, not a feeding | насыпала 12 г, не ест |  |
@@ -53,4 +54,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit 345565a, 2026-10-26, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/40308935792).
+Commit f5c8d93, 2026-10-27, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/40594866868).
