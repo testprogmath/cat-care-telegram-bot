@@ -148,7 +148,8 @@ async def feeding_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
     for chat_id, profile in db.active_chats():
         events = db.events_in_range(profile.subject_id, feeding_window_start(now), now)
         last = db.last_bot_report_at(chat_id, FEEDING_REMINDER_MARKER)
-        kcal_today = figures.kcal_total(db.events_for_day(profile.subject_id, db.care_day(now)))
+        day_start = db.care_day_start(db.care_day(now), common.TIMEZONE)
+        kcal_today = figures.kcal_total(db.events_in_range(profile.subject_id, day_start, now))
         text = render_feeding_reminder(profile, events, last, kcal_today, now)
         if text is None:
             continue

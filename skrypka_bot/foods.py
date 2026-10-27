@@ -74,7 +74,7 @@ def is_meal(row: sqlite3.Row) -> bool:
         return False
     if row["pieces"]:
         return row["pieces"] != "none"
-    if product(f"{row['name'] or ''} {row['description'] or ''}", True) == "Felix Sauce":
+    if product(row["name"] or row["description"] or "", True) == "Felix Sauce":
         return False
     return not classify.is_broth_only(row["description"])
 

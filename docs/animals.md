@@ -70,13 +70,17 @@ and a half rather than every check. The job checks every five minutes.
 
 A soup drunk without its pieces and a sauce are not meals: they bring water and few
 calories. `foods.is_meal` decides. A pieces answer settles it when there is one ("нет" is not
-a meal, "половину" is). Otherwise a Felix Sauce product is not a meal, and nor is a
-description that says the pieces were left ("без кусочков", "только бульон", "кусочки не
-тронул"). On the week to 27.10 this set aside 52 of 199 food rows in both chats, every one of
-them a sauce or a broth. A refusal is not a meal either. An entry dated in the future does
-not count until its time comes.
+a meal, "половину" is). Otherwise a row whose name is a Felix Sauce product is not a meal.
+Nor is a description that says the pieces were left ("без кусочков", "только бульон",
+"кусочки оставила", "кусочки не стал"), or one that says broth, sauce or gravy was drunk or
+licked ("выпил бульон", "слизала подливку") without a word on the pieces. The name decides the
+product before the description does, because "выпила весь соус из Felix Soup" is a soup.
+Against every food row in production on 28.10, 1,350 rows from 04.08, the rule set aside
+209; the rows that mention broth, sauce, gravy or pieces were read one by one. A refusal is
+not a meal either. An entry dated in the future does not count until its time comes.
 
-The reminder says when the last meal was and how many calories the care day has so far.
+The reminder says when the last meal was and how many calories the care day has so far,
+counting only entries up to now.
 
 ## Stool score and check-ins
 

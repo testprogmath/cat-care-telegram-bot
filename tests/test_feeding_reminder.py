@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from skrypka_bot import db, foods, jobs
+from skrypka_bot import db, foods, jobs, main
 
 BERLIN = ZoneInfo("Europe/Berlin")
 DAY = datetime(2026, 10, 27, tzinfo=BERLIN)
@@ -60,6 +60,12 @@ class Clock(datetime):
         ({"description": "выпила весь соус Felix Heerlijke Reepjes, кусочки не ела"}, False),
         ({"description": "съел 5 г Royal Canin Kitten (кусочки в соусе)"}, True),
         ({"description": "Felix Sensations с ламбом — 45 г, в соусе"}, True),
+        ({"description": "выпил бульон из пауча Felix Soup с бифом"}, False),
+        ({"description": "слизала подливку Monge, около 12 мл"}, False),
+        ({"description": "выпила бульон, кусочки оставила"}, False),
+        ({"description": "выпил бульон, кусочки не стал"}, False),
+        ({"description": "выпила весь бульон и съела половину кусочков"}, True),
+        ({"description": "съела 42 г — выпила весь соус, съела все кусочки", "name": "felix soup lamb"}, True),
         ({"kind": "refusal", "description": "не стал есть felix soup"}, False),
     ],
 )
@@ -113,6 +119,29 @@ def test_an_entry_dated_later_today_does_not_count_yet(chat):
     add(chat, at(7))
     add(chat, at(23, 30))
     assert reminder(chat, at(9)) is not None
+
+
+def test_the_calories_leave_out_an_entry_dated_later_today(chat, monkeypatch):
+    monkeypatch.setattr(jobs, "datetime", Clock)
+    Clock.moment = at(9)
+    add(chat, at(7), kcal=10.0)
+    add(chat, at(23, 30), kcal=50.0)
+    bot = Bot()
+    asyncio.run(jobs.feeding_reminder(SimpleNamespace(bot=bot)))
+    assert [text.splitlines()[1] for text in bot.sent] == [
+        "За сутки ~10 ккал из 270. Супчик без кусочков и соус не в счёт.",
+    ]
+
+
+def test_the_bot_checks_for_a_feeding_reminder_every_five_minutes(chat, monkeypatch):
+    started = []
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456:test-token")
+    monkeypatch.setattr(main.Application, "run_polling", lambda app, **_: started.append(app))
+    main.main()
+    [app] = started
+    assert [
+        job.job.trigger.interval for job in app.job_queue.jobs() if job.callback is jobs.feeding_reminder
+    ] == [jobs.FEEDING_REMINDER_CHECK]
 
 
 def test_there_is_no_reminder_at_night(chat):
