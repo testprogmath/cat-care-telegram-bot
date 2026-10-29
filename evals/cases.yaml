@@ -97,6 +97,9 @@
 - description: Royal Canin Indoor counted in kibbles of 0.182 g
   vars: {animal: chipunya, text: "Съел 45 сухариков Royal Canin Indoor",
          expected: [{type: food, kcal: 30.7}]}
+- description: wet Royal Canin Indoor by weight, not the dry one
+  vars: {animal: chipunya, text: "съел 7 г Royal Canin Indoor, жидкий корм",
+         expected: [{type: food, amount_ml: 7, kcal: 5.6, water_fraction: 0.81}]}
 - description: dry Royal Canin Hair & Skin Care counted in kibbles of 0.2 g
   vars: {animal: chipunya, text: "Съел 35 сухариков Royal Canin Hair & Skin Care",
          expected: [{type: food, kcal: 27.9}]}

@@ -30,7 +30,6 @@ _PRODUCTS: list[tuple[str, str, str | None]] = [
     ("Trovet", r"trovet", None),
     ("Churu", r"churu|чуру", None),
     ("RC Sensible, dry", r"sensible", None),
-    ("RC Indoor, dry", r"indoor|индор", None),
     ("RC Hair & Skin", r"hair\s*&?\s*skin|skin\s*&?\s*hair|хэир", None),
     ("RC Recovery Liquid", r"recovery", None),
     ("RC Kitten", r"kitten|котят|котяч", None),
@@ -56,6 +55,9 @@ def product(text: str, liquid: bool | None = None, named: bool = True) -> str:
     if ("digestive" in t or "дайджест" in t) and not re.search(r"hill|хилс|i/d", t):
         wet = liquid if liquid is not None else bool(re.search(r"royal canin|роял|жидк", t))
         return "RC Digestive Care, wet" if wet else "Hill's i/d, dry"
+    if re.search(r"indoor|индор", t):
+        wet = liquid if liquid is not None else bool(re.search(r"жидк|влажн|пауч|gravy|подлив|соус", t))
+        return "RC Indoor, wet" if wet else "RC Indoor, dry"
     for name, pattern, refine in _PRODUCTS:
         if re.search(pattern, t) and (refine is None or re.search(refine, t)):
             return name
