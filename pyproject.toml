@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-cov>=7.1", "hypothesis>=6.169", "httpx2>=2.13", "ruff==0.17.1"]
+dev = ["pytest>=8.0", "pytest-cov>=7.1", "hypothesis>=6.169", "httpx2>=2.13", "ruff==0.17.2"]
 
 [project.scripts]
 skrypka-bot = "skrypka_bot.main:main"
