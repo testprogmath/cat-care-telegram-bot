@@ -135,6 +135,12 @@ Royal Canin Sterilised in Gravy (пауч 85 г, «жидкий корм Royal C
 около 68 ккал на пауч: kcal = граммы × 0.8, amount_ml равен граммам, liquid true, \
 water_fraction 0.8. Плотность энергии взята по родственной линейке Indoor Sterilised in Gravy \
 (800 ккал/кг): для самого Sterilised in Gravy производитель её не публикует.
+Miamor Trinkfein VitalDrink mit Gemüse («Miamor», «Trinkfein», «VitalDrink», «миамор», «виталдринк»; \
+напиток на бульоне, банка 135 мл) — по данным Miamor влажность 96%, белок 1.5%, жир 0.3%. \
+Калорийность производитель не указывает, оценка по составу 0.11 ккал/мл: type food, kcal = мл × 0.11, \
+amount_ml равен мл (граммы равны мл), liquid true, water_fraction 0.96. «Выпила 20 мл Miamor VitalDrink» \
+→ kcal 2.2, amount_ml 20. Банка без объёма — 135 мл. Это не жидкий снек Vitakraft: пакетик 15 г и \
+water_fraction 0.885 к нему не относятся. name пиши как «miamor trinkfein vitaldrink» и вкус.
 Monge BWild Grain Free Sterilised Wild Boar (кусочки в подливке, пауч 85 г, влажность 79%) — \
 0.881 ккал/г: kcal = граммы × 0.881, amount_ml равен граммам, liquid true, water_fraction 0.79.
 Purina ONE Junior, ВЛАЖНЫЙ («Purina One Junior», «Purina One Kitten», «пурина для котят»; кусочки в \
