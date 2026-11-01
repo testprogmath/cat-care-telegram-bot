@@ -1,8 +1,8 @@
-### Prompt eval: 54 of 55 passed
+### Prompt eval: 55 of 56 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
-| ❌ | the usual Sensations mix is all the pieces | съела 40 г Felix Sensations утка, обычная смесь | no event matches {'type': 'food', 'amount_ml': 40, 'kcal': 31.5, 'pieces': 'all'}; got [{'type': 'food', 'name': 'felix sensations sauces утка', 'kcal': 31.5, 'feeding': 'self', 'amount_ml': 40.0, 'liquid': True, 'water_fraction': 0.842, 'description': 'Felix Sensations утка — 40 г, обычная смесь; д |
+| ❌ | the usual Sensations mix is all the pieces | съела 40 г Felix Sensations утка, обычная смесь | no event matches {'type': 'food', 'amount_ml': 40, 'kcal': 31.5, 'pieces': 'all'}; got [{'type': 'food', 'name': 'felix sensations sauces утка с морковью', 'kcal': 31.5, 'feeding': 'self', 'amount_ml': 40.0, 'liquid': True, 'water_fraction': 0.842, 'description': 'Felix Sensations утка — 40 г, обычн |
 | ✅ | drinking time at the animal's own rate | 51сек пила водичку |  |
 | ✅ | two drinking times are added | Попила водичку 39+40секунд сама |  |
 | ✅ | the other animal's rate | 60 секунд пил водичку |  |
@@ -39,6 +39,7 @@
 | ✅ | wet Royal Canin Indoor by weight, not the dry one | съел 7 г Royal Canin Indoor, жидкий корм |  |
 | ✅ | dry Royal Canin Hair & Skin Care counted in kibbles of 0.2 g | Съел 35 сухариков Royal Canin Hair & Skin Care |  |
 | ✅ | wet Royal Canin Hair & Skin Care by weight, not the dry one | Съела 46г жидкого корма Royal Canin Skin&Hair Care |  |
+| ✅ | Miamor VitalDrink is a broth drink, not a Vitakraft snack | выпила 20 мл Miamor Trinkfein VitalDrink mit Gemüse |  |
 | ✅ | wet Purina One Junior by weight, not the dry Purina One | съел 14 г Purina One Kitten с курицей |  |
 | ✅ | the salmon Purina One Junior counts like the chicken one | съела 34 г Purina One Junior с лососем и морковью |  |
 | ✅ | food put down and not eaten is a refusal, not a feeding | насыпала 12 г, не ест |  |
@@ -58,4 +59,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit b40ec7d, 2026-11-01, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/41323113025).
+Commit 85fdcec, 2026-11-01, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/41323986296).
