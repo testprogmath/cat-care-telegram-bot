@@ -63,10 +63,10 @@ the goal into portions no larger than the tube takes, for example "пример�
 ## Feeding reminders
 
 Between 07:00 and 23:00 the bot writes "🍗 Пора предложить еду" when an animal has had no meal
-for an hour and a half. The wait starts at the first entry of the day at or after 07:00, of
+for three hours. The wait starts at the first entry of the day at or after 07:00, of
 any kind, so a quiet morning brings no reminder before someone is up and writing. A meal
-starts the wait again, and so does a reminder, so an ignored reminder repeats every hour
-and a half rather than every check. The job checks every five minutes.
+starts the wait again, and so does a reminder, so an ignored reminder repeats every three
+hours rather than every check. The job checks every five minutes.
 
 A soup drunk without its pieces and a sauce are not meals: they bring water and few
 calories. `foods.is_meal` decides. A pieces answer settles it when there is one ("нет" is not
