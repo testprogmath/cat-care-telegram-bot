@@ -1,11 +1,14 @@
-### Prompt eval: 51 of 52 passed
+### Prompt eval: 54 of 55 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
-| ❌ | the usual Sensations mix is all the pieces | съела 40 г Felix Sensations утка, обычная смесь | no event matches {'type': 'food', 'amount_ml': 40, 'kcal': 31.5, 'pieces': 'all'}; got [{'type': 'food', 'name': 'felix sensations sauces утка', 'kcal': 31.5, 'feeding': 'self', 'amount_ml': 40.0, 'liquid': True, 'water_fraction': 0.842, 'description': 'Felix Sensations утка — 40 г, обычная смесь, д |
+| ❌ | the usual Sensations mix is all the pieces | съела 40 г Felix Sensations утка, обычная смесь | no event matches {'type': 'food', 'amount_ml': 40, 'kcal': 31.5, 'pieces': 'all'}; got [{'type': 'food', 'name': 'felix sensations sauces утка', 'kcal': 31.5, 'feeding': 'self', 'amount_ml': 40.0, 'liquid': True, 'water_fraction': 0.842, 'description': 'Felix Sensations утка — 40 г, обычная смесь; д |
 | ✅ | drinking time at the animal's own rate | 51сек пила водичку |  |
 | ✅ | two drinking times are added | Попила водичку 39+40секунд сама |  |
 | ✅ | the other animal's rate | 60 секунд пил водичку |  |
+| ✅ | water drunk overnight and measured in the morning | 34 грамма воды выпила за ночь |  |
+| ✅ | water drunk overnight, told just after a report | За ночь выпила 43 мл воды (до 9 утра) |  |
+| ✅ | a day's total of water is not a new drink | За сутки выпила 96 мл воды, если считать с зондом, всего 212 мл |  |
 | ✅ | a worded estimate of drinking | немного попила |  |
 | ✅ | water given by people | дала 10 мл воды |  |
 | ✅ | a subcutaneous infusion is water given by people | Ввели подкожно 32мл лактата рингера |  |
@@ -55,4 +58,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit b24877e, 2026-11-01, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/41322883759).
+Commit b40ec7d, 2026-11-01, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/41323113025).
