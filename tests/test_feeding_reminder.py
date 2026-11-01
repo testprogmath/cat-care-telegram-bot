@@ -66,6 +66,7 @@ class Clock(datetime):
         ({"description": "выпил бульон, кусочки не стал"}, False),
         ({"description": "выпила весь бульон и съела половину кусочков"}, True),
         ({"description": "съела 42 г — выпила весь соус, съела все кусочки", "name": "felix soup lamb"}, True),
+        ({"description": "выпила 20 мл бульона", "name": "miamor trinkfein vitaldrink"}, False),
         ({"kind": "refusal", "description": "не стал есть felix soup"}, False),
     ],
 )

@@ -13,6 +13,15 @@
 - description: the other animal's rate
   vars: {animal: chipunya, text: "60 секунд пил водичку",
          expected: [{type: water, feeding: self, water_ml: 27}]}
+- description: water drunk overnight and measured in the morning
+  vars: {animal: skripa, text: "34 грамма воды выпила за ночь",
+         expected: [{type: water, feeding: self, water_ml: 34}]}
+- description: water drunk overnight, told just after a report
+  vars: {animal: skripa, text: "За ночь выпила 43 мл воды (до 9 утра)", report_shown: true,
+         expected: [{type: water, feeding: self, water_ml: 43}]}
+- description: a day's total of water is not a new drink
+  vars: {animal: skripa, text: "За сутки выпила 96 мл воды, если считать с зондом, всего 212 мл",
+         expected: []}
 - description: a worded estimate of drinking
   vars: {animal: skripa, text: "немного попила",
          expected: [{type: water, feeding: self, water_ml: 1}]}
@@ -106,6 +115,9 @@
 - description: wet Royal Canin Hair & Skin Care by weight, not the dry one
   vars: {animal: skripa, text: "Съела 46г жидкого корма Royal Canin Skin&Hair Care",
          expected: [{type: food, amount_ml: 46, kcal: 40.7, water_fraction: 0.79}]}
+- description: Miamor VitalDrink is a broth drink, not a Vitakraft snack
+  vars: {animal: skripa, text: "выпила 20 мл Miamor Trinkfein VitalDrink mit Gemüse",
+         expected: [{type: food, amount_ml: 20, kcal: 2.2, water_fraction: 0.96}]}
 - description: wet Purina One Junior by weight, not the dry Purina One
   vars: {animal: chipunya, text: "съел 14 г Purina One Kitten с курицей",
          expected: [{type: food, amount_ml: 14, kcal: 12.2, water_fraction: 0.78}]}
