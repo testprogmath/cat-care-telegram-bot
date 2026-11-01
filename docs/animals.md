@@ -70,7 +70,8 @@ and a half rather than every check. The job checks every five minutes.
 
 A soup drunk without its pieces and a sauce are not meals: they bring water and few
 calories. `foods.is_meal` decides. A pieces answer settles it when there is one ("нет" is not
-a meal, "половину" is). Otherwise a row whose name is a Felix Sauce product is not a meal.
+a meal, "половину" is). Otherwise a row whose name is a Felix Sauce product or the Miamor
+Trinkfein broth drink is not a meal.
 Nor is a description that says the pieces were left ("без кусочков", "только бульон",
 "кусочки оставила", "кусочки не стал"), or one that says broth, sauce or gravy was drunk or
 licked ("выпил бульон", "слизала подливку") without a word on the pieces. The name decides the
