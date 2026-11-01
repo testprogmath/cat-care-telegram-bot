@@ -344,6 +344,8 @@ def test_a_callback_without_its_login_attempt_is_refused(settings):
      ("monge salmon kitten", True, "Monge"), ("royal canin kitten", True, "RC Kitten"),
      ("royal canin hair & skin care", False, "RC Hair & Skin"),
      ("royal canin skin&hair care", True, "RC Hair & Skin"),
+     ("royal canin indoor 27", False, "RC Indoor, dry"), ("royal canin indoor", True, "RC Indoor, wet"),
+     ("royal canin indoor", None, "RC Indoor, dry"), ("жидкий royal canin indoor", None, "RC Indoor, wet"),
      ("сухарики", False, foods.UNNAMED_DRY)],
 )
 def test_food_names_collapse_to_one_product(text, liquid, expected):
