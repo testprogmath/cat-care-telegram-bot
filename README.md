@@ -101,7 +101,7 @@ vet asks why the numbers look odd. So the checks start with the prompt.
 A summary is posted at the start of each care day, midnight by default. Water reminders
 come every two hours between 09:00 and 23:00, only when the animal is behind the day's
 schedule, and say how far behind. Between 07:00 and 23:00 a feeding reminder comes when
-an animal has had no meal for an hour and a half; a soup without its pieces or a sauce
+an animal has had no meal for three hours; a soup without its pieces or a sauce
 does not count as a meal. A stool reported without its consistency gets a question
 for a score on a 1 to 5 scale, and a chat quiet for three hours between 09:00 and 22:00 gets
 a check-in. [Animals, goals and reminders](docs/animals.md) has the rules, including the

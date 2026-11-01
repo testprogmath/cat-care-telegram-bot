@@ -82,8 +82,8 @@ def test_before_the_first_entry_of_the_morning_there_is_no_reminder(chat):
 def test_the_wait_starts_at_the_first_entry_after_seven(chat):
     add(chat, at(6), description="съела 5 г сухариков ночью")
     add(chat, at(7, 40), kind="toilet", description="пописала")
-    assert reminder(chat, at(9, 9)) is None
-    assert reminder(chat, at(9, 10), kcal_today=42.0) == (
+    assert reminder(chat, at(10, 39)) is None
+    assert reminder(chat, at(10, 40), kcal_today=42.0) == (
         "🍗 Пора предложить еду для Чипуни. С 07:40 еды не было.\n"
         "За сутки ~42 ккал из 270. Супчик без кусочков и соус не в счёт."
     )
@@ -92,9 +92,9 @@ def test_the_wait_starts_at_the_first_entry_after_seven(chat):
 def test_a_meal_between_reminders_starts_the_wait_again(chat):
     add(chat, at(7, 10), kind="toilet", description="пописала")
     add(chat, at(8, 30))
-    assert reminder(chat, at(9, 59)) is None
-    assert reminder(chat, at(10, 5), kcal_today=60.5) == (
-        "🍗 Пора предложить еду для Чипуни. Последняя еда в 08:30, 1 ч 35 мин назад.\n"
+    assert reminder(chat, at(11, 29)) is None
+    assert reminder(chat, at(11, 35), kcal_today=60.5) == (
+        "🍗 Пора предложить еду для Чипуни. Последняя еда в 08:30, 3 ч 05 мин назад.\n"
         "За сутки ~60.5 ккал из 270. Супчик без кусочков и соус не в счёт."
     )
 
@@ -102,29 +102,29 @@ def test_a_meal_between_reminders_starts_the_wait_again(chat):
 def test_a_soup_without_pieces_does_not_start_the_wait_again(chat):
     add(chat, at(8))
     add(chat, at(9), description="Felix Soup с курицей — 25 г", pieces="none")
-    assert reminder(chat, at(9, 30)) is not None
+    assert reminder(chat, at(11, 5)) is not None
 
 
 def test_a_reminder_starts_the_wait_again(chat):
     add(chat, at(7))
-    assert reminder(chat, at(10), last_reminder=at(9)) is None
-    assert reminder(chat, at(10, 30), last_reminder=at(9)) is not None
+    assert reminder(chat, at(12, 30), last_reminder=at(10)) is None
+    assert reminder(chat, at(13), last_reminder=at(10)) is not None
 
 
 def test_a_reminder_from_yesterday_does_not_hold_back_the_morning(chat):
     add(chat, at(7))
-    assert reminder(chat, at(8, 30), last_reminder=at(22) - timedelta(days=1)) is not None
+    assert reminder(chat, at(10), last_reminder=at(22) - timedelta(days=1)) is not None
 
 
 def test_an_entry_dated_later_today_does_not_count_yet(chat):
     add(chat, at(7))
     add(chat, at(23, 30))
-    assert reminder(chat, at(9)) is not None
+    assert reminder(chat, at(10)) is not None
 
 
 def test_the_calories_leave_out_an_entry_dated_later_today(chat, monkeypatch):
     monkeypatch.setattr(jobs, "datetime", Clock)
-    Clock.moment = at(9)
+    Clock.moment = at(10)
     add(chat, at(7), kcal=10.0)
     add(chat, at(23, 30), kcal=50.0)
     bot = Bot()
@@ -154,12 +154,12 @@ def test_the_job_sends_one_reminder_and_waits_another_interval(chat, monkeypatch
     monkeypatch.setattr(jobs, "datetime", Clock)
     add(chat, at(7, 15))
     bot = Bot()
-    for moment in (at(8, 45), at(8, 50), at(10, 14), at(10, 15)):
+    for moment in (at(10, 15), at(10, 20), at(13, 14), at(13, 15)):
         Clock.moment = moment
         asyncio.run(jobs.feeding_reminder(SimpleNamespace(bot=bot)))
     assert [text.splitlines()[0] for text in bot.sent] == [
-        "🍗 Пора предложить еду для Чипуни. Последняя еда в 07:15, 1 ч 30 мин назад.",
         "🍗 Пора предложить еду для Чипуни. Последняя еда в 07:15, 3 ч 00 мин назад.",
+        "🍗 Пора предложить еду для Чипуни. Последняя еда в 07:15, 6 ч 00 мин назад.",
     ]
 
 
