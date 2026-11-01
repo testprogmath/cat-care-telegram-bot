@@ -1,4 +1,4 @@
-"""What the bot does on a schedule: the daily summary, the water and feeding reminders and the check-ins."""
+"""What the bot does on a schedule: the daily summary, the water, feeding and medication reminders and the check-ins."""
 
 import logging
 import math
@@ -8,7 +8,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from . import common, db, figures, fmt, foods, questions
+from . import common, db, figures, fmt, foods, med_schedule, questions
 from .profiles import Profile
 from .summary import (
     render_summary,
@@ -43,6 +43,9 @@ FEEDING_REMINDER_CHECK = timedelta(minutes=5)
 
 
 FEEDING_REMINDER_MARKER = "[бот напомнил о еде]"
+
+
+MED_REMINDER_CHECK = timedelta(minutes=5)
 
 
 async def daily_summary(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -159,6 +162,31 @@ async def feeding_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
             logger.exception("Failed to send a feeding reminder to chat %s", chat_id)
             continue
         db.note_bot_report(chat_id, sent.message_id, sent.date.astimezone(common.TIMEZONE), FEEDING_REMINDER_MARKER)
+
+
+def due_medications(chat_id: int, subject: str, now: datetime) -> list[med_schedule.Due]:
+    start = db.care_day_start(db.care_day(now) - timedelta(days=1), common.TIMEZONE)
+    rows = [r for r in db.events_in_range(subject, start, now) if r["type"] == "medication"]
+    schedules = [med_schedule.from_row(r) for r in db.med_schedules(chat_id)]
+    return med_schedule.due(schedules, rows, now)
+
+
+async def med_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
+    now = datetime.now(common.TIMEZONE)
+    for chat_id, profile in db.active_chats():
+        by_time: dict[datetime, list[med_schedule.Due]] = {}
+        for item in due_medications(chat_id, profile.subject_id, now):
+            by_time.setdefault(item.at, []).append(item)
+        for at, items in by_time.items():
+            marker = med_schedule.marker(at)
+            if db.last_bot_report_at(chat_id, marker) is not None:
+                continue
+            try:
+                sent = await context.bot.send_message(chat_id, med_schedule.render(profile.name_genitive, items, now))
+            except Exception:
+                logger.exception("Failed to send a medication reminder to chat %s", chat_id)
+                continue
+            db.note_bot_report(chat_id, sent.message_id, sent.date.astimezone(common.TIMEZONE), marker)
 
 
 async def checkin(context: ContextTypes.DEFAULT_TYPE) -> None:

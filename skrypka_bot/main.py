@@ -47,6 +47,7 @@ def main() -> None:
     app.add_handler(CommandHandler("meds", commands.for_known_chat(commands.meds_command)))
     app.add_handler(CommandHandler("profile", commands.profile_command))
     app.add_handler(CommandHandler("reminders", commands.for_known_chat(commands.reminders_command)))
+    app.add_handler(CommandHandler("schedule", commands.for_known_chat(commands.schedule_command)))
     app.add_handler(CommandHandler("tube", commands.for_known_chat(commands.tube_command)))
     app.add_handler(CommandHandler("limit", commands.for_known_chat(commands.limit_command)))
     app.add_handler(CommandHandler(["help", "start"], commands.for_known_chat(commands.help_command)))
@@ -65,6 +66,8 @@ def main() -> None:
     app.job_queue.run_repeating(
         jobs.feeding_reminder, interval=jobs.FEEDING_REMINDER_CHECK, first=timedelta(minutes=1)
     )
+
+    app.job_queue.run_repeating(jobs.med_reminder, interval=jobs.MED_REMINDER_CHECK, first=timedelta(minutes=1))
 
     for reminder_hour in range(
         jobs.WATER_REMINDER_START_HOUR, jobs.WATER_REMINDER_END_HOUR + 1, jobs.WATER_REMINDER_STEP_HOURS

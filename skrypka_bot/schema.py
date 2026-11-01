@@ -48,6 +48,15 @@ def apply(conn: sqlite3.Connection) -> None:
             asked_at    TEXT NOT NULL,
             PRIMARY KEY (chat_id, question_id)
         );
+        CREATE TABLE IF NOT EXISTS med_schedules (
+            chat_id INTEGER NOT NULL,
+            drug    TEXT NOT NULL,
+            per_day INTEGER NOT NULL,
+            times   TEXT,
+            dose    TEXT,
+            set_at  TEXT NOT NULL,
+            PRIMARY KEY (chat_id, drug)
+        );
         CREATE TABLE IF NOT EXISTS stool_questions (
             chat_id     INTEGER NOT NULL,
             question_id INTEGER NOT NULL,

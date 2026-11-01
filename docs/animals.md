@@ -83,6 +83,31 @@ not a meal either. An entry dated in the future does not count until its time co
 The reminder says when the last meal was and how many calories the care day has so far,
 counting only entries up to now.
 
+## Medication reminders
+
+About 15 minutes before a dose is due the bot writes "💊 В 18:52 лекарства для …" with the
+drug, the dose and why it is due. Doses due at the same minute go into one message. The job
+checks every five minutes, so the message comes 10 to 15 minutes ahead.
+
+A drug is due in one of two ways. With a schedule set by `/schedule`, it follows that
+schedule. Without one, it is due a day after each dose given yesterday or today: tablets
+given at 19:00 yesterday are due at 19:00 today. This needs no setup and follows the family when
+the time moves, and a drug that was stopped stops reminding after one day.
+
+`/schedule` takes the drug name and either clock times or a count per day, with an optional
+dose: `/schedule бупренорфин 08:00 16:00 00:00 0.06 мг` reminds at those times, and
+`/schedule бупренорфин 3 раза в день 0.06 мг` reminds eight hours after the last recorded
+dose. A count with no dose recorded yet waits for the first one. The schedule covers every
+recorded name that starts with the drug's name. `/schedule бупренорфин off` removes it, and
+`/schedule` alone lists what is set.
+
+No reminder comes when the dose is already in the diary. For clock times, a dose up to half
+the gap before the slot counts: four hours for three times a day. For yesterday's times, a
+dose up to four hours before counts, or up to half the gap to the drug's earlier dose that
+day when that is shorter, so the morning dose of a twice-daily drug does not cover the
+evening one. A dose missed by more than an hour is not reminded again. Each slot gets one
+message.
+
 ## Stool score and check-ins
 
 A stool whose consistency the message describes gets a score on the 1 to 5 Feline Fecal
@@ -115,6 +140,6 @@ cannot tell which one is meant and waits for a reply.
 ## Hospital pause
 
 While the cat is admitted, nobody at home can offer her water, so reminders become noise.
-The word *opname* (or *опнаме*) in any message pauses water and feeding reminders, check-ins and the
+The word *opname* (or *опнаме*) in any message pauses water, feeding and medication reminders, check-ins and the
 daily summary. A message about coming home ("забрали", "домой", "выписали", "ontslag", "naar
 huis") or `/reminders on` resumes them. Parsing and commands keep working throughout.

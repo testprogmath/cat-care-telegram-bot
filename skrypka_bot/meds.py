@@ -49,7 +49,7 @@ def normalise_dose(dose: str | None) -> str | None:
     return _NUMBER_UNIT_RE.sub(" ", text)
 
 
-def _drug(row: sqlite3.Row) -> str:
+def drug_name(row: sqlite3.Row) -> str:
     return (row["name"] or "").strip().lower() or UNNAMED
 
 
@@ -109,7 +109,7 @@ class Course:
 def courses(rows: list[sqlite3.Row]) -> list[Course]:
     by_drug: dict[str, Course] = {}
     for row in rows:
-        course = by_drug.setdefault(_drug(row), Course(_drug(row)))
+        course = by_drug.setdefault(drug_name(row), Course(drug_name(row)))
         day = date.fromisoformat(row["day"])
         dose = normalise_dose(row["dose"]) or NO_DOSE
         course.days[day] += 1

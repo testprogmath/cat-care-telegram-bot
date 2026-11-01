@@ -95,7 +95,8 @@ vet asks why the numbers look odd. So the checks start with the prompt.
 | `/meds` | medications for the last seven days as a grid of doses per day; `/meds all` for the whole diary, `/meds 2026-09-01 2026-09-30` for a period, both followed by a chart of doses over time |
 | `/profile` | which animal this chat keeps; `/profile <имя>` assigns a free one |
 | `/limit` | the daily food and water goals; `/limit food 225`, `/limit water 340`, `/limit food default` |
-| `/reminders` | whether water and feeding reminders, check-ins and the daily summary run; `/reminders off`, `/reminders on` |
+| `/reminders` | whether water, feeding and medication reminders, check-ins and the daily summary run; `/reminders off`, `/reminders on` |
+| `/schedule` | medication schedules for reminders; `/schedule бупренорфин 3 раза в день 0.06 мг`, `/schedule бупренорфин 08:00 16:00 00:00`, `/schedule бупренорфин off` |
 | `/help` | what the bot does and how it counts |
 
 A summary is posted at the start of each care day, midnight by default. Water reminders
@@ -104,8 +105,10 @@ schedule, and say how far behind. Between 07:00 and 23:00 a feeding reminder com
 an animal has had no meal for three hours; a soup without its pieces or a sauce
 does not count as a meal. A stool reported without its consistency gets a question
 for a score on a 1 to 5 scale, and a chat quiet for three hours between 09:00 and 22:00 gets
-a check-in. [Animals, goals and reminders](docs/animals.md) has the rules, including the
-pause while a cat is in hospital.
+a check-in. About 15 minutes before a medication is due a reminder comes, by the schedule set
+with `/schedule` or else at the time the drug was given yesterday.
+[Animals, goals and reminders](docs/animals.md) has the rules, including the pause while a
+cat is in hospital.
 
 The family also gets [web pages](docs/web.md) with the same diary: the week, every day by
 the hour, medications, foods and refusals.
