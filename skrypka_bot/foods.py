@@ -23,6 +23,7 @@ _PRODUCTS: list[tuple[str, str, str | None]] = [
     ("Purina One beef", _PURINA, None),
     ("Hill's i/d, dry", r"hill|хилс|\bi/d\b|айди", None),
     ("Monge", r"monge|монж", None),
+    ("Miamor Trinkfein", r"miamor|миамор|trinkfein|тринкфайн|vitaldrink|виталдринк", None),
     ("Vitakraft", r"vitakraft|витакрафт|drink|дринк|liquid snack", None),
     ("Schesir", r"schesir|шезир", None),
     ("GranataPet", r"granata|granaat", None),
@@ -76,7 +77,7 @@ def is_meal(row: sqlite3.Row) -> bool:
         return False
     if row["pieces"]:
         return row["pieces"] != "none"
-    if product(row["name"] or row["description"] or "", True) == "Felix Sauce":
+    if product(row["name"] or row["description"] or "", True) in ("Felix Sauce", "Miamor Trinkfein"):
         return False
     return not classify.is_broth_only(row["description"])
 
