@@ -11,7 +11,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from . import charts, common, db, jobs, meds, profiles
+from . import charts, common, db, jobs, med_schedule, meds, profiles
 from .profiles import Profile
 from .summary import (
     render_risk,
@@ -40,6 +40,7 @@ def help_text(profile: Profile) -> str:
         "/meds 2026-09-01 2026-09-30 — лекарства за период, с графиком\n"
         "/profile — чей дневник ведётся в этом чате\n"
         "/reminders — напоминания и автосводка: пауза или работа\n"
+        "/schedule — расписание лекарств для напоминаний\n"
         "/limit — цели по еде и воде на сутки; /limit food 225, /limit water 340\n"
         + ("/tube off — трубка выпала, /tube on — трубку поставили\n" if profiles.get(profile.key).tube else "")
         + "\n"
@@ -48,7 +49,9 @@ def help_text(profile: Profile) -> str:
         f"{profile.water_goal_ml:g} мл в день. Вода из влажного корма идёт в зачёт по влажности "
         "продукта: от 79% у паучей до 88.5% у жидких снеков.\n"
         "С 07:00 до 23:00 напоминаю о еде, если три часа не было ни еды, ни напоминания. "
-        "Отсчёт начинается с первой записи после 07:00. Супчик без кусочков и соус едой не считаются.\n\n"
+        "Отсчёт начинается с первой записи после 07:00. Супчик без кусочков и соус едой не считаются.\n"
+        "О лекарствах напоминаю минут за 15 до времени: по расписанию из /schedule, а без расписания "
+        "по вчерашнему времени этого лекарства. Если лекарство уже записали, не напоминаю.\n\n"
         "Если про стул не сказано, какой он, я спрошу балл по шкале 1-5: ответьте на вопрос цифрой. "
         "С 09:00 до 22:00, если в чате три часа тихо, спрашиваю, как дела.\n\n"
         "Слово «opname» или «опнаме» в чате ставит напоминания, вопросы «как дела» и автосводку на паузу: пока "
@@ -68,6 +71,7 @@ BOT_COMMANDS = [
     ("meds", "Лекарства: неделя, весь срок или период"),
     ("profile", "Чей дневник ведётся в этом чате"),
     ("reminders", "Напоминания и автосводка: пауза на время стационара"),
+    ("schedule", "Расписание лекарств для напоминаний"),
     ("tube", "Зонд: стоит или выпал"),
     ("help", "Что я умею и как считаю"),
 ]
@@ -296,16 +300,63 @@ async def reminders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     paused_at = db.paused_since(chat.id)
     if paused_at is None:
         text = (
-            "▶️ Напоминания о воде и еде, ежедневная сводка работают.\n"
+            "▶️ Напоминания о воде, еде и лекарствах, ежедневная сводка работают.\n"
             "Поставить на паузу: /reminders off или слово «opname» в чате."
         )
     else:
         text = (
-            f"⏸ Напоминания о воде и еде, ежедневная сводка на паузе с "
+            f"⏸ Напоминания о воде, еде и лекарствах, ежедневная сводка на паузе с "
             f"{paused_at.strftime('%d.%m %H:%M')}.\n"
             "Вернуть: /reminders on или сообщение о возвращении домой."
         )
     await context.bot.send_message(chat.id, text)
+
+
+SCHEDULE_FORMAT = (
+    "Формат: /schedule бупренорфин 3 раза в день 0.06 мг — напоминать от последнего приёма; "
+    "/schedule бупренорфин 08:00 16:00 00:00 0.06 мг — в эти часы; /schedule бупренорфин off — убрать."
+)
+
+
+def render_schedules(chat_id: int, profile: Profile) -> str:
+    schedules = [med_schedule.from_row(row) for row in db.med_schedules(chat_id)]
+    lines = [f"• {s.describe()}" for s in schedules] or ["• нет"]
+    return "\n".join([
+        f"Расписание лекарств {profile.name_genitive}:", *lines,
+        "Остальные лекарства напоминаю за 15 минут до того времени, когда их дали вчера.",
+        SCHEDULE_FORMAT,
+    ])
+
+
+async def schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat = update.effective_chat
+    if chat is None:
+        return
+    profile = db.profile_for(chat.id)
+    args = context.args or []
+    if not args:
+        await context.bot.send_message(chat.id, render_schedules(chat.id, profile))
+        return
+    if len(args) == 2 and args[1].lower() in ("off", "выкл"):
+        drug = args[0].lower()
+        if db.delete_med_schedule(chat.id, drug):
+            text = f"Убрал расписание: {drug}. Теперь напоминаю о нём по вчерашнему времени."
+        else:
+            text = f"Расписания для «{drug}» не было."
+        await context.bot.send_message(chat.id, text)
+        return
+    schedule = med_schedule.parse(args)
+    if schedule is None:
+        await context.bot.send_message(chat.id, SCHEDULE_FORMAT)
+        return
+    db.set_med_schedule(
+        chat.id, schedule.drug, schedule.per_day, [f"{t:%H:%M}" for t in schedule.times], schedule.dose,
+        datetime.now(common.TIMEZONE),
+    )
+    logger.info("Chat %s set the schedule %s", chat.id, schedule)
+    await context.bot.send_message(
+        chat.id, f"Записал расписание: {schedule.describe()}. Напомню минут за 15 до приёма."
+    )
 
 
 GOAL_KINDS = {

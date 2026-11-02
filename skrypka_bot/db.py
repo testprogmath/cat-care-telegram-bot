@@ -184,6 +184,28 @@ def set_paused(chat_id: int, at: datetime | None) -> None:
         )
 
 
+def med_schedules(chat_id: int) -> list[sqlite3.Row]:
+    with connect() as conn:
+        return list(conn.execute("SELECT * FROM med_schedules WHERE chat_id = ? ORDER BY drug", (chat_id,)))
+
+
+def set_med_schedule(
+    chat_id: int, drug: str, per_day: int, times: list[str], dose: str | None, at: datetime
+) -> None:
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO med_schedules (chat_id, drug, per_day, times, dose, set_at) VALUES (?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT (chat_id, drug) DO UPDATE SET per_day = excluded.per_day, times = excluded.times, "
+            "dose = excluded.dose, set_at = excluded.set_at",
+            (chat_id, drug, per_day, ",".join(times) or None, dose, at.isoformat()),
+        )
+
+
+def delete_med_schedule(chat_id: int, drug: str) -> bool:
+    with connect() as conn:
+        return conn.execute("DELETE FROM med_schedules WHERE chat_id = ? AND drug = ?", (chat_id, drug)).rowcount > 0
+
+
 def auto_left(chat_id: int) -> bool:
     with connect() as conn:
         row = conn.execute("SELECT auto_left FROM chats WHERE chat_id = ?", (chat_id,)).fetchone()
