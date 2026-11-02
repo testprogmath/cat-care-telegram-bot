@@ -54,8 +54,10 @@ class MiniBar:
     w: float
     tube_y: float
     tube_h: float
-    self_y: float
-    self_h: float
+    wet_y: float
+    wet_h: float
+    dry_y: float
+    dry_h: float
     total: int
     label: str
 
@@ -95,12 +97,13 @@ def mini_chart(rows: list, goal: float) -> MiniChart | None:
     scale = height / peak
     bars = []
     for i, r in enumerate(rows):
-        tube_h, self_h = r.kcal_tube * scale, r.kcal_self * scale
+        tube_h, wet_h, dry_h = r.kcal_tube * scale, r.kcal_wet * scale, r.kcal_dry * scale
         base = top + height
         bars.append(MiniBar(
             x=round(i * slot + slot * 0.15, 2), w=round(slot * 0.7, 2),
             tube_y=round(base - tube_h, 1), tube_h=round(tube_h, 1),
-            self_y=round(base - tube_h - self_h, 1), self_h=round(self_h, 1),
+            wet_y=round(base - tube_h - wet_h, 1), wet_h=round(wet_h, 1),
+            dry_y=round(base - tube_h - wet_h - dry_h, 1), dry_h=round(dry_h, 1),
             total=round(r.kcal), label=r.day.strftime("%d.%m"),
         ))
     toilet_top, toilet_height = 12.0, 50.0

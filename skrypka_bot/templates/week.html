@@ -132,13 +132,14 @@
 {% if chart %}
 <section class="card" aria-labelledby="chart-h">
   <h2 id="chart-h" class="eyebrow">Калории по дням · цель {{ '%g' % current.profile.kcal_goal }}</h2>
-  <p class="legend">{% if mean and mean.kcal_tube %}<span class="key tube"></span>зонд {% endif %}<span class="key self"></span>{{ current.profile.self_label }}</p>
-  <svg class="mini" viewBox="0 0 {{ chart.width }} {{ chart.height + 12 }}" role="img" aria-label="Калории по дням: зонд и {{ current.profile.self_label }}">
+  <p class="legend">{% if mean and mean.kcal_tube %}<span class="key tube"></span>зонд {% endif %}<span class="key wet"></span>жидкий корм <span class="key self"></span>сухарики</p>
+  <svg class="mini" viewBox="0 0 {{ chart.width }} {{ chart.height + 12 }}" role="img" aria-label="Калории по дням: {% if mean and mean.kcal_tube %}зонд, {% endif %}жидкий корм и сухарики">
     <line x1="0" x2="{{ chart.width }}" y1="{{ chart.goal_y }}" y2="{{ chart.goal_y }}" class="goal"></line>
     {% for b in chart.bars %}
     <rect x="{{ b.x }}" y="{{ b.tube_y }}" width="{{ b.w }}" height="{{ b.tube_h }}" class="tube"></rect>
-    <rect x="{{ b.x }}" y="{{ b.self_y }}" width="{{ b.w }}" height="{{ b.self_h }}" class="self"></rect>
-    {% if chart.labelled and b.total %}<text x="{{ b.x + b.w / 2 }}" y="{{ b.self_y - 3 }}" class="total">{{ b.total }}</text>{% endif %}
+    <rect x="{{ b.x }}" y="{{ b.wet_y }}" width="{{ b.w }}" height="{{ b.wet_h }}" class="wet"></rect>
+    <rect x="{{ b.x }}" y="{{ b.dry_y }}" width="{{ b.w }}" height="{{ b.dry_h }}" class="self"></rect>
+    {% if chart.labelled and b.total %}<text x="{{ b.x + b.w / 2 }}" y="{{ b.dry_y - 3 }}" class="total">{{ b.total }}</text>{% endif %}
     {% if chart.labelled %}<text x="{{ b.x + b.w / 2 }}" y="{{ chart.height + 10 }}" class="day">{{ b.label[:2] }}</text>{% endif %}
     {% endfor %}
   </svg>

@@ -135,3 +135,38 @@ def test_the_site_lists_each_stool_score_under_its_day(chat):
     chart = week_view.mini_chart(rows, 270)
     assert chart.toilet[-1].scores == [(5, "warn"), (3, "warn")]
     assert chart.score_rows == 2
+
+
+def test_the_calorie_bar_splits_wet_food_from_dry_food(chat, monkeypatch):
+    food = dict(type="food", name=None, dose=None, water_ml=None, feeding="self", temp_c=None,
+                water_fraction=None, time=None)
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "записи", [
+        SimpleNamespace(**food, kcal=20.0, amount_ml=25.0, liquid=True, description="Felix Soup — 25 г"),
+        SimpleNamespace(**food, kcal=37.0, amount_ml=None, liquid=None, description="сухарики Hills — 10 г"),
+        SimpleNamespace(**{**food, "feeding": "tube"}, kcal=40.0, amount_ml=40.0, liquid=True, description="зонд"),
+    ])
+    bars = []
+    original = charts.plt.Axes.bar
+
+    def record(ax, x, height, *args, label=None, **kwargs):
+        bars.append((label, list(height)))
+        return original(ax, x, height, *args, label=label, **kwargs)
+
+    monkeypatch.setattr(charts.plt.Axes, "bar", record)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+
+    kcal_bars = dict(bars[4:7])
+    assert {label: values[-1] for label, values in kcal_bars.items()} == {
+        "tube": 40.0, "wet food": 20.0, "dry food": 37.0,
+    }
+
+
+def test_a_day_row_splits_the_calories_eaten_alone_into_wet_and_dry(chat):
+    food = dict(type="food", name=None, dose=None, water_ml=None, feeding="self", temp_c=None,
+                water_fraction=None, time=None)
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "записи", [
+        SimpleNamespace(**food, kcal=20.0, amount_ml=25.0, liquid=True, description="Felix Soup — 25 г"),
+        SimpleNamespace(**food, kcal=37.0, amount_ml=None, liquid=None, description="сухарики Hills — 10 г"),
+    ])
+    [row] = daily.day_rows("chipunya", date(2026, 10, 6), date(2026, 10, 6))
+    assert (row.kcal_self, row.kcal_wet, row.kcal_dry) == (57.0, 20.0, 37.0)

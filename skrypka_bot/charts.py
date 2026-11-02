@@ -64,7 +64,8 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
     infused = {d: 0.0 for d in days}
     liquid_water = {d: 0.0 for d in days}
     kcal_tube = {d: 0.0 for d in days}
-    kcal_self = {d: 0.0 for d in days}
+    kcal_wet = {d: 0.0 for d in days}
+    kcal_dry = {d: 0.0 for d in days}
     urine = {d: 0 for d in days}
     stool = {d: 0 for d in days}
     scores: dict[date, list[int]] = {d: [] for d in days}
@@ -82,8 +83,10 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
             liquid_water[d] += figures.food_water_ml(r)
             if figures.is_given(r):
                 kcal_tube[d] += r["kcal"] or 0
+            elif r["liquid"]:
+                kcal_wet[d] += r["kcal"] or 0
             else:
-                kcal_self[d] += r["kcal"] or 0
+                kcal_dry[d] += r["kcal"] or 0
         elif t == "toilet":
             kind = classify.toilet_kind(r["description"])
             if kind == "stool":
@@ -124,7 +127,8 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
     ax = axes[1]
     _stack(ax, x, [
         ([kcal_tube[d] for d in days], "tube", "#7B6CE8"),
-        ([kcal_self[d] for d in days], "self-fed", "#E8B54C"),
+        ([kcal_wet[d] for d in days], "wet food", "#4FA99A"),
+        ([kcal_dry[d] for d in days], "dry food", "#E8B54C"),
     ])
     ax.set_title("Calories per day, kcal")
     _day_axis(ax, x, labels)
@@ -175,7 +179,7 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
 
     water_top = max(drank[d] + given[d] + liquid_water[d] + infused[d] for d in days)
     axes[0].set_ylim(0, max(water_top, water_goal) * 1.3)
-    axes[1].set_ylim(0, max(max(kcal_tube[d] + kcal_self[d] for d in days), 1) * 1.3)
+    axes[1].set_ylim(0, max(max(kcal_tube[d] + kcal_wet[d] + kcal_dry[d] for d in days), 1) * 1.3)
     axes[2].set_ylim(0, max((max(urine[d], stool[d]) for d in days), default=0) * 1.3 + 1)
 
     buf = io.BytesIO()

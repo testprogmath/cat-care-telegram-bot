@@ -24,10 +24,15 @@ class DayRow:
     given_ml: float = 0.0
     infused_ml: float = 0.0
     stool_scores: list[int] = field(default_factory=list)
+    kcal_wet: float = 0.0
 
     @property
     def kcal(self) -> float:
         return self.kcal_self + self.kcal_tube
+
+    @property
+    def kcal_dry(self) -> float:
+        return self.kcal_self - self.kcal_wet
 
 
 def day_rows(subject: str, start: date, end: date) -> list[DayRow]:
@@ -59,6 +64,7 @@ def day_rows(subject: str, start: date, end: date) -> list[DayRow]:
             given_ml=sum(e["water_ml"] or 0 for e in given),
             infused_ml=sum(e["water_ml"] or 0 for e in infused),
             stool_scores=[e["stool_score"] for e in that_day if e["type"] == "toilet" and e["stool_score"]],
+            kcal_wet=sum(e["kcal"] or 0 for e in food if not figures.is_given(e) and e["liquid"]),
         ))
     return rows
 
