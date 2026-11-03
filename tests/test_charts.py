@@ -170,3 +170,23 @@ def test_a_day_row_splits_the_calories_eaten_alone_into_wet_and_dry(chat):
     ])
     [row] = daily.day_rows("chipunya", date(2026, 10, 6), date(2026, 10, 6))
     assert (row.kcal_self, row.kcal_wet, row.kcal_dry) == (57.0, 20.0, 37.0)
+
+
+def test_a_part_that_is_empty_all_week_is_left_out_of_the_legend(chat, monkeypatch):
+    food = dict(type="food", name=None, dose=None, water_ml=None, feeding="self", temp_c=None,
+                water_fraction=None, time=None)
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "записи", [
+        SimpleNamespace(**food, kcal=37.0, amount_ml=None, liquid=None, description="сухарики Hills — 10 г"),
+    ])
+    legends = []
+    original = charts.plt.Axes.legend
+
+    def record(ax, *args, **kwargs):
+        legend = original(ax, *args, **kwargs)
+        legends.append([t.get_text() for t in legend.get_texts()])
+        return legend
+
+    monkeypatch.setattr(charts.plt.Axes, "legend", record)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+
+    assert legends[1] == ["dry food"]

@@ -25,7 +25,10 @@ def _stack(ax, x: list[int], segments: list[tuple[list[float], str, str]]) -> No
     bottom = [0.0] * len(x)
     stacked = []
     for values, label, color in segments:
-        stacked.append((ax.bar(x, values, bottom=bottom, label=label, color=color), values))
+        bars = ax.bar(x, values, bottom=bottom, label=label, color=color)
+        if not any(values):
+            bars.set_label("_nolegend_")
+        stacked.append((bars, values))
         bottom = [b + v for b, v in zip(bottom, values, strict=True)]
     totals = bottom
     if len(totals) <= SEGMENT_LABEL_DAYS:
@@ -132,7 +135,8 @@ def render_days(start: date, end_day: date, profile: Profile, title: str = "") -
     ])
     ax.set_title("Calories per day, kcal")
     _day_axis(ax, x, labels)
-    ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend(fontsize=8, loc="upper left", ncol=3, frameon=False)
 
     ax = axes[2]
     w = 0.38
