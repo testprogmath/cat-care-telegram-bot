@@ -1,4 +1,4 @@
-### Prompt eval: 56 of 56 passed
+### Prompt eval: 57 of 57 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
@@ -46,6 +46,7 @@
 | ✅ | a described stool gets its point on the scale | покакала, стул жидкий, почти вода |  |
 | ✅ | a normal formed stool is a 4 | покакал, нормальная колбаска |  |
 | ✅ | a stool with no consistency named has no score, so the bot asks | покакала |  |
+| ✅ | a stool that went well is not a stool of normal consistency, so the bot asks | хорошо покакала |  |
 | ✅ | Royal Canin Light Weight Care is a wet food at its label figures, even misspelt | Скушала 60 грам важного корма Royal canin light weight care |  |
 | ✅ | subcutaneous fluids are water given by people, for a cat without a tube too | Дали подкожно 40мл лактата Рингера |  |
 | ✅ | adult Royal Canin Instinctive at its label figures, even misheard | Съела 43 грамма жидкого корма Royal Canin Insertive |  |
@@ -59,4 +60,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit 9fc1471, 2026-11-03, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/41622459215).
+Commit 6dd33ab, 2026-11-03, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/41632790709).
