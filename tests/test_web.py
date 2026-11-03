@@ -375,6 +375,15 @@ def test_the_days_water_says_given_only_when_someone_gave_water(settings, member
     assert water_detail(page) == "пил сам 2 раз, 30 мл · дали 1 раз, 15 мл · из корма 34 мл"
 
 
+def test_the_weeks_calorie_chart_shows_wet_food_and_dry_food_apart(settings, members, today, chat):
+    record(chat, 9, day=date(2026, 10, 6), kcal=20.0, amount_ml=25.0, liquid=True, description="Felix Soup")
+    record(chat, 12, day=date(2026, 10, 6), kcal=37.0, description="сухарики Hills")
+    page = client(MEMBER).get("/chipunya/week?from=2026-09-30&to=2026-10-06").text
+    assert '<span class="key wet"></span>жидкий корм <span class="key self"></span>сухарики</p>' in page
+    assert 'aria-label="Калории по дням: жидкий корм и сухарики"' in page
+    assert page.count('class="wet"></rect>') == 7
+
+
 def test_the_week_shows_each_stool_score_under_its_day_with_a_legend(settings, members, today, chat):
     record(chat, 7, day=date(2026, 10, 6), type="toilet", description="покакал", stool_score=4)
     record(chat, 19, day=date(2026, 10, 6), type="toilet", description="покакал", stool_score=1)

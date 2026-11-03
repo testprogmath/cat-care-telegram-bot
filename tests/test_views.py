@@ -74,10 +74,17 @@ def test_the_day_groups_water_and_filters_by_kind(chat):
 
 
 def test_the_mini_chart_is_left_out_past_a_month():
-    row = SimpleNamespace(kcal=100.0, kcal_tube=60.0, kcal_self=40.0, day=date(2026, 10, 1),
+    row = SimpleNamespace(kcal=100.0, kcal_tube=60.0, kcal_wet=25.0, kcal_dry=15.0, day=date(2026, 10, 1),
                           urinations=3, stools=None)
     assert week_view.mini_chart([row] * 31, 250) is not None
     assert week_view.mini_chart([row] * 32, 250) is None
+
+
+def test_the_mini_chart_stacks_wet_food_on_the_tube_and_dry_food_on_top():
+    row = SimpleNamespace(kcal=100.0, kcal_tube=50.0, kcal_wet=25.0, kcal_dry=25.0, day=date(2026, 10, 1),
+                          urinations=None, stools=None)
+    [bar] = week_view.mini_chart([row], 100).bars
+    assert (bar.tube_y, bar.tube_h, bar.wet_y, bar.wet_h, bar.dry_y, bar.dry_h) == (83.0, 65.0, 50.5, 32.5, 18.0, 32.5)
 
 
 def test_the_day_clock_places_each_event_on_its_hour(chat):
