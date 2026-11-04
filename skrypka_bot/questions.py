@@ -23,7 +23,7 @@ STOOL_QUESTION = (
     "5 — твёрдый, сухой, наполнитель не налипает"
 )
 
-_SCORE_DIGIT_RE = re.compile(r"(?<![\d.,])([1-5])(?![\d.,])")
+_SCORE_DIGIT_RE = re.compile(r"(?<!\d)(?<!\d[.,])([1-5])(?![.,]?\d)")
 
 _BARE_SCORE_RE = re.compile(r"^\s*[1-5](?:\s*/\s*5)?\s*[.!]?\s*$")
 
