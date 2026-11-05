@@ -97,6 +97,9 @@
 - description: a whole pouch of Heerlijke Reepjes, spelt Streepjes
   vars: {animal: chipunya, text: "съел весь пауч Felix Heerlijke Streepjes с уткой",
          expected: [{type: food, amount_ml: 85, kcal: 75.9, water_fraction: 0.786}]}
+- description: Felix Gravy Lover by weight, not Felix Sauce Time
+  vars: {animal: skripa, text: "съела 30 г Felix Gravy Lover с уткой",
+         expected: [{type: food, amount_ml: 30, kcal: 20.1, water_fraction: 0.82}]}
 - description: Royal Canin Sensible by weight, not the unnamed dry food's 3.7 kcal/g
   vars: {animal: chipunya, text: "съел 3 г сухариков Royal Canin Sensible",
          expected: [{type: food, kcal: 12.9}]}

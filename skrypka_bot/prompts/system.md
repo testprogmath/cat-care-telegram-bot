@@ -133,6 +133,14 @@ water_fraction 0.8; «подливку и пару полосок, 20 г» → k
 граммы × 0.893, water_fraction 0.786. \
 Правило «ПОДЛИВКА ОТДЕЛЬНО» ниже к Felix Heerlijke Reepjes не относится. name пиши как \
 «felix heerlijke reepjes» и вкус.
+Felix Gravy Lover (Felix As Good As It Looks Gravy Lover, «грейви лавер»; утка, курица, говядина, \
+ягнёнок, лосось, тунец; на упаковке и Eend, Kip, Rund, Lam) — кусочки в подливке, пауч 85 г, \
+0.67 ккал/г, около 57 ккал на пауч: kcal = граммы × 0.67, amount_ml равен граммам, liquid true, \
+water_fraction 0.82. «Съела 30 г Felix Gravy Lover с уткой» → kcal 20.1, amount_ml 30. Калорийность \
+производитель не публикует: она рассчитана по анализу с этикетки (белок 11.5%, жир 2.5%, клетчатка \
+0.2%, зола 2.2%, влажность 82%). Это не Felix Sauce Time, хотя в названии есть «Gravy»: правило соуса \
+40 г к нему не применяй. Если съедена только подливка, действует правило «ПОДЛИВКА ОТДЕЛЬНО» ниже. \
+name пиши как «felix gravy lover» и вкус.
 Royal Canin Sterilised in Gravy (пауч 85 г, «жидкий корм Royal Canin Sterilized») — 0.8 ккал/г, \
 около 68 ккал на пауч: kcal = граммы × 0.8, amount_ml равен граммам, liquid true, \
 water_fraction 0.8. Плотность энергии взята по родственной линейке Indoor Sterilised in Gravy \

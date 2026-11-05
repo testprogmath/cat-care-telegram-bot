@@ -339,6 +339,8 @@ def test_a_callback_without_its_login_attempt_is_refused(settings):
      ("felix sensations sauces eend/wortel", True, "Felix Sensations"),
      ("felix heerlijke reepjes kip", True, "Felix Heerlijke Reepjes"),
      ("Felix Heerlijke Streepjes (с уткой)", True, "Felix Heerlijke Reepjes"),
+     ("felix gravy lover утка", True, "Felix Gravy Lover"),
+     ("Felix Gravy Lovers с даком", True, "Felix Gravy Lover"),
      ("royal canin digestive care", True, "RC Digestive Care, wet"),
      ("royal canin digestive care", False, "Hill's i/d, dry"),
      ("monge salmon kitten", True, "Monge"), ("royal canin kitten", True, "RC Kitten"),
