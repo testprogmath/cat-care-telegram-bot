@@ -14,6 +14,7 @@ _PURINA = r"purina|пурина|путина"
 _PRODUCTS: list[tuple[str, str, str | None]] = [
     ("Felix Sensations", r"felix|феликс", r"sensation|сенсейшн|сенсэйшн"),
     ("Felix Heerlijke Reepjes", r"reepjes|streepjes|heerlijke", None),
+    ("Felix Gravy Lover", r"gravy lov|гр[еэ]йви лав|as good as it looks", None),
     ("Felix Sauce", r"felix|феликс", r"sauce|соус|gravy|подлив"),
     ("Felix Soup", r"felix|феликс", None),
     ("Gourmet soup", r"gourmet|гурме", None),
