@@ -175,3 +175,12 @@
 - description: a past dose with a calendar date and time
   vars: {animal: skripa, text: "04.10 дала в 23:30 миратаз",
          expected: [{type: medication, name: миратаз, date: "04.10", time: "23:30"}]}
+- description: a snack in another flavour just after the first is a new event
+  vars: {animal: chipunya, text: "скушал 14г жидкого снека Vitakraft с говядиной",
+         history: [["2026-11-05T22:05:41+01:00", "скушал 14г жидкого снека Vitakraft с ливером"]],
+         expected: [{type: food, amount_ml: 14, kcal: 7, water_fraction: 0.885}]}
+- description: water from another place and time just after the first is a new event
+  vars: {animal: skripa, text: "До 20:00 выпила на втором этаже около 40мл воды (добавь в сводку)",
+         history: [["2026-11-04T22:09:24+01:00", "Пописала в 21:10"],
+                   ["2026-11-04T22:11:51+01:00", "На втором этаже в 19:20 выпила 8мл из серой кружки"]],
+         expected: [{type: water, water_ml: 40}]}
