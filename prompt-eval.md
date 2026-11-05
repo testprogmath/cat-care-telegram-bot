@@ -1,4 +1,4 @@
-### Prompt eval: 57 of 57 passed
+### Prompt eval: 58 of 58 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
@@ -33,6 +33,7 @@
 | ✅ | Felix Sensations from a pouch with a leftover, gravy only | из пауча Felix Sensations 85 г вылизал подливку, осталось 45 г |  |
 | ✅ | Felix Heerlijke Reepjes by weight | съела 28 г Felix Heerlijke Reepjes Kip |  |
 | ✅ | a whole pouch of Heerlijke Reepjes, spelt Streepjes | съел весь пауч Felix Heerlijke Streepjes с уткой |  |
+| ✅ | Felix Gravy Lover by weight, not Felix Sauce Time | съела 30 г Felix Gravy Lover с уткой |  |
 | ✅ | Royal Canin Sensible by weight, not the unnamed dry food's 3.7 kcal/g | съел 3 г сухариков Royal Canin Sensible |  |
 | ✅ | Royal Canin Sensible counted in kibbles of 0.2 g | съел 20 сухариков Royal Canin Sensible 33 |  |
 | ✅ | Royal Canin Indoor counted in kibbles of 0.182 g | Съел 45 сухариков Royal Canin Indoor |  |
@@ -60,4 +61,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit 6dd33ab, 2026-11-03, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/41632790709).
+Commit 6ee37f5, 2026-11-05, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/42045660531).
