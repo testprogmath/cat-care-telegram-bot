@@ -61,4 +61,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit 6ee37f5, 2026-11-05, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/42045660531).
+Commit 3d2ad27, 2026-11-09, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/42619315771).
