@@ -224,3 +224,24 @@ def test_a_tile_has_no_change_when_the_week_before_is_empty(chat, monkeypatch):
     monkeypatch.setattr(charts.plt.Axes, "text", record)
     charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
     assert not any(s.startswith(("▲", "▼", "=")) for s in texts)
+
+
+def test_the_tiles_leave_out_the_day_that_has_not_ended(chat, monkeypatch):
+    water = dict(type="water", name=None, dose=None, kcal=None, amount_ml=None, temp_c=None,
+                 liquid=None, water_fraction=None, time=None, feeding="self")
+    ingest.save_message(chat, 1, "owner", datetime(2026, 10, 5, 12, 0, tzinfo=BERLIN), "попил", [
+        SimpleNamespace(**water, water_ml=200.0, description="попил 200 мл")])
+    ingest.save_message(chat, 2, "owner", datetime(2026, 10, 6, 8, 0, tzinfo=BERLIN), "попил", [
+        SimpleNamespace(**water, water_ml=10.0, description="попил 10 мл")])
+    monkeypatch.setattr(charts.db, "care_day", lambda moment: date(2026, 10, 6))
+    texts = []
+    original = charts.plt.Axes.text
+
+    def record(ax, x, y, s, *args, **kwargs):
+        texts.append(s)
+        return original(ax, x, y, s, *args, **kwargs)
+
+    monkeypatch.setattr(charts.plt.Axes, "text", record)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+    assert "200" in texts
+    assert "105" not in texts

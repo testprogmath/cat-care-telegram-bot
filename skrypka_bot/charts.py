@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.patches import FancyBboxPatch  # noqa: E402
 from matplotlib.ticker import MaxNLocator  # noqa: E402
 
-from . import classify, db, figures, meds, questions  # noqa: E402
+from . import classify, common, db, figures, meds, questions  # noqa: E402
 from .profiles import Profile  # noqa: E402
 
 WEEK_DAYS = 7
@@ -145,7 +145,7 @@ def _tiles(now: _Period | None, before: _Period | None, profile: Profile) -> lis
     ]
 
 
-def _header(ax, profile: Profile, start: date, end_day: date, tiles: list) -> None:
+def _header(ax, profile: Profile, start: date, end_day: date, tiles: list, today: date) -> None:
     ax.axis("off")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -165,7 +165,8 @@ def _header(ax, profile: Profile, start: date, end_day: date, tiles: list) -> No
             ax.text(x + width - 0.015, 0.21, change[0], fontsize=10, fontweight="bold", color=change[1],
                     ha="right", va="center")
     if tiles and any(t[4] for t in tiles):
-        ax.text(1, 0.72, f"arrows: change against the {(end_day - start).days + 1} days before", fontsize=9,
+        unfinished = "; today is not counted until it ends" if start <= today <= end_day else ""
+        ax.text(1, 0.72, f"arrows: change against the {(end_day - start).days + 1} days before{unfinished}", fontsize=9,
                 color=MUTED, va="top", ha="right")
 
 
@@ -262,7 +263,8 @@ def render_days(start: date, end_day: date, profile: Profile) -> bytes:
     water = {d: drank[d] + given[d] + liquid_water[d] + infused[d] for d in days}
     kcal = {d: kcal_tube[d] + kcal_wet[d] + kcal_dry[d] for d in days}
     span = len(days)
-    now = _period(rows, water_goal)
+    today = db.care_day(datetime.now(common.TIMEZONE))
+    now = _period([r for r in rows if r["day"] != today.isoformat()], water_goal)
     before = _period(db.events_in_days(profile.subject_id, start - timedelta(days=span), start - timedelta(days=1)),
                      water_goal)
     tiles = _tiles(now, before, profile)
@@ -276,7 +278,7 @@ def render_days(start: date, end_day: date, profile: Profile) -> bytes:
         layout="constrained",
     )
     fig.get_layout_engine().set(h_pad=0.25, hspace=0.06, w_pad=0.3)
-    _header(axes[0], profile, start, end_day, tiles)
+    _header(axes[0], profile, start, end_day, tiles, today)
     axes = axes[1:]
 
     ax = axes[0]
