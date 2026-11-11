@@ -191,3 +191,36 @@ def test_a_part_that_is_empty_all_week_is_left_out_of_the_legend(chat, monkeypat
 
     assert ["dry food"] in legends
     assert not any("tube" in legend or "wet food" in legend for legend in legends)
+
+
+def test_a_tile_shows_the_change_against_the_week_before(chat, monkeypatch):
+    water = dict(type="water", name=None, dose=None, kcal=None, amount_ml=None, temp_c=None,
+                 liquid=None, water_fraction=None, time=None, feeding="self")
+    ingest.save_message(chat, 1, "owner", datetime(2026, 9, 29, 12, 0, tzinfo=BERLIN), "попил", [
+        SimpleNamespace(**water, water_ml=100.0, description="попил 100 мл")])
+    ingest.save_message(chat, 2, "owner", datetime(2026, 10, 6, 12, 0, tzinfo=BERLIN), "попил", [
+        SimpleNamespace(**water, water_ml=150.0, description="попил 150 мл")])
+    texts = []
+    original = charts.plt.Axes.text
+
+    def record(ax, x, y, s, *args, **kwargs):
+        texts.append((s, kwargs.get("color")))
+        return original(ax, x, y, s, *args, **kwargs)
+
+    monkeypatch.setattr(charts.plt.Axes, "text", record)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+    assert ("▲ 50", charts.MET) in texts
+
+
+def test_a_tile_has_no_change_when_the_week_before_is_empty(chat, monkeypatch):
+    _stools(chat, 4)
+    texts = []
+    original = charts.plt.Axes.text
+
+    def record(ax, x, y, s, *args, **kwargs):
+        texts.append(s)
+        return original(ax, x, y, s, *args, **kwargs)
+
+    monkeypatch.setattr(charts.plt.Axes, "text", record)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+    assert not any(s.startswith(("▲", "▼", "=")) for s in texts)

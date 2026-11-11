@@ -1,5 +1,6 @@
 import io
 import math
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 import matplotlib
@@ -88,7 +89,63 @@ def _legend(ax) -> None:
                   labelcolor=MUTED, handlelength=0.9, handleheight=0.9, columnspacing=1.2)
 
 
-def _header(ax, profile: Profile, start: date, end_day: date, tiles: list[tuple[str, str, str, str]]) -> None:
+@dataclass
+class _Period:
+    days: int
+    water: float
+    kcal: float
+    water_goal_days: int
+    stool_score: float | None
+
+
+def _period(rows: list, water_goal: float) -> _Period | None:
+    """Per-day means over the days with any record, the figures the tiles show."""
+    by_day: dict[str, list] = {}
+    for r in rows:
+        by_day.setdefault(r["day"], []).append(r)
+    if not by_day:
+        return None
+    water = [figures.effective_water(events) for events in by_day.values()]
+    scores = [r["stool_score"] for r in rows if r["type"] == "toilet" and r["stool_score"]]
+    return _Period(
+        days=len(by_day),
+        water=sum(water) / len(by_day),
+        kcal=sum(figures.kcal_total(events) for events in by_day.values()) / len(by_day),
+        water_goal_days=sum(w >= water_goal for w in water),
+        stool_score=sum(scores) / len(scores) if scores else None,
+    )
+
+
+def _change(now: float, before: float | None, target: float | None = None,
+            decimals: int = 0) -> tuple[str, str] | None:
+    """The change since the period before: green when it rises, or when it nears `target` if there is one."""
+    if before is None:
+        return None
+    delta = round(now - before, decimals)
+    if not delta:
+        return "= same", MUTED
+    good = delta > 0 if target is None else abs(now - target) < abs(before - target)
+    return f"{'▲' if delta > 0 else '▼'} {abs(delta):.{decimals}f}", MET if good else GOAL
+
+
+def _tiles(now: _Period | None, before: _Period | None, profile: Profile) -> list:
+    if now is None:
+        return []
+    water_goal, kcal_goal = profile.water_goal_ml, profile.kcal_goal
+    was = before or _Period(0, None, None, None, None)
+    return [
+        ("water / day", f"{now.water:.0f}", f"ml · goal {water_goal:g}", MET if now.water >= water_goal else GOAL,
+         _change(now.water, was.water)),
+        ("calories / day", f"{now.kcal:.0f}", f"kcal · goal {kcal_goal:g}", MET if now.kcal >= kcal_goal else GOAL,
+         _change(now.kcal, was.kcal)),
+        ("water goal met", f"{now.water_goal_days}/{now.days}", "days", INK,
+         _change(now.water_goal_days, was.water_goal_days)),
+        ("stool score", f"{now.stool_score:.1f}" if now.stool_score else "–", "average · 4 is normal", INK,
+         now.stool_score and _change(now.stool_score, was.stool_score, 4, 1)),
+    ]
+
+
+def _header(ax, profile: Profile, start: date, end_day: date, tiles: list) -> None:
     ax.axis("off")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -96,14 +153,20 @@ def _header(ax, profile: Profile, start: date, end_day: date, tiles: list[tuple[
     ax.text(0, 0.72, f"{start.strftime('%-d %b')} – {end_day.strftime('%-d %b %Y')}", fontsize=11,
             color=MUTED, va="top")
     gap = 0.02
-    width = (1 - gap * (len(tiles) - 1)) / len(tiles)
-    for i, (label, value, unit, color) in enumerate(tiles):
+    width = (1 - gap * (len(tiles) - 1)) / max(len(tiles), 1)
+    for i, (label, value, unit, color, change) in enumerate(tiles):
         x = i * (width + gap)
         ax.add_patch(FancyBboxPatch((x, 0), width, 0.5, boxstyle="round,pad=0,rounding_size=0.012",
                                     mutation_aspect=ax.figure.get_figwidth() / HEADER_IN, fc=CARD, ec="none"))
         ax.text(x + 0.015, 0.4, label.upper(), fontsize=8, color=MUTED, va="center")
         ax.text(x + 0.015, 0.21, value, fontsize=22, fontweight="bold", color=color, va="center")
         ax.text(x + 0.015, 0.06, unit, fontsize=8, color=MUTED, va="center")
+        if change:
+            ax.text(x + width - 0.015, 0.21, change[0], fontsize=10, fontweight="bold", color=change[1],
+                    ha="right", va="center")
+    if tiles and any(t[4] for t in tiles):
+        ax.text(1, 0.72, f"arrows: change against the {(end_day - start).days + 1} days before", fontsize=9,
+                color=MUTED, va="top", ha="right")
 
 
 def _cards(fig, axes) -> None:
@@ -166,13 +229,11 @@ def render_days(start: date, end_day: date, profile: Profile) -> bytes:
     stool = {d: 0 for d in days}
     scores: dict[date, list[int]] = {d: [] for d in days}
     temps: list[tuple[datetime, float]] = []
-    recorded: set[date] = set()
 
     for r in rows:
         d = date.fromisoformat(r["day"])
         if d not in drank:
             continue
-        recorded.add(d)
         t = r["type"]
         if t == "water":
             parts = {"drank": drank, "given": given, "infusion": infused}
@@ -200,17 +261,12 @@ def render_days(start: date, end_day: date, profile: Profile) -> bytes:
 
     water = {d: drank[d] + given[d] + liquid_water[d] + infused[d] for d in days}
     kcal = {d: kcal_tube[d] + kcal_wet[d] + kcal_dry[d] for d in days}
-    n = len(recorded) or 1
-    avg_water = sum(water[d] for d in recorded) / n
-    avg_kcal = sum(kcal[d] for d in recorded) / n
-    all_scores = [s for d in days for s in scores[d]]
-    tiles = [
-        ("water / day", f"{avg_water:.0f}", f"ml · goal {water_goal:g}", MET if avg_water >= water_goal else GOAL),
-        ("calories / day", f"{avg_kcal:.0f}", f"kcal · goal {kcal_goal:g}", MET if avg_kcal >= kcal_goal else GOAL),
-        ("water goal met", f"{sum(water[d] >= water_goal for d in recorded)}/{len(recorded)}", "days", INK),
-        ("stool score", f"{sum(all_scores) / len(all_scores):.1f}" if all_scores else "–",
-         "average · 4 is normal", INK),
-    ]
+    span = len(days)
+    now = _period(rows, water_goal)
+    before = _period(db.events_in_days(profile.subject_id, start - timedelta(days=span), start - timedelta(days=1)),
+                     water_goal)
+    tiles = _tiles(now, before, profile)
+    avg_water, avg_kcal = (now.water, now.kcal) if now else (0.0, 0.0)
 
     x = list(range(len(days)))
     panels = 4 if temps else 3
