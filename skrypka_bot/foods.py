@@ -57,6 +57,8 @@ def product(text: str, liquid: bool | None = None, named: bool = True) -> str:
     if ("digestive" in t or "дайджест" in t) and not re.search(r"hill|хилс|i/d", t):
         wet = liquid if liquid is not None else bool(re.search(r"royal canin|роял|жидк", t))
         return "RC Digestive Care, wet" if wet else "Hill's i/d, dry"
+    if re.search(r"long ?hair|лонг ?хэир", t):
+        return "RC Indoor Long Hair, dry"
     if re.search(r"indoor|индор", t):
         wet = liquid if liquid is not None else bool(re.search(r"жидк|влажн|пауч|gravy|подлив|соус", t))
         return "RC Indoor, wet" if wet else "RC Indoor, dry"
