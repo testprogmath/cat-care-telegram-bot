@@ -30,7 +30,7 @@ def test_week_bars_carry_their_values(chat, monkeypatch):
     assert png.startswith(b"\x89PNG")
     assert ["", "", "", "", "", "", "40"] in labels
     assert ["", "", "", "", "", "", "12"] in labels
-    assert ["", "", "", "", "", "", "52"] in labels
+    assert ["", "", "", "", "", "", "52 · 19%"] in labels
 
 
 def test_water_drunk_and_water_given_are_separate_parts_of_the_bar(chat, monkeypatch):

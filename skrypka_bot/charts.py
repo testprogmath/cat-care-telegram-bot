@@ -13,7 +13,7 @@ from matplotlib.patches import FancyBboxPatch  # noqa: E402
 from matplotlib.ticker import MaxNLocator  # noqa: E402
 
 from . import classify, common, db, figures, meds, questions  # noqa: E402
-from .profiles import Bands, Profile  # noqa: E402
+from .profiles import LOW_KCAL_DAYS, LOW_KCAL_SHARE, Bands, Profile  # noqa: E402
 
 WEEK_DAYS = 7
 SEGMENT_LABEL_DAYS = 14
@@ -35,7 +35,7 @@ def _tone(value: float, goal: float, bands: Bands | None) -> str:
 
 
 def _stack(ax, x: list[int], segments: list[tuple[list[float], str, str]], goal: float | None = None,
-           bands: Bands | None = None) -> None:
+           bands: Bands | None = None, percent: bool = False) -> None:
     bottom = [0.0] * len(x)
     stacked = []
     for values, label, color in segments:
@@ -53,8 +53,10 @@ def _stack(ax, x: list[int], segments: list[tuple[list[float], str, str]], goal:
                 label_type="center", fontsize=8, color="white",
             )
     if len(totals) <= TOTAL_LABEL_DAYS:
+        share = percent and goal and len(totals) <= SEGMENT_LABEL_DAYS
         texts = ax.bar_label(
-            stacked[-1][0], labels=[f"{t:.0f}" if t > 0 else "" for t in totals],
+            stacked[-1][0],
+            labels=[(f"{t:.0f} · {t / goal:.0%}" if share else f"{t:.0f}") if t > 0 else "" for t in totals],
             padding=3, fontsize=9 if len(totals) <= SEGMENT_LABEL_DAYS else 7, fontweight="bold", color=INK,
         )
         if goal:
@@ -89,6 +91,24 @@ def _goal(ax, goal: float) -> None:
     ax.axhline(goal, ls=(0, (4, 3)), lw=1.4, color=GOAL, zorder=4)
     ax.annotate(f"goal {goal:g}", (1, goal), xycoords=("axes fraction", "data"), xytext=(4, 0),
                 textcoords="offset points", va="center", fontsize=8.5, fontweight="bold", color=GOAL)
+
+
+def _low_runs(ax, kcal: list[float], counted: list[bool], floor: float) -> None:
+    """The 80% line, and a shaded span over each run of LOW_KCAL_DAYS or more ended days below it."""
+    ax.axhline(floor, ls=(0, (1, 2)), lw=1.4, color=NEAR, zorder=4)
+    ax.annotate(f"{LOW_KCAL_SHARE:.0%} {floor:g}", (1, floor), xycoords=("axes fraction", "data"), xytext=(4, 0),
+                textcoords="offset points", va="center", fontsize=8.5, fontweight="bold", color=NEAR)
+    run: list[int] = []
+    for i, (value, ok) in enumerate([*zip(kcal, counted, strict=True), (floor, True)]):
+        if ok and value < floor:
+            run.append(i)
+            continue
+        if len(run) >= LOW_KCAL_DAYS:
+            ax.axvspan(run[0] - 0.45, run[-1] + 0.45, color="#FBE3DF", zorder=0)
+            ax.annotate(f"{len(run)} days under {LOW_KCAL_SHARE:.0%}", ((run[0] + run[-1]) / 2, 1),
+                        xycoords=("data", "axes fraction"), xytext=(0, -2), textcoords="offset points",
+                        ha="center", va="top", fontsize=8.5, fontweight="bold", color=GOAL)
+        run = []
 
 
 def _legend(ax) -> None:
@@ -144,7 +164,7 @@ def _tiles(now: _Period | None, before: _Period | None, profile: Profile) -> lis
     return [
         ("water / day", f"{now.water:.0f}", f"ml · goal {water_goal:g}", _tone(now.water, water_goal, profile.water_bands),
          _change(now.water, was.water)),
-        ("calories / day", f"{now.kcal:.0f}", f"kcal · goal {kcal_goal:g}", _tone(now.kcal, kcal_goal, profile.kcal_bands),
+        ("calories / day", f"{now.kcal:.0f}", f"kcal · {now.kcal / kcal_goal:.0%} of goal {kcal_goal:g}", _tone(now.kcal, kcal_goal, profile.kcal_bands),
          _change(now.kcal, was.kcal)),
         ("water goal met", f"{now.water_goal_days}/{now.days}", "days", INK,
          _change(now.water_goal_days, was.water_goal_days)),
@@ -308,8 +328,11 @@ def render_days(start: date, end_day: date, profile: Profile) -> bytes:
         ([kcal_tube[d] for d in days], "tube", "#8C7AE6"),
         ([kcal_wet[d] for d in days], "wet food", "#4FB3A2"),
         ([kcal_dry[d] for d in days], "dry food", "#F2B84B"),
-    ], kcal_goal, profile.kcal_bands)
+    ], kcal_goal, profile.kcal_bands, percent=True)
     _goal(ax, kcal_goal)
+    recorded = {r["day"] for r in rows}
+    _low_runs(ax, [kcal[d] for d in days], [d.isoformat() in recorded and d != today for d in days],
+              kcal_goal * LOW_KCAL_SHARE)
     _day_axis(ax, x, days)
     _legend(ax)
 
