@@ -1,7 +1,8 @@
-### Prompt eval: 58 of 58 passed
+### Prompt eval: 58 of 59 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
+| ❌ | the usual Sensations mix is all the pieces | съела 40 г Felix Sensations утка, обычная смесь | no event matches {'type': 'food', 'amount_ml': 40, 'kcal': 31.5, 'pieces': 'all'}; got [{'type': 'food', 'name': 'felix sensations sauces утка', 'kcal': 31.5, 'feeding': 'self', 'amount_ml': 40.0, 'liquid': True, 'water_fraction': 0.842, 'description': 'Felix Sensations утка — 40 г, обычная смесь (д |
 | ✅ | drinking time at the animal's own rate | 51сек пила водичку |  |
 | ✅ | two drinking times are added | Попила водичку 39+40секунд сама |  |
 | ✅ | the other animal's rate | 60 секунд пил водичку |  |
@@ -21,7 +22,6 @@
 | ✅ | the whole soup drunk is the whole broth, not the pieces | Выпила весь супчик из Феликс суп с курицей |  |
 | ✅ | a soup with no word on the pieces leaves them open, so the bot asks | Скушала 36 грамм феликс супчик с тунцом |  |
 | ✅ | pieces left are none | выпил бульон из супчика Felix, кусочки оставил |  |
-| ✅ | the usual Sensations mix is all the pieces | съела 40 г Felix Sensations утка, обычная смесь |  |
 | ✅ | soup offered is not soup eaten | дала супчик Felix |  |
 | ✅ | gravy of food with pieces, no volume | полизал подливку от Monge, кусочки не ел |  |
 | ✅ | Felix Sauce with water and a leftover | выпила Felix sauce с 20 мл воды, осталось 10г |  |
@@ -37,6 +37,7 @@
 | ✅ | Royal Canin Sensible by weight, not the unnamed dry food's 3.7 kcal/g | съел 3 г сухариков Royal Canin Sensible |  |
 | ✅ | Royal Canin Sensible counted in kibbles of 0.2 g | съел 20 сухариков Royal Canin Sensible 33 |  |
 | ✅ | Royal Canin Indoor counted in kibbles of 0.182 g | Съел 45 сухариков Royal Canin Indoor |  |
+| ✅ | Royal Canin Indoor Long Hair counted in kibbles of 0.24 g, not as Indoor 27 | Съел 30 сухариков Royal Canin Indoor Long Hair |  |
 | ✅ | wet Royal Canin Indoor by weight, not the dry one | съел 7 г Royal Canin Indoor, жидкий корм |  |
 | ✅ | dry Royal Canin Hair & Skin Care counted in kibbles of 0.2 g | Съел 35 сухариков Royal Canin Hair & Skin Care |  |
 | ✅ | wet Royal Canin Hair & Skin Care by weight, not the dry one | Съела 46г жидкого корма Royal Canin Skin&Hair Care |  |
@@ -61,4 +62,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit 9eb8da3, 2026-11-16, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/43868009476).
+Commit f89f08a, 2026-11-18, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/44235289891).
