@@ -4,6 +4,8 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from skrypka_bot import charts, daily, ingest, profiles, week_view
 
 BERLIN = ZoneInfo("Europe/Berlin")
@@ -245,3 +247,15 @@ def test_the_tiles_leave_out_the_day_that_has_not_ended(chat, monkeypatch):
     charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
     assert "200" in texts
     assert "105" not in texts
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"), [(330, charts.MET), (263, charts.NEAR), (250, charts.NEAR), (249, charts.GOAL)]
+)
+def test_a_figure_between_the_alarm_line_and_the_target_is_amber(value, expected):
+    bands = profiles.Bands("мл", 320, 370, alarm=250, severe=200, critical=150, critical_note="")
+    assert charts._tone(value, 340, bands) == expected
+
+
+def test_without_bands_only_the_goal_divides_green_from_red():
+    assert (charts._tone(340, 340, None), charts._tone(339, 340, None)) == (charts.MET, charts.GOAL)
