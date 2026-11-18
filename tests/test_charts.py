@@ -189,4 +189,5 @@ def test_a_part_that_is_empty_all_week_is_left_out_of_the_legend(chat, monkeypat
     monkeypatch.setattr(charts.plt.Axes, "legend", record)
     charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
 
-    assert legends[1] == ["dry food"]
+    assert ["dry food"] in legends
+    assert not any("tube" in legend or "wet food" in legend for legend in legends)
