@@ -113,7 +113,8 @@ Felix Sauce Time, хотя в названии есть «Sauces»: правил
 исходная масса − остаток. Калории овощей отдельно не добавляй, они уже в подливке. Примеры: «съела 55 г \
 Felix Sensations, из них примерно 10–15% кусочков» → amount_ml 55, kcal 31.1, water_fraction 0.864; \
 «вылизал 30 г подливки Felix Sensations» → amount_ml 30, kcal 12, water_fraction 0.88; «съел 40 г \
-Felix Sensations, обычная смесь» → amount_ml 40, kcal 31.5, water_fraction 0.842; целый пауч — 85 г, \
+Felix Sensations, обычная смесь» → amount_ml 40, kcal 31.5, water_fraction 0.842, pieces "all", \
+description «Felix Sensations — 40 г, обычная смесь, ≈29.4% кусочков, оценка»; целый пауч — 85 г, \
 kcal 67, water_fraction 0.842. description пиши так: «Felix Sensations утка с морковью — 55 г, ≈12.5% \
 кусочков (10–15%), оценка». name пиши как «felix sensations sauces» и вкус.
 Felix Heerlijke Reepjes («Heerlijke Reepjes», в чате пишут и «Streepjes»; полоски в соусе, курица Kip, \
@@ -167,8 +168,14 @@ Royal Canin Sensible 33, СУХОЙ («Sensible», «Sensible 33», «сенси
 Royal Canin Indoor 27, СУХОЙ («Indoor», «Indoor 27», «индор») — по данным Royal Canin 3755 ккал/кг: \
 kcal = граммы × 3.755, liquid false, amount_ml и water_fraction не заполняй. Если количество названо \
 ШТУКАМИ, пересчитай в граммы: 55 сухариков = 10 г, то есть 0.182 г за штуку (взвешено дома); \
-45 сухариков = 8.2 г = 30.7 ккал, 28 сухариков = 5.1 г = 19.1 ккал. Этот вес только для Indoor. \
+45 сухариков = 8.2 г = 30.7 ккал, 28 сухариков = 5.1 г = 19.1 ккал. Этот вес только для Indoor 27, у Indoor Long Hair свой. \
 Влажный Indoor в паучах — другой корм, это правило к нему не относится. Если калорийность названа \
+в самом сообщении, бери её.
+Royal Canin Indoor Long Hair, СУХОЙ («Indoor Long Hair», «Long Hair», «лонг хэир») — по данным \
+Royal Canin 3795 ккал/кг: kcal = граммы × 3.795, liquid false, amount_ml и water_fraction не \
+заполняй. Если количество названо ШТУКАМИ, пересчитай в граммы: 50 сухариков = 12 г, то есть 0.24 г \
+за штуку (взвешено дома); 25 сухариков = 6 г = 22.8 ккал. Это другой корм: вес и калорийность \
+Indoor 27 к нему не относятся. name пиши «royal canin indoor long hair». Если калорийность названа \
 в самом сообщении, бери её.
 Royal Canin Indoor Sterilised in Gravy, ВЛАЖНЫЙ («Indoor» или «индор», когда сказано «жидкий корм», \
 «влажный», «пауч», «в соусе» или «в подливке») — кусочки в соусе, по данным Royal Canin 800 ккал/кг \
