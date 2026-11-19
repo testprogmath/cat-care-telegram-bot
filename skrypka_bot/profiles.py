@@ -4,6 +4,9 @@ from dataclasses import dataclass, replace
 
 from . import texts
 
+LOW_KCAL_SHARE = 0.8
+LOW_KCAL_DAYS = 3
+
 
 @dataclass(frozen=True)
 class Bands:
@@ -63,8 +66,10 @@ class Profile:
         """This animal with the goals a chat set; a band whose target is the goal moves with it."""
         changed = self
         if kcal is not None:
-            changed = replace(changed, kcal_goal=kcal,
-                              kcal_bands=_retarget(changed.kcal_bands, changed.kcal_goal, kcal))
+            bands = _retarget(changed.kcal_bands, changed.kcal_goal, kcal)
+            if bands is not None:
+                bands = replace(bands, alarm=kcal * LOW_KCAL_SHARE)
+            changed = replace(changed, kcal_goal=kcal, kcal_bands=bands)
         if water_ml is not None:
             changed = replace(changed, water_goal_ml=water_ml,
                               water_bands=_retarget(changed.water_bands, changed.water_goal_ml, water_ml))
@@ -131,7 +136,7 @@ SKRIPA = Profile(
         unit="ккал",
         target_low=_SKRIPA_KCAL_GOAL,
         target_high=_SKRIPA_KCAL_GOAL,
-        alarm=200,
+        alarm=_SKRIPA_KCAL_GOAL * LOW_KCAL_SHARE,
         severe=150,
         critical=110,
         critical_note="веский аргумент за трубку",

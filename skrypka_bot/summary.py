@@ -4,10 +4,11 @@ from datetime import date, datetime, timedelta
 
 from . import classify, db, figures, fmt, questions
 from .parser import condense_states
-from .profiles import Bands, Profile
+from .profiles import LOW_KCAL_DAYS, LOW_KCAL_SHARE, Bands, Profile
 
 CONDENSE_THRESHOLD = 6
 STREAK_LOOKBACK_DAYS = 3
+LOW_SHARE_LOOKBACK_DAYS = 30
 
 
 def _feeding_labels(profile: Profile) -> dict[str, str]:
@@ -148,9 +149,9 @@ def vomited(events: list[sqlite3.Row]) -> bool:
     )
 
 
-def _low_kcal_streak(subject: str, day: date, threshold: float) -> int:
+def _low_kcal_streak(subject: str, day: date, threshold: float, lookback: int = STREAK_LOOKBACK_DAYS) -> int:
     streak = 0
-    for back in range(STREAK_LOOKBACK_DAYS):
+    for back in range(lookback):
         events = db.events_for_day(subject, day - timedelta(days=back))
         if not events or figures.kcal_total(events) >= threshold:
             break
@@ -168,6 +169,16 @@ def _verdict(bands: Bands, value: float) -> str:
     return "🔴 серьёзная тревога"
 
 
+def _low_share_line(profile: Profile, kcal: float, day: date, chat_id: int | None) -> str | None:
+    floor = profile.kcal_goal * LOW_KCAL_SHARE
+    if kcal >= floor or chat_id is None:
+        return None
+    streak = _low_kcal_streak(profile.subject_id, day, floor, LOW_SHARE_LOOKBACK_DAYS)
+    if streak < LOW_KCAL_DAYS:
+        return None
+    return f"  🔴 меньше {LOW_KCAL_SHARE:.0%} нормы ({floor:g} ккал) {streak} {_plural_days(streak)} подряд"
+
+
 def _band_line(icon: str, label: str, bands: Bands, value: float, verdict: str = "") -> str:
     tail = f" — {verdict}" if verdict else ""
     target = (
@@ -175,7 +186,8 @@ def _band_line(icon: str, label: str, bands: Bands, value: float, verdict: str =
         if bands.target_low == bands.target_high
         else f"{bands.target_low:g}–{bands.target_high:g}"
     )
-    return f"  {icon} {label}: {fmt.num(value)} {bands.unit} из {target}{tail}"
+    share = f" ({value / bands.target_low:.0%})" if bands.target_low == bands.target_high else ""
+    return f"  {icon} {label}: {fmt.num(value)} {bands.unit} из {target}{share}{tail}"
 
 
 def _plural_days(n: int) -> str:
@@ -191,10 +203,11 @@ def render_assessment(
 ) -> list[str]:
     kcal_bands = profile.kcal_bands
     water_bands = profile.water_bands
-    if kcal_bands is None or water_bands is None:
-        return []
-
     kcal = figures.kcal_total(events)
+    if kcal_bands is None or water_bands is None:
+        low = _low_share_line(profile, kcal, day, chat_id) if complete else None
+        return ["\n⚖️ Оценка суток:", low] if low else []
+
     water = figures.effective_water(events)
     if not complete:
         return [
@@ -217,6 +230,8 @@ def render_assessment(
                 f"  🔴 меньше {kcal_bands.critical:g} ккал {streak} {_plural_days(streak)} "
                 f"подряд — {kcal_bands.critical_note}"
             )
+    if low := _low_share_line(profile, kcal, day, chat_id):
+        lines.append(low)
     if water < water_bands.critical:
         lines.append(
             f"  🔴 меньше {water_bands.critical:g} мл за сутки — {water_bands.critical_note}"

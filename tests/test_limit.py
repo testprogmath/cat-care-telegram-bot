@@ -57,7 +57,7 @@ def test_an_unknown_kind_or_number_shows_the_format(chat):
 def test_a_band_targeted_at_the_goal_moves_with_it_and_a_range_band_stays():
     moved = profiles.SKRIPA.with_goals(kcal=200, water_ml=300)
     assert (moved.kcal_bands.target_low, moved.kcal_bands.target_high) == (200, 200)
-    assert moved.kcal_bands.alarm == profiles.SKRIPA.kcal_bands.alarm
+    assert moved.kcal_bands.alarm == 160
     assert moved.water_bands == profiles.SKRIPA.water_bands
 
 
