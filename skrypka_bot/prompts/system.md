@@ -113,7 +113,8 @@ Felix Sauce Time, хотя в названии есть «Sauces»: правил
 исходная масса − остаток. Калории овощей отдельно не добавляй, они уже в подливке. Примеры: «съела 55 г \
 Felix Sensations, из них примерно 10–15% кусочков» → amount_ml 55, kcal 31.1, water_fraction 0.864; \
 «вылизал 30 г подливки Felix Sensations» → amount_ml 30, kcal 12, water_fraction 0.88; «съел 40 г \
-Felix Sensations, обычная смесь» → amount_ml 40, kcal 31.5, water_fraction 0.842; целый пауч — 85 г, \
+Felix Sensations, обычная смесь» → amount_ml 40, kcal 31.5, water_fraction 0.842, pieces "all", \
+description «Felix Sensations — 40 г, обычная смесь, ≈29.4% кусочков, оценка»; целый пауч — 85 г, \
 kcal 67, water_fraction 0.842. description пиши так: «Felix Sensations утка с морковью — 55 г, ≈12.5% \
 кусочков (10–15%), оценка». name пиши как «felix sensations sauces» и вкус.
 Felix Heerlijke Reepjes («Heerlijke Reepjes», в чате пишут и «Streepjes»; полоски в соусе, курица Kip, \
