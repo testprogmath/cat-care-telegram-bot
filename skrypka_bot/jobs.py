@@ -123,7 +123,7 @@ def render_feeding_reminder(
     """
     if not FEEDING_REMINDER_START_HOUR <= now.hour < FEEDING_REMINDER_END_HOUR:
         return None
-    if not events:
+    if not events or kcal_today >= profile.kcal_goal:
         return None
     start = feeding_window_start(now)
     meals = [datetime.fromisoformat(e["occurred_at"]) for e in events if foods.is_meal(e)]

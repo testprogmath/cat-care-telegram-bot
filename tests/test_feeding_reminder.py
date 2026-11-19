@@ -99,6 +99,12 @@ def test_a_meal_between_reminders_starts_the_wait_again(chat):
     )
 
 
+def test_no_reminder_once_the_calorie_goal_is_met(chat):
+    add(chat, at(8))
+    assert reminder(chat, at(11, 5), kcal_today=269.9) is not None
+    assert reminder(chat, at(11, 5), kcal_today=270.0) is None
+
+
 def test_a_soup_without_pieces_does_not_start_the_wait_again(chat):
     add(chat, at(8))
     add(chat, at(9), description="Felix Soup с курицей — 25 г", pieces="none")
