@@ -112,6 +112,9 @@
 - description: Royal Canin Indoor Long Hair counted in kibbles of 0.24 g, not as Indoor 27
   vars: {animal: chipunya, text: "Съел 30 сухариков Royal Canin Indoor Long Hair",
          expected: [{type: food, kcal: 27.3}]}
+- description: Hill's z/d counted in kibbles of 0.15 g, not as Hill's i/d
+  vars: {animal: chipunya, text: "Съел 30 сухариков Hills zd",
+         expected: [{type: food, kcal: 16.9}]}
 - description: wet Royal Canin Indoor by weight, not the dry one
   vars: {animal: chipunya, text: "съел 7 г Royal Canin Indoor, жидкий корм",
          expected: [{type: food, amount_ml: 7, kcal: 5.6, water_fraction: 0.81}]}

@@ -349,6 +349,7 @@ def test_a_callback_without_its_login_attempt_is_refused(settings):
      ("royal canin indoor 27", False, "RC Indoor, dry"), ("royal canin indoor", True, "RC Indoor, wet"),
      ("royal canin indoor", None, "RC Indoor, dry"), ("жидкий royal canin indoor", None, "RC Indoor, wet"),
      ("royal canin indoor long hair", None, "RC Indoor Long Hair, dry"),
+     ("hills z/d", False, "Hill's z/d, dry"), ("hills zd food sensitivities", None, "Hill's z/d, dry"),
      ("miamor trinkfein vitaldrink mit gemüse", True, "Miamor Trinkfein"),
      ("vitakraft liquid snack", True, "Vitakraft"),
      ("сухарики", False, foods.UNNAMED_DRY)],

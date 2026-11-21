@@ -22,6 +22,7 @@ _PRODUCTS: list[tuple[str, str, str | None]] = [
     ("Purina One salmon", _PURINA, r"zalm|лосос|залм|salmon"),
     ("Purina One chicken", _PURINA, r"кур|chicken"),
     ("Purina One beef", _PURINA, None),
+    ("Hill's z/d, dry", r"\bz/?d\b|зет ?ди|food sensitiv", None),
     ("Hill's i/d, dry", r"hill|хилс|\bi/d\b|айди", None),
     ("Monge", r"monge|монж", None),
     ("Miamor Trinkfein", r"miamor|миамор|trinkfein|тринкфайн|vitaldrink|виталдринк", None),
