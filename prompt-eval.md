@@ -1,4 +1,4 @@
-### Prompt eval: 59 of 59 passed
+### Prompt eval: 60 of 60 passed
 
 | | Case | Message | Why it failed |
 |---|---|---|---|
@@ -38,6 +38,7 @@
 | ✅ | Royal Canin Sensible counted in kibbles of 0.2 g | съел 20 сухариков Royal Canin Sensible 33 |  |
 | ✅ | Royal Canin Indoor counted in kibbles of 0.182 g | Съел 45 сухариков Royal Canin Indoor |  |
 | ✅ | Royal Canin Indoor Long Hair counted in kibbles of 0.24 g, not as Indoor 27 | Съел 30 сухариков Royal Canin Indoor Long Hair |  |
+| ✅ | Hill's z/d counted in kibbles of 0.15 g, not as Hill's i/d | Съел 30 сухариков Hills zd |  |
 | ✅ | wet Royal Canin Indoor by weight, not the dry one | съел 7 г Royal Canin Indoor, жидкий корм |  |
 | ✅ | dry Royal Canin Hair & Skin Care counted in kibbles of 0.2 g | Съел 35 сухариков Royal Canin Hair & Skin Care |  |
 | ✅ | wet Royal Canin Hair & Skin Care by weight, not the dry one | Съела 46г жидкого корма Royal Canin Skin&Hair Care |  |
@@ -62,4 +63,4 @@
 | ✅ | a brand name stays the brand, not its active substance | нанесла миратаз на правое ушко |  |
 | ✅ | a past dose with a calendar date and time | 04.10 дала в 23:30 миратаз |  |
 
-Commit 3b5eaa6, 2026-11-20, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/44839520342).
+Commit e9d8106, 2026-11-21, [the run](https://github.com/testprogmath/cat-care-telegram-bot/actions/runs/44843427748).
