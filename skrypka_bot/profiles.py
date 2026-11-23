@@ -63,7 +63,7 @@ class Profile:
     drinking_ml_per_second: float = 0.45
 
     def with_goals(self, kcal: float | None = None, water_ml: float | None = None) -> Profile:
-        """This animal with the goals a chat set; a band whose target is the goal moves with it."""
+        """This animal with the goals a chat set; the goal becomes the bottom of the target band."""
         changed = self
         if kcal is not None:
             bands = _retarget(changed.kcal_bands, changed.kcal_goal, kcal)
@@ -71,8 +71,10 @@ class Profile:
                 bands = replace(bands, alarm=kcal * LOW_KCAL_SHARE)
             changed = replace(changed, kcal_goal=kcal, kcal_bands=bands)
         if water_ml is not None:
-            changed = replace(changed, water_goal_ml=water_ml,
-                              water_bands=_retarget(changed.water_bands, changed.water_goal_ml, water_ml))
+            bands = changed.water_bands
+            if bands is not None:
+                bands = replace(bands, target_low=water_ml, target_high=max(bands.target_high, water_ml))
+            changed = replace(changed, water_goal_ml=water_ml, water_bands=bands)
         return changed
 
     def pick(self, she: str, he: str) -> str:

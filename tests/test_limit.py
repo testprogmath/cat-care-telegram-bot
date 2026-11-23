@@ -54,11 +54,19 @@ def test_an_unknown_kind_or_number_shows_the_format(chat):
     assert limit(chat, "food", "много") == [commands.GOAL_FORMAT]
 
 
-def test_a_band_targeted_at_the_goal_moves_with_it_and_a_range_band_stays():
+def test_the_goal_becomes_the_bottom_of_the_target_band():
     moved = profiles.SKRIPA.with_goals(kcal=200, water_ml=300)
     assert (moved.kcal_bands.target_low, moved.kcal_bands.target_high) == (200, 200)
     assert moved.kcal_bands.alarm == 160
-    assert moved.water_bands == profiles.SKRIPA.water_bands
+    assert (moved.water_bands.target_low, moved.water_bands.target_high) == (300, 370)
+    assert moved.water_bands.alarm == profiles.SKRIPA.water_bands.alarm
+    assert profiles.SKRIPA.with_goals(water_ml=400).water_bands.target_high == 400
+
+
+def test_water_above_the_chats_goal_is_in_the_target_band():
+    bands = profiles.SKRIPA.with_goals(water_ml=300).water_bands
+    assert summary._band_line("💧", "Жидкость", bands, 303.7, summary._verdict(bands, 303.7)) == (
+        "  💧 Жидкость: 303.7 мл из 300–370 — ✅ в цели")
 
 
 def test_left_counts_from_the_chats_goal(chat):
