@@ -107,6 +107,41 @@ def test_a_week_with_a_temperature_reading_shows_it(chat, monkeypatch):
     assert "Temperature, °C" in titles
 
 
+
+def test_a_week_without_medication_has_no_medication_panel(chat, monkeypatch):
+    titles = _panel_titles(monkeypatch)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+    assert "Medications per day" not in titles
+
+
+def test_the_medication_panel_shows_each_drugs_total_dose_a_day(chat, monkeypatch):
+    dose = dict(type="medication", water_ml=None, kcal=None, feeding=None, amount_ml=None, temp_c=None,
+                liquid=None, water_fraction=None, time=None, description="дала лекарство")
+    for n, (name, amount) in enumerate([("бупренорфин", "0.06 мг"), ("бупренорфин", "0.06 мг"),
+                                        ("превомакс", "0.5 мл"), ("сукральфат", None)], start=1):
+        ingest.save_message(chat, n, "owner", datetime(2026, 10, 6, 6 + n, 0, tzinfo=BERLIN), "дала",
+                            [SimpleNamespace(**dose, name=name, dose=amount)])
+    titles = _panel_titles(monkeypatch)
+    cells, rows = [], []
+    original_text, original_labels = charts.plt.Axes.text, charts.plt.Axes.set_yticklabels
+
+    def text(ax, x, y, s, *args, **kwargs):
+        cells.append(s)
+        return original_text(ax, x, y, s, *args, **kwargs)
+
+    def labels(ax, labels_, *args, **kwargs):
+        rows.append(list(labels_))
+        return original_labels(ax, labels_, *args, **kwargs)
+
+    monkeypatch.setattr(charts.plt.Axes, "text", text)
+    monkeypatch.setattr(charts.plt.Axes, "set_yticklabels", labels)
+    charts.render_week(date(2026, 10, 6), profiles.CHIPUNYA)
+
+    assert "Medications per day" in titles
+    assert sorted(rows[-1]) == ["Prevomax, ml", "buprenorphine, mg", "sucralfate"]
+    assert {"0.12\n×2", "0.5", "✓"} <= set(cells)
+
+
 def _stools(chat_id, *scores):
     stool = dict(type="toilet", name=None, dose=None, water_ml=None, kcal=None, feeding=None, amount_ml=None,
                  temp_c=None, liquid=None, water_fraction=None, time=None, description="покакал")
