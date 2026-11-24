@@ -237,6 +237,30 @@ def _round_tops(ax, radius_px: float = 6) -> None:
             bar.set_clip_path(clip)
 
 
+def _meds_panel(ax, rows: list, days: list[date]) -> None:
+    """One row per drug, a cell on each day it was given with that day's total dose."""
+    courses = meds.courses(rows)
+    column = {d.isoformat(): i for i, d in enumerate(days)}
+    _panel(ax, "Medications per day", "total dose that day · ×2: given twice · ✓: dose not recorded")
+    ax.grid(False)
+    for row, course in enumerate(courses):
+        amounts: dict[int, list[float | None]] = {}
+        for r in rows:
+            if meds.drug_name(r) == course.drug:
+                amounts.setdefault(column[r["day"]], []).append(meds.dose_amount(meds.normalise_dose(r["dose"]) or ""))
+        for i, doses in amounts.items():
+            ax.bar(i, 0.76, 0.64, bottom=row - 0.38, color="#E3DEFA", zorder=3)
+            if len(days) <= SEGMENT_LABEL_DAYS:
+                total = "✓" if None in doses else f"{sum(doses):g}"
+                times = f"\n×{len(doses)}" if len(doses) > 1 else ""
+                ax.text(i, row, total + times, ha="center", va="center", fontsize=8.5, fontweight="bold",
+                        color=INK, zorder=4)
+    ax.set_yticks(range(len(courses)))
+    ax.set_yticklabels([meds.NAMES_EN.get(c.drug, c.drug) + (f", {unit}" if (unit := meds.dose_unit(c)) else "") for c in courses])
+    ax.set_ylim(len(courses) - 0.5, -0.5)
+    _day_axis(ax, list(range(len(days))), days)
+
+
 def render_week(end_day: date, profile: Profile) -> bytes:
     return render_days(end_day - timedelta(days=WEEK_DAYS - 1), end_day, profile)
 
@@ -300,10 +324,16 @@ def render_days(start: date, end_day: date, profile: Profile) -> bytes:
     avg_water, avg_kcal = (now.water, now.kcal) if now else (0.0, 0.0)
 
     x = list(range(len(days)))
-    panels = 4 if temps else 3
+    medication = [r for r in rows if r["type"] == "medication"]
+    drugs = len({meds.drug_name(r) for r in medication})
+    heights = [HEADER_IN, PANEL_IN, PANEL_IN, PANEL_IN]
+    if drugs:
+        heights.append(1.2 + 0.45 * drugs)
+    if temps:
+        heights.append(PANEL_IN)
     fig, axes = plt.subplots(
-        panels + 1, 1, figsize=(min(18, max(10, len(days) * 0.3)), HEADER_IN + PANEL_IN * panels),
-        height_ratios=[HEADER_IN] + [PANEL_IN] * panels, facecolor=PAGE,
+        len(heights), 1, figsize=(min(18, max(10, len(days) * 0.3)), sum(heights)),
+        height_ratios=heights, facecolor=PAGE,
         layout="constrained",
     )
     fig.get_layout_engine().set(h_pad=0.25, hspace=0.06, w_pad=0.3)
@@ -359,8 +389,11 @@ def render_days(start: date, end_day: date, profile: Profile) -> bytes:
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     _legend(ax)
 
+    if drugs:
+        _meds_panel(axes[3], medication, days)
+
     if temps:
-        ax = axes[3]
+        ax = axes[-1]
         _panel(ax, "Temperature, °C", "normal 38.0–39.2 °C")
         temps.sort()
         home = [(t, v) for t, v, d in temps if "клиник" not in d]
@@ -380,7 +413,7 @@ def render_days(start: date, end_day: date, profile: Profile) -> bytes:
         )
         _legend(ax)
 
-    for ax in axes[:3]:
+    for ax in axes[:4 if drugs else 3]:
         ax.set_xlim(-0.6, len(days) - 0.4)
     axes[0].set_ylim(0, max(max(water.values()), water_goal) * 1.2)
     axes[1].set_ylim(0, max(max(kcal.values()), kcal_goal, 1) * 1.2)
