@@ -146,6 +146,9 @@ Royal Canin Sterilised in Gravy (пауч 85 г, «жидкий корм Royal C
 около 68 ккал на пауч: kcal = граммы × 0.8, amount_ml равен граммам, liquid true, \
 water_fraction 0.8. Плотность энергии взята по родственной линейке Indoor Sterilised in Gravy \
 (800 ккал/кг): для самого Sterilised in Gravy производитель её не публикует.
+Royal Canin Hairball Care in Gravy (пауч 85 г; в чате — «Hairball Care», «хэйрбол», «жидкий корм Royal Canin \
+Hairball Care») — по этикетке 779 ккал/кг и влажность 81.1%: kcal = граммы × 0.779, amount_ml равен граммам, \
+liquid true, water_fraction 0.811. «Съела 30 г Hairball Care» → kcal 23.4, amount_ml 30. Целый пауч — 66 ккал.
 Miamor Trinkfein VitalDrink mit Gemüse («Miamor», «Trinkfein», «VitalDrink», «миамор», «виталдринк»; \
 напиток на бульоне, банка 135 мл) — по данным Miamor влажность 96%, белок 1.5%, жир 0.3%. \
 Калорийность производитель не указывает, оценка по составу 0.11 ккал/мл: type food, kcal = мл × 0.11, \
